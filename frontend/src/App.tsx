@@ -7,6 +7,8 @@ import { store } from './store/store';
 import LoginForm from './components/LoginForm';
 import RegisterForm from './components/RegisterForm';
 import Profile from './components/Profile';
+import Dashboard from './components/Dashboard';
+import MainLayout from './components/MainLayout';
 import PrivateRoute from './components/PrivateRoute';
 import './App.css';
 
@@ -20,25 +22,17 @@ const App: React.FC = () => {
               <Route path="/login" element={<LoginForm />} />
               <Route path="/register" element={<RegisterForm />} />
               <Route 
-                path="/profile" 
+                path="/" 
                 element={
                   <PrivateRoute>
-                    <Profile />
+                    <MainLayout />
                   </PrivateRoute>
-                } 
-              />
-              <Route 
-                path="/dashboard" 
-                element={
-                  <PrivateRoute>
-                    <div style={{ padding: '24px' }}>
-                      <h1>Dashboard - Hệ thống Quản lý Logistic</h1>
-                      <p>Chào mừng bạn đến với hệ thống quản lý chuỗi giao nhận logistic!</p>
-                    </div>
-                  </PrivateRoute>
-                } 
-              />
-              <Route path="/" element={<Navigate to="/login" replace />} />
+                }
+              >
+                <Route index element={<Navigate to="/dashboard" replace />} />
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="profile" element={<Profile />} />
+              </Route>
             </Routes>
           </div>
         </Router>

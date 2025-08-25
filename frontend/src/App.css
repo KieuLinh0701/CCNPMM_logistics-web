@@ -32,25 +32,39 @@
   }
 }
 
-/* Custom styles for logistic theme */
-.logistic-gradient {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+/* Custom styles for the layout */
+.ant-layout-sider {
+  box-shadow: 2px 0 8px 0 rgba(29, 35, 41, 0.05);
 }
 
-.logistic-card {
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-  border-radius: 8px;
+.ant-layout-header {
+  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
 }
 
-.logistic-button {
-  border-radius: 6px;
-  font-weight: 500;
+.ant-menu-horizontal {
+  line-height: 64px;
 }
 
-/* Responsive design */
+.ant-menu-horizontal > .ant-menu-item,
+.ant-menu-horizontal > .ant-menu-submenu {
+  border-bottom: none;
+}
+
+.ant-menu-horizontal > .ant-menu-item:hover,
+.ant-menu-horizontal > .ant-menu-submenu:hover {
+  border-bottom: 2px solid #1890ff;
+}
+
+/* Responsive adjustments */
 @media (max-width: 768px) {
-  .ant-card {
-    margin: 16px;
+  .ant-layout-sider {
+    position: fixed !important;
+    height: 100vh;
+    z-index: 999;
+  }
+  
+  .ant-layout-content {
+    margin-left: 0 !important;
   }
 }
 

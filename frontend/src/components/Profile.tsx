@@ -1,15 +1,13 @@
 import React, { useEffect } from 'react';
 import { Card, Descriptions, Button, Avatar, Typography, Row, Col, Tag, message } from 'antd';
-import { UserOutlined, LogoutOutlined, EditOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { UserOutlined, EditOutlined } from '@ant-design/icons';
 import { useAppDispatch, useAppSelector } from '../hooks/redux';
-import { logout, getProfile } from '../store/authSlice';
+import { getProfile } from '../store/authSlice';
 
 const { Title, Text } = Typography;
 
 const Profile: React.FC = () => {
   const dispatch = useAppDispatch();
-  const navigate = useNavigate();
   const { user, loading } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
@@ -17,12 +15,6 @@ const Profile: React.FC = () => {
       dispatch(getProfile());
     }
   }, [dispatch, user]);
-
-  const handleLogout = () => {
-    dispatch(logout());
-    message.success('Đăng xuất thành công!');
-    navigate('/login');
-  };
 
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -61,7 +53,9 @@ const Profile: React.FC = () => {
   }
 
   return (
-    <div style={{ padding: '24px', background: '#f0f2f5', minHeight: '100vh' }}>
+    <div>
+      <Title level={2}>Thông tin cá nhân</Title>
+      
       <Row gutter={[24, 24]} justify="center">
         <Col xs={24} sm={20} md={16} lg={12}>
           <Card>
@@ -83,7 +77,7 @@ const Profile: React.FC = () => {
             </div>
 
             <Descriptions 
-              title="Thông tin cá nhân" 
+              title="Chi tiết thông tin" 
               bordered 
               column={1}
               size="middle"
@@ -133,18 +127,9 @@ const Profile: React.FC = () => {
               <Button 
                 type="primary" 
                 icon={<EditOutlined />}
-                style={{ marginRight: 8 }}
                 onClick={() => message.info('Tính năng đang phát triển')}
               >
                 Chỉnh sửa thông tin
-              </Button>
-              
-              <Button 
-                danger 
-                icon={<LogoutOutlined />}
-                onClick={handleLogout}
-              >
-                Đăng xuất
               </Button>
             </div>
           </Card>
