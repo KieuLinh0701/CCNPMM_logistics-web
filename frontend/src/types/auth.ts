@@ -36,6 +36,21 @@ export interface VerifyOTPData {
   role?: 'admin' | 'manager' | 'staff' | 'driver';
 }
 
+export interface ForgotPasswordData {
+  email: string;
+}
+
+export interface VerifyResetOTPData {
+  email: string;
+  otp: string;
+}
+
+export interface ResetPasswordData {
+  email: string;
+  newPassword: string;
+}
+
+
 export interface AuthResponse {
   success: boolean;
   message: string;

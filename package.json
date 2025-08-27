@@ -10,7 +10,6 @@
     "migrate": "npx sequelize-cli db:migrate",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "type": "module",
   "author": "Your Name",
   "license": "ISC",
   "dependencies": {

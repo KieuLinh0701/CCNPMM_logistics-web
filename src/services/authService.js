@@ -252,10 +252,117 @@ const getUserProfile = async (userId) => {
   });
 };
 
+// Forgot password 
+const forgotPassword = async (email) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      // Find User By Email
+      const user = await db.User.findOne({ where: { email } });
+      if (!user) {
+        resolve({ success: false, message: 'Không tìm thấy tài khoản với email này' });
+        return;
+      }
+
+      // Mark All OTP as used
+      await db.OTP.update(
+        { isUsed: true },
+        { where: { email, type: 'reset', isUsed: false } }
+      );
+
+      // Generate OTP
+      const otp = generateOTP();
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+      // Save OTP to database
+      await db.OTP.create({
+        email: email,
+        otp: otp,
+        type: 'reset',
+        expiresAt: expiresAt
+      });
+
+      // Send OTP via email
+      await sendOTPEmail(email, otp, 'reset');
+
+      resolve({
+        success: true,
+        message: 'Mã OTP đã được gửi đến email của bạn'
+      });
+
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
+
+// Verify Reset OTP
+const verifyResetOTP = async (email, otp) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      // Find OTP in database
+      const otpRecord = await db.OTP.findOne({
+        where: {
+          email: email,
+          otp: otp,
+          type: 'reset',
+          isUsed: false,
+          expiresAt: { [db.Sequelize.Op.gt]: new Date() }
+        }
+      });
+
+      if (!otpRecord) {
+        resolve({ success: false, message: 'Mã OTP không hợp lệ hoặc đã hết hạn' });
+        return;
+      }
+
+      // Mark OTP as used
+      await otpRecord.update({ isUsed: true });
+
+      resolve({
+        success: true,
+        message: 'Xác thực OTP thành công, bạn có thể đặt lại mật khẩu.'
+      });      
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+// Reset Password
+const resetPassword = async (email, newPassword) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      // Hash password
+      const hashedPassword = hashPassword(newPassword);
+
+      // Update Password
+      const [rowsUpdated] = await db.User.update(
+        { password: hashedPassword },
+        { where: { email: email } }
+      );
+
+      // Check If User Exists
+      if (rowsUpdated === 0) {
+        resolve({ success: false, message: 'Không tìm thấy tài khoản để đặt lại mật khẩu' });
+        return;
+      }
+
+      resolve({ success: true, message: 'Đặt lại mật khẩu thành công' });
+      
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
 export default {
   registerUser,
   verifyOTPAndCreateUser,
   loginUser,
   getUserProfile,
-  generateToken
+  generateToken,
+  forgotPassword,  
+  verifyResetOTP,
+  resetPassword
 };

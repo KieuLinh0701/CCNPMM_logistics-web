@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { RegisterData, LoginData, VerifyOTPData, AuthResponse } from '../types/auth';
+import { RegisterData, LoginData, VerifyOTPData, AuthResponse, ForgotPasswordData, VerifyResetOTPData, ResetPasswordData } from '../types/auth';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8088/api';
 
@@ -64,10 +64,24 @@ export const authAPI = {
     const response = await api.get<AuthResponse>('/auth/profile');
     return response.data;
   },
+
+  // Forgot password
+  forgotPassword: async (data: ForgotPasswordData): Promise<AuthResponse> => {
+    const response = await api.post<AuthResponse>('/auth/password/forgot', data);
+    return response.data;
+  },
+
+  // Verify reset otp
+  verifyResetOTP: async (data: VerifyResetOTPData): Promise<AuthResponse> => {
+    const response = await api.post<AuthResponse>('/auth/password/verify-otp', data);
+    return response.data;
+  },
+
+  // Reset password
+  resetPassword: async (data: ResetPasswordData): Promise<AuthResponse> => {
+    const response = await api.post<AuthResponse>('/auth/password/reset', data);
+    return response.data;
+  },
 };
 
 export default api;
-
-
-
-

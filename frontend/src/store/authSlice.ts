@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { authAPI } from '../services/api';
-import { AuthState, RegisterData, LoginData, VerifyOTPData, User } from '../types/auth';
+import { AuthState, RegisterData, LoginData, VerifyOTPData, User, ForgotPasswordData, VerifyResetOTPData, ResetPasswordData } from '../types/auth';
 
 const initialState: AuthState = {
   user: null,
@@ -71,6 +71,48 @@ export const getProfile = createAsyncThunk(
     } catch (error: any) {
       console.error('GetProfile API error:', error.response?.data || error.message);
       return rejectWithValue(error.response?.data?.message || 'Lấy thông tin profile thất bại');
+    }
+  }
+);
+
+export const forgotPassword = createAsyncThunk(
+  'auth/password/forgot',
+  async (data: ForgotPasswordData, { rejectWithValue }) => {
+    try {
+      const response = await authAPI.forgotPassword(data);
+      console.log('Forgot Password API response:', response);
+      return response;
+    } catch (error: any) {
+      console.error('Forgot Password API error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data?.message || 'Email không hợp lệ hoặc không tồn tại');
+    }
+  }
+);
+
+export const verifyResetOTP = createAsyncThunk(
+  'auth/password/verify-otp',
+  async (data: VerifyResetOTPData, { rejectWithValue }) => {
+    try {
+      const response = await authAPI.verifyResetOTP(data);
+      console.log('Verify Reset OTP API response:', response);
+      return response;
+    } catch (error: any) {
+      console.error('Verify Reset OTP API error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data?.message || 'Xác thực OTP thất bại');
+    }
+  }
+);
+
+export const resetPassword = createAsyncThunk(
+  'auth/password/reset',
+  async (data: ResetPasswordData, { rejectWithValue }) => {
+    try {
+      const response = await authAPI.resetPassword(data);
+      console.log('Reset Password API response:', response);
+      return response;
+    } catch (error: any) {
+      console.error('Reset Password API error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data?.message || 'Đặt lại mật khẩu thất bại');
     }
   }
 );
@@ -163,6 +205,48 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       });
+
+      // Forgot Password
+      builder
+        .addCase(forgotPassword.pending, (state) => {
+          state.loading = true;
+          state.error = null;
+        })
+        .addCase(forgotPassword.fulfilled, (state) => {
+          state.loading = false;
+        })
+        .addCase(forgotPassword.rejected, (state, action) => {
+          state.loading = false;
+          state.error = action.payload as string;
+        });
+
+      // Verify Reset OTP
+      builder
+        .addCase(verifyResetOTP.pending, (state) => {
+          state.loading = true;
+          state.error = null;
+        })
+        .addCase(verifyResetOTP.fulfilled, (state) => {
+          state.loading = false;
+        })
+        .addCase(verifyResetOTP.rejected, (state, action) => {
+          state.loading = false;
+          state.error = action.payload as string;
+        });
+
+      // Reset Password
+      builder
+        .addCase(resetPassword.pending, (state) => {
+          state.loading = true;
+          state.error = null;
+        })
+        .addCase(resetPassword.fulfilled, (state) => {
+          state.loading = false;
+        })
+        .addCase(resetPassword.rejected, (state, action) => {
+          state.loading = false;
+          state.error = action.payload as string;
+        });
   },
 });
 

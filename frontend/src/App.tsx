@@ -7,10 +7,11 @@ import { store } from './store/store';
 import LoginForm from './components/LoginForm';
 import RegisterForm from './components/RegisterForm';
 import Profile from './components/Profile';
-import Dashboard from './components/Dashboard';
-import MainLayout from './components/MainLayout';
 import PrivateRoute from './components/PrivateRoute';
 import './App.css';
+import ForgotPasswordForm from './components/ForgotPasswordForm';
+import Dashboard from './components/Dashboard';
+import MainLayout from './components/MainLayout';
 
 const App: React.FC = () => {
   return (
@@ -21,6 +22,7 @@ const App: React.FC = () => {
             <Routes>
               <Route path="/login" element={<LoginForm />} />
               <Route path="/register" element={<RegisterForm />} />
+              <Route path="/forgot-password" element={<ForgotPasswordForm />} />
               <Route 
                 path="/" 
                 element={

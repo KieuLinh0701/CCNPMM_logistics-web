@@ -11,6 +11,9 @@ let initApiRoutes = (app) => {
     router.post('/auth/verify-otp', authController.verifyOTP);
     router.post('/auth/login', authController.login);
     router.get('/auth/profile', verifyToken, authController.getProfile);
+    router.post('/auth/password/forgot', authController.forgotPassword);
+    router.post('/auth/password/verify-otp', authController.verifyResetOTP);
+    router.post('/auth/password/reset', authController.resetPassword);
 
     // Test routes
     router.get('/test', (req, res) => {

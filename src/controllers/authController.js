@@ -116,9 +116,90 @@ const getProfile = async (req, res) => {
   }
 };
 
+// Forgot Password
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    // Validation
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng nhập email'
+      });
+    }
+
+    const result = await authService.forgotPassword(email);
+
+    return res.status(200).json(result);
+
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi server'
+    });
+  }
+};
+
+// verify Reset OTP
+const verifyResetOTP = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    // Validation
+    if (!otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng nhập mã OTP'
+      });
+    }
+
+    const result = await authService.verifyResetOTP(email, otp);
+
+    return res.status(200).json(result);
+
+  } catch (error) {
+    console.error('Verify reset OTP error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi server'
+    });
+  }
+};
+
+// Reset Password
+const resetPassword = async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+
+    // Validation
+    if (!newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng nhập mật khẩu'
+      });
+    }
+
+    const result = await authService.resetPassword(email, newPassword);
+
+    return res.status(200).json(result);
+
+  } catch (error) {
+    console.error('Reset password error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi server'
+    });
+  }
+};
+
 export default {
   register,
   verifyOTP,
   login,
-  getProfile
+  getProfile,
+  forgotPassword,
+  verifyResetOTP,
+  resetPassword
 };

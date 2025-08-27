@@ -18,7 +18,7 @@ export default (sequelize) => {
         allowNull: false,
       },
       type: {
-        type: DataTypes.ENUM('register', 'forgot_password'),
+        type: DataTypes.ENUM('register', 'reset'),
         allowNull: false,
       },
       expiresAt: {

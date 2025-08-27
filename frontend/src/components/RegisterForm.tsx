@@ -18,11 +18,11 @@ const RegisterForm: React.FC = () => {
   const [registerData, setRegisterData] = useState<RegisterData | null>(null);
   const [otpSent, setOtpSent] = useState(false);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/dashboard');
-    }
-  }, [isAuthenticated, navigate]);
+  // useEffect(() => {
+  //   if (isAuthenticated) {
+  //     navigate('/dashboard');
+  //   }
+  // }, [isAuthenticated, navigate]);
 
   useEffect(() => {
     if (error) {
