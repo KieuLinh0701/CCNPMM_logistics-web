@@ -1,42 +1,54 @@
+// App.tsx
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { ConfigProvider } from 'antd';
 import viVN from 'antd/locale/vi_VN';
 import { store } from './store/store';
-import LoginForm from './components/LoginForm';
-import RegisterForm from './components/RegisterForm';
-import Profile from './components/Profile';
-import PrivateRoute from './components/PrivateRoute';
+import LoginForm from './pages/LoginForm';
+import RegisterForm from './pages/RegisterForm';
+import Home from './pages/Home';
 import './App.css';
-import ForgotPasswordForm from './components/ForgotPasswordForm';
-import Dashboard from './components/Dashboard';
-import MainLayout from './components/MainLayout';
+import AdminLayout from './layouts/AdminLayout';
+import AdminDashboard from './pages/admin/Dashboard';
+import ManagerDashboard from './pages/manager/Dashboard';
+import ManagerLayout from './layouts/ManagerLayout';
+import { PrivateRoute } from './components/PrivateRoute';
+import ForgotPasswordForm from './pages/ForgotPasswordForm';
+import { PublicRoute } from './components/PublicRoute';
+import Profile from './pages/Profile';
 
 const App: React.FC = () => {
+  const user = JSON.parse(localStorage.getItem('user') || 'null');
+  const isAuthenticated = !!user?.token;
+
   return (
     <Provider store={store}>
       <ConfigProvider locale={viVN}>
         <Router>
-          <div className="App">
-            <Routes>
-              <Route path="/login" element={<LoginForm />} />
-              <Route path="/register" element={<RegisterForm />} />
-              <Route path="/forgot-password" element={<ForgotPasswordForm />} />
-              <Route 
-                path="/" 
-                element={
-                  <PrivateRoute>
-                    <MainLayout />
-                  </PrivateRoute>
-                }
-              >
-                <Route index element={<Navigate to="/dashboard" replace />} />
-                <Route path="dashboard" element={<Dashboard />} />
-                <Route path="profile" element={<Profile />} />
-              </Route>
-            </Routes>
-          </div>
+          <Routes>
+            {/* Public */}
+            <Route path="/" element={<Navigate to="/home" replace />} />
+
+            {/* Trang Home */}
+            <Route path="/home" element={<Home />} />
+
+            {/* Login/Register */}
+            <Route path="/login" element={<PublicRoute><LoginForm /></PublicRoute>} />
+            <Route path="/register" element={<PublicRoute><RegisterForm /></PublicRoute>} />
+            <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordForm /></PublicRoute>} />
+
+            <Route path="/admin" element={<PrivateRoute roles={["admin"]}><AdminLayout /></PrivateRoute>}>
+              <Route path="dashboard" element={<AdminDashboard />} />
+              <Route path="profile" element={<Profile />} />
+            </Route>
+
+            <Route path="/manager" element={<PrivateRoute roles={["manager"]}><ManagerLayout /></PrivateRoute>}>
+              <Route path="dashboard" element={<ManagerDashboard />} />
+              <Route path="profile" element={<Profile />} />
+            </Route>
+
+          </Routes>
         </Router>
       </ConfigProvider>
     </Provider>
@@ -44,4 +56,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-

@@ -15,13 +15,13 @@ interface LoginFormData {
 const LoginForm: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { loading, error, isAuthenticated } = useAppSelector((state) => state.auth);
+  const { loading, error, isAuthenticated, user } = useAppSelector((state) => state.auth);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/dashboard');
-    }
-  }, [isAuthenticated, navigate]);
+  // useEffect(() => {
+  //   if (isAuthenticated) {
+  //     navigate('/dashboard');
+  //   }
+  // }, [isAuthenticated, navigate]);
 
   useEffect(() => {
     if (error) {
@@ -33,9 +33,19 @@ const LoginForm: React.FC = () => {
   const onFinish = async (values: LoginFormData) => {
     try {
       const result = await dispatch(login(values)).unwrap();
-      if (result.success) {
+      if (result.success && result.user) {
         message.success('Đăng nhập thành công!');
-        navigate('/dashboard');
+
+        switch (result.user.role) {
+          case 'admin':
+            navigate('/admin/dashboard');
+            break;
+          case 'manager':
+            navigate('/manager/dashboard');
+            break;
+          default:
+            navigate('/');
+        }
       }
     } catch (error) {
       // Error is handled by the slice
@@ -121,4 +131,3 @@ const LoginForm: React.FC = () => {
 };
 
 export default LoginForm;
-

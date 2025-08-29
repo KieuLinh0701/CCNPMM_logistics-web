@@ -55,9 +55,18 @@ const RegisterForm: React.FC = () => {
       };
 
       const result = await dispatch(verifyOTP(verifyData)).unwrap();
-      if (result.success) {
+      if (result.success && result.user) {
         message.success('Đăng ký thành công!');
-        navigate('/dashboard');
+        switch (result.user.role) {
+          case 'admin':
+            navigate('/admin/dashboard');
+            break;
+          case 'manager':
+            navigate('/manager/dashboard');
+            break;
+          default:
+            navigate('/');
+        }
       }
     } catch (error) {
       // Error is handled by the slice

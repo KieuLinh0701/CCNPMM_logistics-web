@@ -1,20 +1,19 @@
-import React from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAppSelector } from '../hooks/redux';
+import { Navigate } from "react-router-dom";
+import { useAppSelector } from "../hooks/redux";
+import Forbidden from "../pages/Forbidden";
 
-interface PrivateRouteProps {
-  children: React.ReactNode;
-}
+export const PrivateRoute = ({
+  children,
+  roles,
+}: {
+  children: JSX.Element;
+  roles?: string[];
+}) => {
+  const { user, isAuthenticated } = useAppSelector((state) => state.auth);
 
-const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
-  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  if (!isAuthenticated || !user) return <Navigate to="/" replace />;
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+  if (roles && !roles.includes(user.role)) return <Forbidden />;
 
-  return <>{children}</>;
+  return children;
 };
-
-export default PrivateRoute;
-

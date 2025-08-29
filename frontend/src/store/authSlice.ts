@@ -2,8 +2,10 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { authAPI } from '../services/api';
 import { AuthState, RegisterData, LoginData, VerifyOTPData, User, ForgotPasswordData, VerifyResetOTPData, ResetPasswordData } from '../types/auth';
 
+const savedUser = localStorage.getItem('user');
+
 const initialState: AuthState = {
-  user: null,
+  user: savedUser ? JSON.parse(savedUser) : null,
   token: localStorage.getItem('token'),
   isAuthenticated: !!localStorage.getItem('token'),
   loading: false,
@@ -250,5 +252,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout, clearError, setUser } = authSlice.actions;
+export const { logout, clearError, setUser  } = authSlice.actions;
 export default authSlice.reducer;

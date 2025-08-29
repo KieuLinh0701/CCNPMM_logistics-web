@@ -10,7 +10,7 @@ const { Title, Text } = Typography;
 const ForgotPasswordForm: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { loading, error, isAuthenticated } = useAppSelector((state) => state.auth);
+  const { loading, error, isAuthenticated, user } = useAppSelector((state) => state.auth);
 
   const [currentStep, setCurrentStep] = useState(0);
   const [email, setEmail] = useState('');
@@ -18,12 +18,6 @@ const ForgotPasswordForm: React.FC = () => {
 
   const [otpCountdown, setOtpCountdown] = useState(300);
   const [canResend, setCanResend] = useState(false);
-
-  useEffect(() => {
-      if (isAuthenticated) {
-        navigate('/dashboard');
-      }
-    }, [isAuthenticated, navigate]);
 
   useEffect(() => {
     if (error) {
@@ -70,10 +64,20 @@ const ForgotPasswordForm: React.FC = () => {
   const handleOtpSubmit = async (values: { otp: string }) => {
     try {
       const result = await dispatch(verifyResetOTP({ email, otp: values.otp })).unwrap();
-      if (result.success) {
+      if (result.success && result.user) {
         setOtpVerified(true);
         setCurrentStep(2);
         message.success(result.message || 'Xác thực OTP thành công!');
+        switch (result.user.role) {
+          case 'admin':
+            navigate('/admin/dashboard');
+            break;
+          case 'manager':
+            navigate('/manager/dashboard');
+            break;
+          default:
+            navigate('/');
+        }
       } else {
         message.error(result.message || 'Mã OTP không hợp lệ hoặc đã hết hạn!');
       }
