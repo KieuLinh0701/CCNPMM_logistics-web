@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react';
-import { Form, Input, Button, Card, message, Typography } from 'antd';
-import { UserOutlined, LockOutlined } from '@ant-design/icons';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '../hooks/redux';
-import { login, clearError } from '../store/authSlice';
+import React, { useEffect } from "react";
+import { Form, Input, Button, Card, message, Typography } from "antd";
+import { UserOutlined, LockOutlined } from "@ant-design/icons";
+import { useNavigate, Link } from "react-router-dom";
+import { useAppDispatch, useAppSelector } from "../hooks/redux";
+import { login, clearError } from "../store/authSlice";
+import bg1 from "../assets/images/bg-1.jpg";
 
 const { Title, Text } = Typography;
 
@@ -15,13 +16,7 @@ interface LoginFormData {
 const LoginForm: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { loading, error, isAuthenticated, user } = useAppSelector((state) => state.auth);
-
-  // useEffect(() => {
-  //   if (isAuthenticated) {
-  //     navigate('/dashboard');
-  //   }
-  // }, [isAuthenticated, navigate]);
+  const { loading, error } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
     if (error) {
@@ -34,97 +29,168 @@ const LoginForm: React.FC = () => {
     try {
       const result = await dispatch(login(values)).unwrap();
       if (result.success && result.user) {
-        message.success('Đăng nhập thành công!');
-
+        message.success("Đăng nhập thành công!");
         switch (result.user.role) {
-          case 'admin':
-            navigate('/admin/dashboard');
+          case "admin":
+            navigate("/admin/dashboard");
             break;
-          case 'manager':
-            navigate('/manager/dashboard');
+          case "manager":
+            navigate("/manager/dashboard");
             break;
           default:
-            navigate('/');
+            navigate("/");
         }
       }
     } catch (error) {
-      // Error is handled by the slice
+      // handled by slice
     }
   };
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-    }}>
-      <Card style={{ width: 400, boxShadow: '0 4px 8px rgba(0,0,0,0.1)' }}>
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <Title level={2} style={{ color: '#1890ff', marginBottom: 8 }}>
-            Hệ thống Quản lý Logistic
-          </Title>
-          <Text type="secondary">Đăng nhập vào hệ thống</Text>
-        </div>
-
-        <Form
-          name="login"
-          onFinish={onFinish}
-          autoComplete="off"
-          layout="vertical"
-        >
-          <Form.Item
-            name="email"
-            label="Email"
-            rules={[
-              { required: true, message: 'Vui lòng nhập email!' },
-              { type: 'email', message: 'Email không hợp lệ!' }
-            ]}
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        background: "#1C3D90",
+        padding: 20,
+      }}
+    >
+      <Card
+        style={{
+          width: "100%",
+          maxWidth: 1100,
+          borderRadius: 20,
+          overflow: "hidden",
+          boxShadow: "0 10px 25px rgba(0,0,0,0.25)",
+        }}
+        bodyStyle={{ padding: 0 }}
+      >
+        <div style={{ display: "flex", minHeight: 550 }}>
+          {/* Left Column - Image */}
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              padding: 20,
+            }}
           >
-            <Input 
-              prefix={<UserOutlined />} 
-              placeholder="Nhập email của bạn"
-              size="large"
+            <img
+              src={bg1}
+              alt="Login"
+              style={{
+                width: "85%",
+                maxWidth: 400,
+                height: "auto",
+                objectFit: "contain",
+              }}
             />
-          </Form.Item>
-
-          <Form.Item
-            name="password"
-            label="Mật khẩu"
-            rules={[
-              { required: true, message: 'Vui lòng nhập mật khẩu!' },
-              { min: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự!' }
-            ]}
-          >
-            <Input.Password
-              prefix={<LockOutlined />}
-              placeholder="Nhập mật khẩu của bạn"
-              size="large"
-            />
-          </Form.Item>
-
-          <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={loading}
-              size="large"
-              style={{ width: '100%' }}
-            >
-              Đăng nhập
-            </Button>
-          </Form.Item>
-
-          <div style={{ textAlign: 'center' }}>
-            <Text type="secondary">
-              Chưa có tài khoản?{' '}
-              <Link to="/register" style={{ color: '#1890ff' }}>
-                Đăng ký ngay
-              </Link>
-            </Text>
           </div>
-        </Form>
+
+          {/* Right Column - Form */}
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "40px 50px",
+              backgroundColor: "#fff",
+            }}
+          >
+            <div style={{ width: "100%", maxWidth: 400 }}>
+              <div style={{ textAlign: "center", marginBottom: 30 }}>
+                <Title level={2} style={{ color: "#1C3D90", margin: 0 }}>
+                  My Website
+                </Title>
+                <Text type="secondary">
+                  Đăng nhập để tiếp tục trải nghiệm
+                </Text>
+              </div>
+
+              <Form
+                name="login"
+                onFinish={onFinish}
+                autoComplete="off"
+                layout="vertical"
+              >
+                <Form.Item
+                  name="email"
+                  label={<span style={{ color: "#000" }}>Email</span>}
+                  rules={[
+                    { required: true, message: "Vui lòng nhập email!" },
+                    { type: "email", message: "Email không hợp lệ!" },
+                  ]}
+                >
+                  <Input
+                    prefix={<UserOutlined style={{ color: "#1C3D90" }} />}
+                    placeholder="Nhập email của bạn"
+                    size="large"
+                    style={{
+                      backgroundColor: "#f5f7fb",
+                      borderRadius: 8,
+                    }}
+                  />
+                </Form.Item>
+
+                <Form.Item
+                  name="password"
+                  label={<span style={{ color: "#000" }}>Mật khẩu</span>}
+                  rules={[
+                    { required: true, message: "Vui lòng nhập mật khẩu!" },
+                    { min: 6, message: "Mật khẩu phải có ít nhất 6 ký tự!" },
+                  ]}
+                >
+                  <Input.Password
+                    prefix={<LockOutlined style={{ color: "#1C3D90" }} />}
+                    placeholder="Nhập mật khẩu của bạn"
+                    size="large"
+                    style={{
+                      backgroundColor: "#f5f7fb",
+                      borderRadius: 8,
+                    }}
+                  />
+                </Form.Item>
+
+                <div style={{ textAlign: "right", marginBottom: 16 }}>
+                  <Link to="/forgot-password" style={{ color: "#1C3D90" }}>
+                    Quên mật khẩu?
+                  </Link>
+                </div>
+
+                <Form.Item>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    loading={loading}
+                    size="large"
+                    style={{
+                      width: "100%",
+                      backgroundColor: "#1C3D90",
+                      border: "none",
+                      borderRadius: 8,
+                      fontWeight: 600,
+                    }}
+                  >
+                    Đăng nhập
+                  </Button>
+                </Form.Item>
+
+                <div style={{ textAlign: "center" }}>
+                  <Text>
+                    Chưa có tài khoản?{" "}
+                    <Link to="/register" style={{ color: "#1C3D90" }}>
+                      Đăng ký ngay
+                    </Link>
+                  </Text>
+                </div>
+              </Form>
+            </div>
+          </div>
+        </div>
       </Card>
     </div>
   );
