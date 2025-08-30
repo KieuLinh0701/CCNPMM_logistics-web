@@ -71,7 +71,7 @@ const RegisterForm: React.FC = () => {
                 label="Họ"
                 rules={[{ required: true, message: "Vui lòng nhập họ!" }]}
               >
-                <Input prefix={<UserOutlined />} placeholder="Nhập họ của bạn" size="large" />
+                <Input prefix={<UserOutlined style={{ color: "#1C3D90" }}/>} placeholder="Nhập họ của bạn" size="large" />
               </Form.Item>
             </Col>
             <Col span={12}>
@@ -80,7 +80,7 @@ const RegisterForm: React.FC = () => {
                 label="Tên"
                 rules={[{ required: true, message: "Vui lòng nhập tên!" }]}
               >
-                <Input prefix={<UserOutlined />} placeholder="Nhập tên của bạn" size="large" />
+                <Input prefix={<UserOutlined style={{ color: "#1C3D90" }}/>} placeholder="Nhập tên của bạn" size="large" />
               </Form.Item>
             </Col>
           </Row>
@@ -95,7 +95,7 @@ const RegisterForm: React.FC = () => {
                   { type: "email", message: "Email không hợp lệ!" },
                 ]}
               >
-                <Input prefix={<MailOutlined />} placeholder="Nhập email" size="large" />
+                <Input prefix={<MailOutlined style={{ color: "#1C3D90" }}/>} placeholder="Nhập email" size="large" />
               </Form.Item>
             </Col>
             <Col span={12}>
@@ -107,7 +107,7 @@ const RegisterForm: React.FC = () => {
                   { pattern: /^[0-9]{10,11}$/, message: "Số điện thoại không hợp lệ!" },
                 ]}
               >
-                <Input prefix={<PhoneOutlined />} placeholder="Nhập số điện thoại" size="large" />
+                <Input prefix={<PhoneOutlined style={{ color: "#1C3D90" }}/>} placeholder="Nhập số điện thoại" size="large" />
               </Form.Item>
             </Col>
           </Row>
@@ -122,7 +122,7 @@ const RegisterForm: React.FC = () => {
                   { min: 6, message: "Mật khẩu ít nhất 6 ký tự!" },
                 ]}
               >
-                <Input.Password prefix={<LockOutlined />} placeholder="Nhập mật khẩu" size="large" />
+                <Input.Password prefix={<LockOutlined style={{ color: "#1C3D90" }}/>} placeholder="Nhập mật khẩu" size="large" />
               </Form.Item>
             </Col>
             <Col span={12}>
@@ -162,7 +162,7 @@ const RegisterForm: React.FC = () => {
               { len: 6, message: "Mã OTP phải có 6 ký tự!" },
             ]}
           >
-            <Input prefix={<SafetyOutlined />} placeholder="Nhập mã OTP 6 số" size="large" maxLength={6} />
+            <Input prefix={<SafetyOutlined style={{ color: "#1C3D90" }}/>} placeholder="Nhập mã OTP 6 số" size="large" maxLength={6} />
           </Form.Item>
           <Form.Item>
             <Button

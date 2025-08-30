@@ -15,14 +15,24 @@ const Header: React.FC<HeaderProps> = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+
   const handleLogout = () => {
     dispatch(logout()); // xoá user, token, isAuthenticated + localStorage
     navigate("/login"); // chuyển về trang login
   };
 
+  const handleProfile = () => {
+    if (user?.role) {
+      navigate(`/${user.role}/profile`);
+    } else {
+      navigate("/profile"); 
+    }
+  };
+
   const menu = (
     <Menu>
-      <Menu.Item key="profile" icon={<ProfileOutlined />}>
+      <Menu.Item key="profile" icon={<ProfileOutlined />} onClick={handleProfile}>
         Profile
       </Menu.Item>
       <Menu.Item key="logout" icon={<LogoutOutlined />} onClick={handleLogout}>
@@ -34,7 +44,7 @@ const Header: React.FC<HeaderProps> = () => {
   return (
     <AntHeader
       style={{
-        background: "#096dd9", // xanh trầm hơn
+        background: "#1C3D90", // xanh trầm hơn
         padding: "0 24px",
         display: "flex",
         justifyContent: "space-between",
@@ -60,7 +70,12 @@ const Header: React.FC<HeaderProps> = () => {
 
         <Dropdown overlay={menu} placement="bottomRight" trigger={["click"]}>
           <Space style={{ cursor: "pointer", color: "#fff" }}>
-            <Avatar icon={<UserOutlined />} style={{ backgroundColor: "#1890ff" }} />
+            <Avatar icon={<UserOutlined />} 
+            style={{
+              background: "linear-gradient(135deg, #3a7bd5, #00d2ff)",
+              color: "#fff",
+              fontWeight: "bold",
+            }}/>
             <Text style={{ color: "#fff" }}>Kiều Linh</Text>
           </Space>
         </Dropdown>
