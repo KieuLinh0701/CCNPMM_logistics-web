@@ -16,6 +16,23 @@ export interface Employee {
   };
 }
 
+export interface ImportResult {
+  email: string;
+  success: boolean;
+  message: string;
+  employee?: Employee | null;
+}
+
+export interface EmployeeResponseInner {
+  success: boolean;
+  message?: string;
+  totalImported?: number;
+  totalFailed?: number;
+  createdEmployees?: string[];
+  failedEmployees?: { email: string; message: string }[];
+  results?: ImportResult[];
+}
+
 export interface EmployeeResponse {
   success: boolean;
   message?: string;
@@ -26,6 +43,9 @@ export interface EmployeeResponse {
   total?: number;
   page?: number;
   limit?: number;
+
+  // Cho importEmployees
+  result?: EmployeeResponseInner; 
 }
 
 export interface EmployeeCheckResult {
@@ -54,4 +74,11 @@ export interface EmployeeState {
   loading: boolean;
   error: string | null;
   checkResult: EmployeeCheckResult | null;
+
+  // Kết quả import
+  importResults: ImportResult[] | null;
+  totalImported?: number;
+  totalFailed?: number;
+  createdEmployees?: string[];
+  failedEmployees?: { email: string; message: string }[];
 }

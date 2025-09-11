@@ -204,49 +204,53 @@ const employeeService = {
         }
       }
 
-      if (user.employee) {
-        if (user.employee.officeId === officeId) {
-          // Cùng office
-          if (user.employee.status !== "Leave") {
-            return {
-              success: false,
-              exists: true,
-              isEmployee: true,
-              user,
-              message: `Người này đang là nhân viên tại bưu cục với chức vụ ${user.role} (trạng thái: ${user.employee.status})`
-            };
-          } else {
-            return {
-              success: true,
-              exists: true,
-              isEmployee: false,
-              user,
-              message: "Người này từng làm ở bưu cục này (đã nghỉ), có thể thêm lại."
-            };
-          }
+      // Kiểm tra tất cả employee của user
+      const allEmployees = await db.Employee.findAll({ where: { userId: user.id } });
+
+      // Xem có active không
+      const activeEmployee = allEmployees.find(e => e.status !== "Leave");
+      if (activeEmployee) {
+        if (activeEmployee.officeId === officeId) {
+          return {
+            success: false,
+            exists: true,
+            user,
+            message: `Người này đang là nhân viên tại bưu cục hiện tại, không thể thêm`
+          };
         } else {
-          // Office khác
-          if (user.employee.status !== "Leave") {
-            return {
-              success: false,
-              exists: true,
-              isEmployee: true,
-              user,
-              message: `Người này đang là nhân viên tại bưu cục ${user.employee.officeId} với chức vụ ${user.role} (trạng thái: ${user.employee.status}), không thể thêm vào bưu cục mới khi chưa rời bưu cục cũ.`
-            };
-          } else {
-            return {
-              success: true,
-              exists: true,
-              isEmployee: false,
-              user,
-              message: "Người này từng làm ở bưu cục khác (đã nghỉ), có thể thêm vào bưu cục mới."
-            };
-          }
+          return {
+            success: false,
+            exists: true,
+            user,
+            message: `Người này đang là nhân viên tại bưu cục ${activeEmployee.officeId}, không thể thêm vào bưu cục này`
+          };
         }
       }
 
-      // Trường hợp user chưa là nhân viên (role=user)
+      // Nếu không có active → check từng office đã leave trước đó
+      const previousSameOffice = allEmployees.find(e => e.officeId === officeId && e.status === "Leave");
+      if (previousSameOffice) {
+        return {
+          success: true,
+          exists: true,
+          isEmployee: false,
+          user,
+          message: "Người này từng làm ở bưu cục này (đã nghỉ), có thể thêm lại."
+        };
+      }
+
+      const previousOtherOffice = allEmployees.find(e => e.officeId !== officeId && e.status === "Leave");
+      if (previousOtherOffice) {
+        return {
+          success: true,
+          exists: true,
+          isEmployee: false,
+          user,
+          message: "Người này từng làm ở bưu cục khác (đã nghỉ), có thể thêm vào bưu cục mới."
+        };
+      }
+
+      // User chưa từng là nhân viên
       return {
         success: true,
         exists: true,
@@ -254,6 +258,7 @@ const employeeService = {
         user,
         message: "Người này đã có tài khoản, có thể thêm làm nhân viên"
       };
+
     } catch (err) {
       console.error("Check before add error:", err);
       return { success: false, message: "Lỗi server khi kiểm tra trước khi thêm" };
@@ -463,6 +468,59 @@ const employeeService = {
       await t.rollback();
       console.error('Update Employee error:', error);
       return { success: false, message: 'Lỗi server khi cập nhật nhân viên' };
+    }
+  },
+
+  // Import Add Employees
+  async importEmployees(userId, employees) {
+    const importedResults = [];
+    try {
+      if (!Array.isArray(employees) || employees.length === 0) {
+        return { success: false, message: "Không có dữ liệu nhân viên để import" };
+      }
+
+      for (const emp of employees) {
+        const { user, hireDate, shift, status, office } = emp;
+
+        // 1. Check trước khi thêm
+        const checkResult = await this.checkBeforeAddEmployee(userId, user.email, user.phoneNumber, office?.id);
+
+        if (!checkResult.success) {
+          importedResults.push({
+            email: user.email,
+            success: false,
+            message: checkResult.message,
+          });
+          continue;
+        }
+
+        // 2. Thêm nhân viên
+        const addResult = await this.addEmployee(userId, hireDate, shift, status, user, office);
+
+        importedResults.push({
+          email: user.email,
+          success: addResult.success,
+          message: addResult.message,
+          employee: addResult.employee || null,
+        });
+      }
+
+      // Phân loại kết quả
+      const createdEmployees = importedResults.filter(r => r.success).map(r => r.email);
+      const failedEmployees = importedResults.filter(r => !r.success).map(r => ({ email: r.email, message: r.message }));
+
+      return {
+        success: true,
+        message: `Import hoàn tất: ${createdEmployees.length} nhân viên mới, ${failedEmployees.length} lỗi`,
+        totalImported: createdEmployees.length,
+        totalFailed: failedEmployees.length,
+        createdEmployees,
+        failedEmployees,
+        results: importedResults,
+      };
+    } catch (error) {
+      console.error("Import Employees error:", error);
+      return { success: false, message: "Lỗi server khi import nhân viên" };
     }
   },
 };

@@ -192,6 +192,23 @@ export const employeeAPI = {
       throw new Error(error.response?.data?.message || 'Lỗi khi cập nhật thông tin nhân viên');
     }
   },
+
+  // Import Employees
+  importEmployees: async (employees: Partial<Employee>[]): Promise<EmployeeResponse> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("Không tìm thấy token xác thực");
+
+    try {
+      const response = await api.post<EmployeeResponse>(
+        `/employees/import`, 
+        { employees }, 
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi import nhân viên');
+    }
+  },
 };
 
 export default api;

@@ -34,6 +34,7 @@ import {
   getStatusEnum,
   checkBeforeAddEmployee,
   updateEmployee,
+  importEmployees,
 } from "../../store/employeeSlice";
 import { getAssignableRoles } from "../../store/authSlice";
 import { getByUserId } from "../../store/officeSlice";
@@ -55,7 +56,8 @@ const EmployeeForm = () => {
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(
     null
   );
-
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importResults, setImportResults] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [hover, setHover] = useState(false);
@@ -168,16 +170,16 @@ const EmployeeForm = () => {
   };
 
   // Nhập Excel
-  const handleExcelUpload = (file: File) => {
+  const handleExcelUpload = async (file: File) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       const data = new Uint8Array(e.target?.result as ArrayBuffer);
       const workbook = XLSX.read(data, { type: "array" });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const rows: any[] = XLSX.utils.sheet_to_json(worksheet);
 
-      const newEmployees: Employee[] = rows.map((row, index) => ({
+      const newEmployees: Partial<Employee>[] = rows.map((row) => ({
         shift: row["Ca làm"] || "Full Day",
         status: row["Trạng thái"] || "Active",
         hireDate: row["Ngày tuyển dụng"]
@@ -185,18 +187,39 @@ const EmployeeForm = () => {
           : new Date(),
         user: {
           id: 0,
-          firstName: row["Họ"] || "",
-          lastName: row["Tên"] || "",
+          firstName: row["Tên"] || "",
+          lastName: row["Họ"] || "",
           email: row["Email"] || "",
           phoneNumber: row["Số điện thoại"] || "",
           role: row["Chức vụ"] || "Shipper",
         },
       }));
 
-      message.success(
-        `Nhập thành công ${newEmployees.length} nhân viên từ Excel!`
-      );
-      // dispatch(importEmployees(newEmployees)) nếu muốn lưu DB
+      if (newEmployees.length === 0) {
+        message.error("Không tìm thấy dữ liệu nhân viên trong file Excel!");
+        return;
+      }
+
+      try {
+        const resultAction = await dispatch(importEmployees({ employees: newEmployees })).unwrap();
+
+        // Lấy object result nested từ backend
+        const importResultData = resultAction.result;
+
+        if (importResultData?.success) {
+          message.success(
+            importResultData.message ||
+              `Import hoàn tất: ${importResultData.totalImported} thành công, ${importResultData.totalFailed} thất bại`
+          );
+
+          setImportResults(importResultData.results ?? []);
+          setImportModalOpen(true);
+        } else {
+          message.error(importResultData?.message || "Import thất bại");
+        }
+      } catch (err: any) {
+        message.error(err.message || "Có lỗi xảy ra khi import nhân viên");
+      }
     };
     reader.readAsArrayBuffer(file);
     return false;
@@ -745,6 +768,40 @@ const EmployeeForm = () => {
             <Col span={12}></Col>
           </Row>
         </Form>
+      </Modal>
+
+      {/* Modal Kết quả import */}
+      <Modal
+        title="Kết quả Import nhân viên"
+        open={importModalOpen}
+        onCancel={() => setImportModalOpen(false)}
+        footer={[
+          <Button key="close" onClick={() => setImportModalOpen(false)}>
+            Đóng
+          </Button>
+        ]}
+        width={800}
+        centered
+      >
+        <Table
+        dataSource={importResults.map((r, i) => ({
+          key: i,
+          email: r.email || "Không có email",
+          success: r.success ?? false,
+          message: r.message || "",
+        }))}
+        columns={[
+          { title: "Email", dataIndex: "email", key: "email" },
+          { 
+            title: "Trạng thái", 
+            dataIndex: "success", 
+            key: "success",
+            render: (success: boolean) =>
+              success ? <Tag color="green">Thành công</Tag> : <Tag color="red">Thất bại</Tag>
+          },
+          { title: "Message", dataIndex: "message", key: "message" },
+        ]}
+      />
       </Modal>
     </div>
   );

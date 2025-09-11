@@ -13,6 +13,11 @@ const initialState: EmployeeState = {
   loading: false,
   error: null,
   checkResult: null,
+  importResults: null,
+  totalImported: 0,
+  totalFailed: 0,
+  createdEmployees: [],
+  failedEmployees: []
 };
 
 // Lấy Shift Enum
@@ -127,6 +132,23 @@ export const updateEmployee = createAsyncThunk<
       return data;
     } catch (err: any) {
       return thunkAPI.rejectWithValue(err.response?.data?.message || 'Lỗi khi cập nhật nhân viên');
+    }
+  }
+);
+
+// Import Employees
+export const importEmployees = createAsyncThunk<
+  EmployeeResponse, 
+  { employees: Partial<Employee>[] }, 
+  { rejectValue: string }
+>(
+  'employee/importEmployees',
+  async ({ employees }, thunkAPI) => {
+    try {
+      const data = await employeeAPI.importEmployees(employees);
+      return data; // backend trả về object giống như bạn thiết kế
+    } catch (err: any) {
+      return thunkAPI.rejectWithValue(err.response?.data?.message || 'Lỗi khi import nhân viên');
     }
   }
 );
@@ -251,6 +273,43 @@ const employeeSlice = createSlice({
             state.loading = false;
             state.error = action.payload as string;
           });
+        
+        // Import Employees
+        builder
+          .addCase(importEmployees.pending, (state) => {
+            state.loading = true;
+            state.error = null;
+          })
+          .addCase(importEmployees.fulfilled, (state, action) => {
+            state.loading = false;
+
+            const importData = action.payload.result; // <-- dùng result nested
+
+            if (importData?.success) {
+              state.importResults = importData.results || null;
+              state.totalImported = importData.totalImported || 0;
+              state.totalFailed = importData.totalFailed || 0;
+              state.createdEmployees = importData.createdEmployees || [];
+              state.failedEmployees = importData.failedEmployees || [];
+
+              // Nếu có employee thành công, thêm vào danh sách
+              importData.results?.forEach(r => {
+                if (r.success && r.employee) {
+                  state.employees.unshift(r.employee);
+                }
+              });
+            }
+          })
+          .addCase(importEmployees.rejected, (state, action) => {
+            state.loading = false;
+            state.error = action.payload as string;
+            state.importResults = null;
+            state.totalImported = 0;
+            state.totalFailed = 0;
+            state.createdEmployees = [];
+            state.failedEmployees = [];
+          });
+
   },
 });
 

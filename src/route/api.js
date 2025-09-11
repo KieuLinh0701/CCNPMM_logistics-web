@@ -29,6 +29,7 @@ let initApiRoutes = (app) => {
     router.post('/employees/add', verifyToken, employeeController.addEmployee);
     router.get("/employees/check-before-add", verifyToken, employeeController.checkBeforeAddEmployee);
     router.put("/employees/update/:id", verifyToken, employeeController.updateEmployee);
+    router.post('/employees/import', verifyToken, employeeController.importEmployees);
 
     // Test routes
     router.get('/test', (req, res) => {

@@ -127,6 +127,36 @@ const employeeController = {
       });
     }
   },
+
+  // Import Add Employees
+  async importEmployees(req, res) {
+    try {
+      const userId = req.user.id;
+      
+      const { employees } = req.body;
+
+      if (!Array.isArray(employees) || employees.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Không có dữ liệu nhân viên để import",
+        });
+      }
+
+      // Gọi service để thêm nhiều nhân viên
+      const result = await employeeService.importEmployees(userId, employees);
+
+      return res.status(200).json({
+        success: true,
+        result,
+      });
+    } catch (error) {
+      console.error("Import Employees error:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Lỗi server khi import nhân viên",
+      });
+    }
+  },
 };
 
 export default employeeController;
