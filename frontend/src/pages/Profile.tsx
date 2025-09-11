@@ -36,6 +36,11 @@ const Profile: React.FC = () => {
     }
   };
 
+  const capitalize = (str: string) => {
+    if (!str) return "";
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  };
+  
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '50px' }}>
@@ -54,7 +59,7 @@ const Profile: React.FC = () => {
           {/* Avatar + Tên + Role */}
           <Avatar size={100} icon={<UserOutlined />} style={{ marginBottom: 16 }} />
           <Title level={3} style={{ marginBottom: 8 }}>
-            {user?.firstName} {user?.lastName}
+            {capitalize(user?.firstName || "")} {capitalize(user?.lastName || "")}
           </Title>
           <Tag color={getRoleColor(user?.role || '')} style={{ fontSize: 14, padding: '4px 12px' }}>
             {getRoleText(user?.role || '')}

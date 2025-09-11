@@ -194,6 +194,25 @@ const resetPassword = async (req, res) => {
   }
 };
 
+// Get Assignable Roles
+const getAssignableRoles = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const result = await authService.getAssignableRoles(userId);
+
+    return res.status(200).json(result);
+  
+  } catch (error) {
+    console.error('Get Assignable Roles error:', error);
+    
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi server'
+    });
+  }
+};  
+
 export default {
   register,
   verifyOTP,
@@ -201,5 +220,6 @@ export default {
   getProfile,
   forgotPassword,
   verifyResetOTP,
-  resetPassword
+  resetPassword,
+  getAssignableRoles
 };

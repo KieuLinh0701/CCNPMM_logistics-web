@@ -50,15 +50,16 @@ export interface ResetPasswordData {
   newPassword: string;
 }
 
-
 export interface AuthResponse {
   success: boolean;
   message: string;
   token?: string;
   user?: User;
+  roles?: string[];
 }
 
 export interface AuthState {
+  roles: string[] | null;
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;

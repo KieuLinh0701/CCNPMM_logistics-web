@@ -18,29 +18,24 @@ const sequelize = new Sequelize(
 // Import models
 import User from './user.js';
 import OTP from './otp.js';
+import Office from './office.js';
+import Employee from './employee.js';
 
 // Initialize models
-const UserModel = User(sequelize);
-const OTPModel = OTP(sequelize);
-
-// Define associations
-if (UserModel.associate) {
-  UserModel.associate({ User: UserModel, OTP: OTPModel });
-}
-
-if (OTPModel.associate) {
-  OTPModel.associate({ User: UserModel, OTP: OTPModel });
-}
-
 const db = {
   sequelize,
   Sequelize,
-  User: UserModel,
-  OTP: OTPModel
+  User: User(sequelize),
+  OTP: OTP(sequelize),
+  Office: Office(sequelize),
+  Employee: Employee(sequelize),
 };
 
+// Gọi associate cho từng model nếu có
+Object.values(db).forEach((model) => {
+  if (model?.associate) {
+    model.associate(db);
+  }
+});
+
 export default db;
-
-
-
-

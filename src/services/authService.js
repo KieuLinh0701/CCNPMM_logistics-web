@@ -295,7 +295,6 @@ const forgotPassword = async (email) => {
   });
 };
 
-
 // Verify Reset OTP
 const verifyResetOTP = async (email, otp) => {
   return new Promise(async (resolve, reject) => {
@@ -356,6 +355,52 @@ const resetPassword = async (email, newPassword) => {
   });
 };
 
+// Get Assignable Roles
+const getAssignableRoles = async (userId) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      // Lấy user kèm role
+      const user = await db.User.findOne({
+        where: { id: userId },
+        attributes: ['id', 'role'],
+      });
+
+      if (!user) {
+        resolve({ success: false, message: 'Người dùng không tồn tại' });
+        return;
+      }
+
+      // Kiểm tra role
+      if (!user.role || (user.role !== 'admin' && user.role !== 'manager')) {
+        resolve({ success: false, message: 'Bạn không có quyền xem chức vụ nhân viên' });
+        return;
+      }
+
+      // Lấy enum roles từ model User
+      const roleEnum = db.User.rawAttributes.role.values;
+
+      let filteredRoles = [];
+
+      if (user.role === 'manager') {
+        // Manager không được thấy "manager", "admin" và "user"
+        filteredRoles = roleEnum.filter(r => r !== 'manager' && r !== 'user' && r !== 'admin');
+      } else if (user.role === 'admin') {
+        // Admin lấy hết, trừ "user"
+        filteredRoles = roleEnum.filter(r => r !== 'user');
+      }
+
+      resolve({
+        success: true,
+        message: 'Lấy danh sách chức vụ nhân viên thành công',
+        roles: filteredRoles,
+      });
+    } catch (error) {
+      console.error('Get Role Enum error:', error);
+      reject({ success: false, message: 'Lỗi server' });
+    }
+  });
+};
+
 export default {
   registerUser,
   verifyOTPAndCreateUser,
@@ -364,5 +409,6 @@ export default {
   generateToken,
   forgotPassword,  
   verifyResetOTP,
-  resetPassword
+  resetPassword,
+  getAssignableRoles,
 };

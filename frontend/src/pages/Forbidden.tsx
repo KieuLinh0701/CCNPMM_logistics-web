@@ -1,6 +1,7 @@
 import React from "react";
 import { Result, Button } from "antd";
 import { Link } from "react-router-dom";
+import { Color } from "antd/es/color-picker";
 
 const Forbidden: React.FC = () => {
   return (
@@ -10,7 +11,9 @@ const Forbidden: React.FC = () => {
       subTitle="Xin lỗi, bạn không có quyền truy cập trang này."
       extra={
         <Link to="/home">
-          <Button type="primary">Về trang chủ</Button>
+          <Button style={{ background: "#1C3D90", color: "#fff", height: "40px"}}>
+            Về trang chủ
+          </Button>
         </Link>
       }
     />

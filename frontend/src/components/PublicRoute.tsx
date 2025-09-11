@@ -1,7 +1,12 @@
 import { Navigate } from "react-router-dom";
 import { useAppSelector } from "../hooks/redux";
+import { ReactNode } from "react";
 
-export const PublicRoute = ({ children }: { children: JSX.Element }) => {
+interface PublicRouteProps {
+  children: ReactNode;
+}
+
+export const PublicRoute = ({ children }: PublicRouteProps) => {
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
 
   if (isAuthenticated && user) {
@@ -13,5 +18,5 @@ export const PublicRoute = ({ children }: { children: JSX.Element }) => {
     return <Navigate to={roleRoutes[user.role] || "/"} replace />;
   }
 
-  return children;
+  return <>{children}</>;
 };

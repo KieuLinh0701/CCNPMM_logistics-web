@@ -2,7 +2,7 @@ import React from "react";
 import { Layout, Button, Space, Typography, Avatar, Dropdown, Menu } from "antd";
 import { UserOutlined, LogoutOutlined, ProfileOutlined, PlusOutlined } from "@ant-design/icons";
 import { useDispatch } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { logout } from "../../store/authSlice";
 
 const { Header: AntHeader } = Layout;
@@ -30,6 +30,11 @@ const Header: React.FC<HeaderProps> = () => {
     }
   };
 
+  const capitalize = (str: string) => {
+    if (!str) return "";
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  };
+
   const menu = (
     <Menu>
       <Menu.Item key="profile" icon={<ProfileOutlined />} onClick={handleProfile}>
@@ -53,9 +58,11 @@ const Header: React.FC<HeaderProps> = () => {
       }}
     >
       {/* Góc trái - Tên website */}
-      <Text strong style={{ fontSize: "18px", color: "#fff" }}>
-        MyWebsite
-      </Text>
+      <Link to="/home">
+        <Text strong style={{ fontSize: "18px", color: "#fff" }}>
+          MyWebsite
+        </Text>
+      </Link>
 
       {/* Góc phải */}
       <Space size="middle">
@@ -76,7 +83,11 @@ const Header: React.FC<HeaderProps> = () => {
               color: "#fff",
               fontWeight: "bold",
             }}/>
-            <Text style={{ color: "#fff" }}>Kiều Linh</Text>
+            <Text style={{ color: "#fff" }}>
+              {user?.firstName && user?.lastName
+                ? `${capitalize(user.firstName)} ${capitalize(user.lastName)}`
+                : "User"}
+            </Text>
           </Space>
         </Dropdown>
       </Space>

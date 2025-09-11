@@ -17,6 +17,9 @@ import { PrivateRoute } from './components/PrivateRoute';
 import ForgotPasswordForm from './pages/ForgotPasswordForm';
 import { PublicRoute } from './components/PublicRoute';
 import Profile from './pages/Profile';
+import Office from './pages/manager/Office';
+import Warehouse from './pages/manager/Warehouse';
+import EmployeePage from './pages/manager/EmployeeForm';
 
 const App: React.FC = () => {
   const user = JSON.parse(localStorage.getItem('user') || 'null');
@@ -46,6 +49,9 @@ const App: React.FC = () => {
             <Route path="/manager" element={<PrivateRoute roles={["manager"]}><ManagerLayout /></PrivateRoute>}>
               <Route path="dashboard" element={<ManagerDashboard />} />
               <Route path="profile" element={<Profile />} />
+              <Route path="office" element={<Office />} />
+              <Route path="warehouse" element={<Warehouse />} />
+              <Route path="employees/list" element={<EmployeePage />} />
             </Route>
 
           </Routes>

@@ -1,57 +1,98 @@
 // MainLayout.tsx
-import React from "react";
-import { Layout } from "antd";
+import React, { useState } from "react";
+import { Layout, Button } from "antd";
+import {
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
+} from "@ant-design/icons";
 import Header from "../components/header/Header";
 import Sidenav from "../components/sidenav/Sidenav";
 import { Outlet } from "react-router-dom";
 
-const { Header: AntHeader, Sider, Content, Footer } = Layout;
+const { Header: AntHeader, Sider, Content } = Layout;
 
-interface ManagerLayoutProps {
-}
+const ManagerLayout: React.FC = () => {
+  const HEADER_HEIGHT = 64;
+  const GAP = 8;
 
-const ManagerLayout: React.FC<ManagerLayoutProps> = () => {
-  const HEADER_HEIGHT = 64; // chiều cao header
-  const GAP = 8; // khoảng cách giữa Header/Sidenav/Content/Footer
+  const [collapsed, setCollapsed] = useState(false);
 
   return (
     <Layout style={{ minHeight: "100vh", background: "#f0f2f5" }}>
-      {/* Header trên cùng */}
       <AntHeader
         style={{
           background: "#fff",
-          padding: 0,
           height: HEADER_HEIGHT,
           boxShadow: "0 2px 8px #f0f1f2",
+          padding: 0,
         }}
       >
-        <Header/>
+        <Header />
       </AntHeader>
 
       <Layout style={{ padding: GAP }}>
-        {/* Sidebar bên trái */}
         <Sider
-          width={200}
+          width={220}
+          collapsible
+          collapsed={collapsed}
+          collapsedWidth={60}
+          trigger={null}
+          breakpoint="lg"  
+          onBreakpoint={(broken) => setCollapsed(broken)}
           style={{
             background: "#fff",
-            minHeight: `calc(100vh - ${HEADER_HEIGHT}px - ${GAP * 2}px)`,
             marginRight: GAP,
+            borderRadius: 6,
+            position: "relative", 
           }}
         >
-          <Sidenav color="#fff" />
+          <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+            <div style={{ flex: 1, overflowY: "auto" }}>
+              <Sidenav color="#fff" />
+            </div>
+            <div
+              style={{
+                padding: "8px",
+                borderTop: "1px solid #f0f0f0",
+                textAlign: "center",
+              }}
+            >
+              <Button
+                type="text"
+                icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                onClick={() => setCollapsed(!collapsed)}
+                style={{
+                  fontSize: "18px",
+                  width: "100%",
+                  height: 40,
+                  borderRadius: "8px", 
+                }}
+              />
+            </div>
+          </div>
         </Sider>
 
-        {/* Content bên phải Sidebar */}
-        <Layout style={{ background: "#fff", padding: GAP }}>
+        <Layout
+          style={{
+            background: "#fff",
+            padding: GAP,
+            borderRadius: 6,
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+          }}
+        >
           <Content
             style={{
               background: "#fff",
               padding: GAP,
-              minHeight: `calc(100vh - ${HEADER_HEIGHT}px - ${GAP * 3}px - 64px)`,
-              // 64px là dự trữ cho Footer
+              borderRadius: 6,
+              flex: 1,
+              overflowY: "auto",
             }}
           >
-            <Outlet /> {/* Route con sẽ hiển thị ở đây */}
+            <Outlet />
           </Content>
         </Layout>
       </Layout>

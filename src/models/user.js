@@ -4,7 +4,7 @@ export default (sequelize) => {
   class User extends Model {
     static associate(models) {
       // Định nghĩa mối quan hệ sau này
-      // ví dụ: User.hasMany(models.OTP, { foreignKey: 'userId' });
+      User.hasOne(models.Employee, { foreignKey: 'userId', as: 'employee' })
     }
   }
 
@@ -36,8 +36,8 @@ export default (sequelize) => {
         unique: true,
       },
       role: {
-        type: DataTypes.ENUM('admin', 'manager', 'staff', 'driver'),
-        defaultValue: 'staff',
+        type: DataTypes.ENUM('admin', 'manager', 'driver', 'shipper', 'user'),
+        defaultValue: 'user',
       },
       isVerified: {
         type: DataTypes.BOOLEAN,
