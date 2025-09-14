@@ -11,6 +11,13 @@ import Home from './pages/Home';
 import './App.css';
 import AdminLayout from './layouts/AdminLayout';
 import AdminDashboard from './pages/admin/Dashboard';
+import AdminUsers from './pages/admin/Users';
+import AdminPostOffices from './pages/admin/PostOffices';
+import AdminServiceTypes from './pages/admin/ServiceTypes';
+import AdminOrders from './pages/admin/Orders';
+import AdminFees from './pages/admin/Fees';
+import AdminReports from './pages/admin/Reports';
+import AdminServices from './pages/admin/Services';
 import ManagerDashboard from './pages/manager/Dashboard';
 import ManagerLayout from './layouts/ManagerLayout';
 import { PrivateRoute } from './components/PrivateRoute';
@@ -40,6 +47,13 @@ const App: React.FC = () => {
 
             <Route path="/admin" element={<PrivateRoute roles={["admin"]}><AdminLayout /></PrivateRoute>}>
               <Route path="dashboard" element={<AdminDashboard />} />
+              <Route path="users" element={<AdminUsers />} />
+              <Route path="postoffices" element={<AdminPostOffices />} />
+              <Route path="servicetypes" element={<AdminServiceTypes />} />
+              <Route path="orders" element={<AdminOrders />} />
+              <Route path="fees" element={<AdminFees />} />
+              <Route path="reports" element={<AdminReports />} />
+              <Route path="services" element={<AdminServices />} />
               <Route path="profile" element={<Profile />} />
             </Route>
 

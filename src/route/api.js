@@ -1,6 +1,10 @@
 import express from "express";
 import authController from "../controllers/authController.js";
-import { verifyToken } from "../middleware/auth.js";
+import { verifyToken, requireRole } from "../middleware/auth.js";
+import adminUserController from "../controllers/adminUserController.js";
+import adminPostOfficeController from "../controllers/adminPostOfficeController.js";
+import adminServiceTypeController from "../controllers/adminServiceTypeController.js";
+import adminOrderController from "../controllers/adminOrderController.js";
 import nodemailer from "nodemailer";
 
 let router = express.Router();
@@ -15,6 +19,33 @@ let initApiRoutes = (app) => {
     router.post('/auth/password/forgot', authController.forgotPassword);
     router.post('/auth/password/verify-otp', authController.verifyResetOTP);
     router.post('/auth/password/reset', authController.resetPassword);
+
+    // Admin - Users CRUD
+    router.get('/admin/users', verifyToken, requireRole(['admin']), adminUserController.list);
+    router.get('/admin/users/:id', verifyToken, requireRole(['admin']), adminUserController.getById);
+    router.post('/admin/users', verifyToken, requireRole(['admin']), adminUserController.create);
+    router.put('/admin/users/:id', verifyToken, requireRole(['admin']), adminUserController.update);
+    router.delete('/admin/users/:id', verifyToken, requireRole(['admin']), adminUserController.remove);
+
+    // Admin - Post Offices CRUD
+    router.get('/admin/postoffices', verifyToken, requireRole(['admin']), adminPostOfficeController.list);
+    router.get('/admin/postoffices/:id', verifyToken, requireRole(['admin']), adminPostOfficeController.getById);
+    router.post('/admin/postoffices', verifyToken, requireRole(['admin']), adminPostOfficeController.create);
+    router.put('/admin/postoffices/:id', verifyToken, requireRole(['admin']), adminPostOfficeController.update);
+    router.delete('/admin/postoffices/:id', verifyToken, requireRole(['admin']), adminPostOfficeController.remove);
+
+    // Admin - Service Types CRUD
+    router.get('/admin/servicetypes', verifyToken, requireRole(['admin']), adminServiceTypeController.list);
+    router.get('/admin/servicetypes/:id', verifyToken, requireRole(['admin']), adminServiceTypeController.getById);
+    router.post('/admin/servicetypes', verifyToken, requireRole(['admin']), adminServiceTypeController.create);
+    router.put('/admin/servicetypes/:id', verifyToken, requireRole(['admin']), adminServiceTypeController.update);
+    router.delete('/admin/servicetypes/:id', verifyToken, requireRole(['admin']), adminServiceTypeController.remove);
+
+    // Admin - Orders CRUD
+    router.get('/admin/orders', verifyToken, requireRole(['admin']), adminOrderController.list);
+    router.get('/admin/orders/:id', verifyToken, requireRole(['admin']), adminOrderController.getById);
+    router.put('/admin/orders/:id/status', verifyToken, requireRole(['admin']), adminOrderController.updateStatus);
+    router.delete('/admin/orders/:id', verifyToken, requireRole(['admin']), adminOrderController.remove);
 
     // Test routes
     router.get('/test', (req, res) => {

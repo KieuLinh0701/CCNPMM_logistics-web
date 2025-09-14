@@ -5,6 +5,10 @@ import initWebRoutes from './route/web.js';
 import initApiRoutes from './route/api.js';
 import connectDB from './config/configdb.js';
 import dotenv from 'dotenv';
+
+// Import models to register them and trigger auto-sync
+import './models/index.js';
+
 dotenv.config();
 
 let app = express();
