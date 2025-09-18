@@ -23,7 +23,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../store/store";
 import { getActiveServiceTypes } from "../../store/serviceTypeSlice";
 import { serviceType } from "../../types/serviceType";
-import { Address, Order } from "../../types/order";
+import { Order } from "../../types/order";
 import { calculateShippingFee as calculateShippingFeeThunk } from "../../store/orderSlice";
 
 const { Text } = Typography;
@@ -72,7 +72,7 @@ const CreateOrder: React.FC = () => {
 
   useEffect(() => {
     if (serviceTypes && serviceTypes.length > 0 && !selectedServiceType) {
-      setSelectedServiceType(serviceTypes[0]); // chọn service đầu tiên
+      setSelectedServiceType(serviceTypes[0]); 
     }
   }, [serviceTypes]);
 

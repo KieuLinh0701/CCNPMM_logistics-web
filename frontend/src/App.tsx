@@ -8,6 +8,7 @@ import { store } from './store/store';
 import LoginForm from './pages/LoginForm';
 import RegisterForm from './pages/RegisterForm';
 import Home from './pages/Home';
+import ShippingFee from './pages/tracking/ShippingFee';
 import './App.css';
 import AdminLayout from './layouts/AdminLayout';
 import AdminDashboard from './pages/admin/Dashboard';
@@ -36,6 +37,7 @@ const App: React.FC = () => {
 
             {/* Trang Home */}
             <Route path="/home" element={<Home />} />
+            <Route path="/tracking/shipping-fee" element={<ShippingFee />} />
 
             {/* Login/Register */}
             <Route path="/login" element={<PublicRoute><LoginForm /></PublicRoute>} />

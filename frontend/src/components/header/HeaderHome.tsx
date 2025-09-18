@@ -88,9 +88,37 @@ const HeaderHome: React.FC = () => {
               theme="light"
             > 
               <Menu.Item key="/"><Link to="/">Trang chủ</Link></Menu.Item>
-              <Menu.Item key="/service"><Link to="/service">Dịch vụ</Link></Menu.Item>
+             
+              <Menu.SubMenu key="services" title="Dịch vụ">
+                <Menu.Item key="/services/standard">
+                  <Link to="/services/standard">Giao hàng tiêu chuẩn</Link>
+                </Menu.Item>
+                <Menu.Item key="/services/fast">
+                  <Link to="/services/fast">Giao hàng nhanh</Link>
+                </Menu.Item>
+                <Menu.Item key="/services/super-fast">
+                  <Link to="/services/super-fast">Hỏa tốc</Link>
+                </Menu.Item>
+              </Menu.SubMenu>
+
+              <Menu.SubMenu key="tracking" title="Tra cứu">
+                <Menu.Item key="/tracking/shipping-fee">
+                  <Link to="/tracking/shipping-fee">Cước vận chuyển</Link>
+                </Menu.Item>
+                <Menu.Item key="/tracking/office">
+                  <Link to="/tracking/office">Bưu cục</Link>
+                </Menu.Item>
+                <Menu.Item key="/tracking/order">
+                  <Link to="/tracking/order">Vận đơn</Link>
+                </Menu.Item>
+                <Menu.Item key="/tracking/price-list">
+                  <Link to="/tracking/price-list">Bảng giá</Link>
+                </Menu.Item>
+              </Menu.SubMenu>
+
               <Menu.Item key="/about"><Link to="/about">Giới thiệu</Link></Menu.Item>
               <Menu.Item key="/contact"><Link to="/contact">Liên hệ</Link></Menu.Item>
+              <Menu.Item key="/consulting"><Link to="/consulting">Tư vấn</Link></Menu.Item>
             </Menu>
           </Col>
 
@@ -186,6 +214,28 @@ const HeaderHome: React.FC = () => {
         }
         .custom-menu .ant-menu-item a:hover {
           color: #1890ff;
+        }
+        .custom-menu .ant-menu-submenu-title {
+          font-weight: 500;
+          font-size: 15px;
+          color: #5b5a5aff; /* giống Menu.Item */
+          transition: all 0.3s;
+        }
+
+        .custom-menu .ant-menu-submenu-title:hover {
+          color: #1890ff;
+        }
+
+        /* Nếu muốn submenu items cũng giống menu item */
+        .custom-menu .ant-menu-submenu .ant-menu-item a {
+          font-weight: 500;
+          font-size: 15px;
+          color: #5b5a5aff;
+          transition: all 0.3s;
+        }
+
+        .custom-menu .ant-menu-submenu .ant-menu-item-selected a {
+          color: #1C3D90;
         }
       `}</style>
     </AntHeader>
