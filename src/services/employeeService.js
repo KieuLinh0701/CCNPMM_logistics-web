@@ -95,6 +95,9 @@ const employeeService = {
         if (!user.employee || user.employee.officeId !== parseInt(officeId)) {
           return { success: false, message: 'Bạn không có quyền xem nhân viên bưu cục này' };
         }
+
+        // Loại trừ chính manager khỏi danh sách
+        whereCondition.id = { [db.Sequelize.Op.ne]: user.employee.id };
       }
 
       // Áp dụng filter

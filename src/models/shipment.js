@@ -3,14 +3,26 @@ import { Model, DataTypes } from 'sequelize';
 export default (sequelize) => {
   class Shipment extends Model {
     static associate(models) {
-      // Shipment có nhiều đơn hàng (thông qua ShipmentOrder)
-      Shipment.hasMany(models.ShipmentOrder, { foreignKey: 'shipmentId', as: 'orders' });
+      Shipment.hasMany(models.ShipmentOrder, { 
+        foreignKey: 'shipmentId', 
+        as: 'shipmentOrders',
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE'
+      });
 
-      // Shipment gắn với 1 xe
-      Shipment.belongsTo(models.Vehicle, { foreignKey: 'vehicleId', as: 'vehicle' });
+      Shipment.belongsTo(models.Vehicle, { 
+        foreignKey: 'vehicleId', 
+        as: 'vehicle',
+        onDelete: 'SET NULL', 
+        onUpdate: 'CASCADE'
+      });
 
-      // Shipment gắn với 1 tài xế
-      Shipment.belongsTo(models.Driver, { foreignKey: 'driverId', as: 'driver' });
+      Shipment.belongsTo(models.User, { 
+        foreignKey: 'userId', 
+        as: 'user',
+        onDelete: 'SET NULL', 
+        onUpdate: 'CASCADE'
+      });
     }
   }
 
@@ -18,11 +30,11 @@ export default (sequelize) => {
     {
       vehicleId: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true, 
       },
-      driverId: {
+      userId: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true,
       },
       status: {
         type: DataTypes.ENUM('Pending', 'InTransit', 'Completed', 'Cancelled'),
@@ -36,12 +48,22 @@ export default (sequelize) => {
       endTime: {
         type: DataTypes.DATE,
         allowNull: true,
+        validate: {
+          isAfterStart(value) {
+            if (value && this.startTime && value < this.startTime) {
+              throw new Error('endTime must be after startTime');
+            }
+          }
+        }
       },
     },
     {
       sequelize,
       modelName: 'Shipment',
-      timestamps: true, // có createdAt, updatedAt
+      tableName: 'Shipments',
+      timestamps: true,
+      createdAt: 'createdAt',
+      updatedAt: 'updatedAt',
     }
   );
 

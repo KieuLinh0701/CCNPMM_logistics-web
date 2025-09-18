@@ -21,8 +21,6 @@ export interface OfficeResponse {
   office?: Office;  
 }
 
-
-
 export interface OfficeState {
   office: Office | null;
   loading: boolean;

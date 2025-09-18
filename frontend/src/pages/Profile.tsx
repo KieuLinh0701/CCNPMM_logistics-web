@@ -38,7 +38,11 @@ const Profile: React.FC = () => {
 
   const capitalize = (str: string) => {
     if (!str) return "";
-    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+    return str
+      .split(" ")
+      .filter(Boolean) 
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
   };
   
   if (loading) {
@@ -50,16 +54,14 @@ const Profile: React.FC = () => {
   }
 
   return (
-    <Row justify="center">
+    <Row justify="center"
+      align="middle"
+      style={{ textAlign: 'center', padding: 16 }}>
       <Col xs={24} sm={20} md={16} lg={12}>
-        <Card
-          style={{ borderRadius: 16, padding: 24, textAlign: 'center' }}
-          bodyStyle={{ padding: 24 }}
-        >
           {/* Avatar + Tên + Role */}
           <Avatar size={100} icon={<UserOutlined />} style={{ marginBottom: 16 }} />
           <Title level={3} style={{ marginBottom: 8 }}>
-            {capitalize(user?.firstName || "")} {capitalize(user?.lastName || "")}
+            {capitalize(user?.lastName || "")} {capitalize(user?.firstName || "")}
           </Title>
           <Tag color={getRoleColor(user?.role || '')} style={{ fontSize: 14, padding: '4px 12px' }}>
             {getRoleText(user?.role || '')}
@@ -106,7 +108,6 @@ const Profile: React.FC = () => {
               Chỉnh sửa thông tin
             </Button>
           </div>
-        </Card>
       </Col>
     </Row>
   );

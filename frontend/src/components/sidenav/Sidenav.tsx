@@ -122,16 +122,6 @@ const Sidenav: React.FC<Props> = ({ color }) => {
             label: "Phân công công việc",
             path: "/manager/staff/assign",
           },
-          {
-            key: "/manager/staff/performance",
-            label: "Hiệu suất nhân viên",
-            path: "/manager/staff/performance",
-          },
-          {
-            key: "/manager/staff/recruit-posts",
-            label: "Tuyển dụng",
-            path: "/manager/staff/recruit-posts",
-          },
         ],
       },
       {

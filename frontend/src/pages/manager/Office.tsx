@@ -138,9 +138,9 @@ const Office = () => {
         name: values.name,
         phoneNumber: values.phoneNumber,
         email: values.email,
-        address: values.address,
-        codeCity: values.province,
-        codeWard: values.commune,
+        address: values.office.address,
+        codeCity: values.office.province,
+        codeWard: values.office.commune,
         latitude: markerPosition[0],
         longitude: markerPosition[1],
         openingTime: values.openingTime?.format("HH:mm:ss"),
@@ -234,7 +234,7 @@ const Office = () => {
             <Form.Item name="name" label="Tên bưu cục" rules={[{ required: true, message: 'Nhập tên bưu cục!' }]}><Input /></Form.Item>
             <Form.Item name="phoneNumber" label="Số điện thoại" rules={[{ required: true, message: 'Nhập số điện thoại!' }]}><Input /></Form.Item>
             <Form.Item name="email" label="Email" rules={[{ required: true, message: 'Nhập email' }]}><Input /></Form.Item>
-            <AddressForm form={form} initialProvince={office?.codeCity} initialCommune={office?.codeWard} />
+            <AddressForm form={form} initialCity={office?.codeCity} initialWard={office?.codeWard} initialDetail={office?.address} prefix="office"/>
             <Form.Item name="openingTime" label="Giờ mở cửa"><TimePicker format="HH:mm" style={{ width: '100%' }} /></Form.Item>
             <Form.Item name="closingTime" label="Giờ đóng cửa"><TimePicker format="HH:mm" style={{ width: '100%' }} /></Form.Item>
             <Form.Item name="type" label="Loại bưu cục">

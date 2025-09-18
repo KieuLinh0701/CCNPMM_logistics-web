@@ -20,6 +20,7 @@ import Profile from './pages/Profile';
 import Office from './pages/manager/Office';
 import Warehouse from './pages/manager/Warehouse';
 import EmployeePage from './pages/manager/EmployeeForm';
+import CreateOrder from './pages/manager/CreateOrder';
 
 const App: React.FC = () => {
   const user = JSON.parse(localStorage.getItem('user') || 'null');
@@ -52,6 +53,8 @@ const App: React.FC = () => {
               <Route path="office" element={<Office />} />
               <Route path="warehouse" element={<Warehouse />} />
               <Route path="employees/list" element={<EmployeePage />} />
+              <Route path="orders/list" element={<EmployeePage />} />
+              <Route path="orders/create" element={<CreateOrder />} />
             </Route>
 
           </Routes>

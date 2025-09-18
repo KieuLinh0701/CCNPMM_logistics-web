@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { Form, Input, Select } from 'antd';
-import axios from 'axios';
+import React, { useEffect, useState } from "react";
+import { Form, Input, Select } from "antd";
+import axios from "axios";
 
 const { Option } = Select;
 
@@ -16,29 +16,44 @@ interface Commune {
 
 interface AddressFormProps {
   form: any;
-  initialProvince?: number;
-  initialCommune?: number;
+  prefix: string; // 🆕 thêm prefix để tách riêng các field
+  initialCity?: number;
+  initialWard?: number;
+  initialDetail?: string;
 }
 
 const AddressForm: React.FC<AddressFormProps> = ({
   form,
-  initialProvince,
-  initialCommune
+  prefix,
+  initialCity,
+  initialWard,
+  initialDetail,
 }) => {
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [communes, setCommunes] = useState<Commune[]>([]);
 
-  // Lấy giá trị đang chọn
-  const selectedProvince = Form.useWatch("province", form);
+  // 🆕 Watch province theo prefix
+  const selectedProvince = Form.useWatch([prefix, "province"], form);
 
   // Lấy danh sách tỉnh/thành phố
   useEffect(() => {
-    axios.get<Province[]>("https://provinces.open-api.vn/api/v2/p/")
-      .then(res => setProvinces(res.data))
-      .catch(err => console.error(err));
+    axios
+      .get<Province[]>("https://provinces.open-api.vn/api/v2/p/")
+      .then((res) => setProvinces(res.data))
+      .catch((err) => console.error(err));
   }, []);
 
-  // Lấy danh sách phường/xã khi chọn province
+  useEffect(() => {
+    if (initialDetail) {
+      form.setFieldsValue({
+        [prefix]: {
+          ...form.getFieldValue(prefix),
+          address: initialDetail,
+        },
+      });
+    }
+  }, [initialDetail, form, prefix]);
+
   interface ProvinceDetail {
     name: string;
     code: number;
@@ -50,46 +65,60 @@ const AddressForm: React.FC<AddressFormProps> = ({
   }
 
   useEffect(() => {
-    const provinceCode = selectedProvince || initialProvince;
+    const provinceCode = selectedProvince || initialCity;
     if (provinceCode) {
-      axios.get<ProvinceDetail>(`https://provinces.open-api.vn/api/v2/p/${provinceCode}?depth=2`)
+      axios
+        .get<ProvinceDetail>(
+          `https://provinces.open-api.vn/api/v2/p/${provinceCode}?depth=2`
+        )
         .then((res) => {
           const wards: Commune[] = (res.data.wards || []).map((w) => ({
             code: w.code,
-            name: w.name
+            name: w.name,
           }));
           setCommunes(wards);
 
-          // Nếu ban đầu có initialCommune và chưa chọn province, set default
-          if (initialCommune && !selectedProvince) {
-            form.setFieldsValue({ province: provinceCode, commune: initialCommune });
+          // Nếu có initialWard và chưa chọn province, set default
+          if (initialWard && !selectedProvince) {
+            form.setFieldsValue({
+              [prefix]: {
+                province: provinceCode,
+                commune: initialWard,
+              },
+            });
           }
 
           // Nếu đã chọn province mới mà commune cũ không thuộc, reset commune
-          const currentCommune = form.getFieldValue('commune');
-          if (currentCommune && !wards.some(w => w.code === currentCommune)) {
-            form.setFieldsValue({ commune: undefined });
+          const currentCommune = form.getFieldValue([prefix, "commune"]);
+          if (currentCommune && !wards.some((w) => w.code === currentCommune)) {
+            form.setFieldsValue({ [prefix]: { commune: undefined } });
           }
         })
-        .catch(err => console.error(err));
+        .catch((err) => console.error(err));
     } else {
       setCommunes([]);
-      form.setFieldsValue({ commune: undefined });
+      form.setFieldsValue({ [prefix]: { commune: undefined } });
     }
-  }, [selectedProvince, initialProvince, initialCommune, form]);
+  }, [selectedProvince, initialCity, initialWard, form, prefix]);
 
   return (
     <>
-      <Form.Item name="province" label="Tỉnh / Thành phố" rules={[{ required: true, message: 'Chọn tỉnh / thành phố!' }]}>
+      <Form.Item
+        name={[prefix, "province"]}
+        label="Tỉnh / Thành phố"
+        rules={[{ required: true, message: "Chọn tỉnh / thành phố!" }]}
+      >
         <Select
           showSearch
           placeholder="Chọn tỉnh/thành phố"
           optionFilterProp="label"
           filterOption={(input, option) =>
-            (option?.label as string).toLowerCase().includes(input.toLowerCase())
+            (option?.label as string)
+              .toLowerCase()
+              .includes(input.toLowerCase())
           }
         >
-          {provinces.map(p => (
+          {provinces.map((p) => (
             <Option key={p.code} value={p.code} label={p.name}>
               {p.name}
             </Option>
@@ -97,17 +126,23 @@ const AddressForm: React.FC<AddressFormProps> = ({
         </Select>
       </Form.Item>
 
-      <Form.Item name="commune" label="Phường / Xã" rules={[{ required: true, message: 'Chọn phường / xã!' }]}>
+      <Form.Item
+        name={[prefix, "commune"]}
+        label="Phường / Xã"
+        rules={[{ required: true, message: "Chọn phường / xã!" }]}
+      >
         <Select
           showSearch
           placeholder="Chọn phường/xã"
           optionFilterProp="label"
           filterOption={(input, option) =>
-            (option?.label as string).toLowerCase().includes(input.toLowerCase())
+            (option?.label as string)
+              .toLowerCase()
+              .includes(input.toLowerCase())
           }
-          disabled={!selectedProvince && !initialProvince}
+          disabled={!selectedProvince && !initialCity}
         >
-          {communes.map(c => (
+          {communes.map((c) => (
             <Option key={c.code} value={c.code} label={c.name}>
               {c.name}
             </Option>
@@ -115,7 +150,11 @@ const AddressForm: React.FC<AddressFormProps> = ({
         </Select>
       </Form.Item>
 
-      <Form.Item name="address" label="Chi tiết" rules={[{ required: true, message: 'Nhập số nhà, tên đường!' }]}>
+      <Form.Item
+        name={[prefix, "address"]}
+        label="Chi tiết"
+        rules={[{ required: true, message: "Nhập số nhà, tên đường!" }]}
+      >
         <Input placeholder="Số nhà, tên đường..." />
       </Form.Item>
     </>

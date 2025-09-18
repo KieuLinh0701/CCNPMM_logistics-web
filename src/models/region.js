@@ -9,7 +9,7 @@ export default (sequelize) => {
   Region.init(
     {
       codeCity: {
-        type: DataTypes.STRING,
+        type: DataTypes.INTEGER,
         allowNull: false,
         unique: true,
       },

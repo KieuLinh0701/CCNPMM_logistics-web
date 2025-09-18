@@ -4,13 +4,13 @@ export default (sequelize) => {
   class ShippingRate extends Model {
     static associate(models) {
       // 1 ShippingRate thuộc về 1 ShippingService
-      ShippingRate.belongsTo(models.ShippingService, { foreignKey: 'serviceId', as: 'service' });
+      ShippingRate.belongsTo(models.ServiceType, { foreignKey: 'serviceTypeId', as: 'serviceType' });
     }
   }
 
   ShippingRate.init(
     {
-      serviceId: {
+      serviceTypeId: {
         type: DataTypes.INTEGER,
         allowNull: false,
       },

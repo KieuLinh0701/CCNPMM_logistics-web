@@ -2,8 +2,8 @@ import axios from 'axios';
 import { RegisterData, LoginData, VerifyOTPData, AuthResponse, ForgotPasswordData, VerifyResetOTPData, ResetPasswordData } from '../types/auth';
 import { Office, OfficeResponse } from '../types/office';
 import { Employee, EmployeeCheckResult, EmployeeResponse } from '../types/employee';
-import { getAssignableRoles } from '../store/authSlice';
-import { addEmployee } from '../store/employeeSlice';
+import { ServiceTypeResponse } from '../types/serviceType';
+import { OrderResponse } from '../types/order';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8088/api';
 
@@ -210,5 +210,26 @@ export const employeeAPI = {
     }
   },
 };
+
+export const serviceTypeAPI = {
+  // Get Active Service Types
+  getActiveServiceTypes: async (): Promise<ServiceTypeResponse> => {
+    const response = await api.get<ServiceTypeResponse>('/services/get-active');
+    return response.data;
+  },
+}
+
+export const orderAPI = {
+  calculateShippingFee: async(weight: number, serviceTypeId: number, senderCodeCity: number, recipientCodeCity: number
+  ): Promise<OrderResponse> => {
+    const response = await api.get<OrderResponse>(
+      '/orders/calculate-shipping-fee',
+      {
+        params: { weight, serviceTypeId, senderCodeCity, recipientCodeCity, },
+      }
+    );
+    return response.data;
+  },
+}
 
 export default api;

@@ -32,7 +32,11 @@ const Header: React.FC<HeaderProps> = () => {
 
   const capitalize = (str: string) => {
     if (!str) return "";
-    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+    return str
+      .split(" ")
+      .filter(Boolean) 
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
   };
 
   const menu = (
@@ -71,6 +75,7 @@ const Header: React.FC<HeaderProps> = () => {
           ghost
           style={{ borderColor: "#fff", color: "#fff" }}
           icon={<PlusOutlined />}
+          onClick={() => navigate("/manager/orders/create")}
         >
           Tạo đơn hàng
         </Button>
@@ -85,7 +90,7 @@ const Header: React.FC<HeaderProps> = () => {
             }}/>
             <Text style={{ color: "#fff" }}>
               {user?.firstName && user?.lastName
-                ? `${capitalize(user.firstName)} ${capitalize(user.lastName)}`
+                ? `${capitalize(user.lastName)} ${capitalize(user.firstName)}`
                 : "User"}
             </Text>
           </Space>

@@ -20,7 +20,11 @@ const HeaderHome: React.FC = () => {
 
   const capitalize = (str: string) => {
     if (!str) return "";
-    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+    return str
+      .split(" ")
+      .filter(Boolean) 
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
   };
 
   const getDashboardPath = (role: string) => {
@@ -105,7 +109,7 @@ const HeaderHome: React.FC = () => {
                 <Avatar size="default" style={{ backgroundColor: "#1C3D90" }} icon={<UserOutlined style={{ color: "#f5f5f5" }} />} />
                 <span style={{ color: "#000" }}>
                     {user?.firstName && user?.lastName
-                      ? `${capitalize(user.firstName)} ${capitalize(user.lastName)}`
+                      ? `${capitalize(user.lastName)} ${capitalize(user.firstName)}`
                       : "User"}
               </span>
               </div>

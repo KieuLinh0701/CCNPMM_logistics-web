@@ -3,11 +3,19 @@ import { Model, DataTypes } from 'sequelize';
 export default (sequelize) => {
   class ShipmentOrder extends Model {
     static associate(models) {
-      // 1 ShipmentOrder thuộc về 1 Shipment
-      ShipmentOrder.belongsTo(models.Shipment, { foreignKey: 'shipmentId', as: 'shipment' });
+      ShipmentOrder.belongsTo(models.Shipment, { 
+        foreignKey: 'shipmentId', 
+        as: 'shipment',
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+      });
 
-      // 1 ShipmentOrder thuộc về 1 Order
-      ShipmentOrder.belongsTo(models.Order, { foreignKey: 'orderId', as: 'order' });
+      ShipmentOrder.belongsTo(models.Order, { 
+        foreignKey: 'orderId', 
+        as: 'order',
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+      });
     }
   }
 
@@ -25,7 +33,14 @@ export default (sequelize) => {
     {
       sequelize,
       modelName: 'ShipmentOrder',
-      timestamps: false, 
+      tableName: 'ShipmentOrders',
+      timestamps: false,
+      indexes: [
+        {
+          unique: true,
+          fields: ['shipmentId', 'orderId'], 
+        },
+      ],
     }
   );
 

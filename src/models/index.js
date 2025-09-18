@@ -20,6 +20,15 @@ import User from './user.js';
 import OTP from './otp.js';
 import Office from './office.js';
 import Employee from './employee.js';
+import ServiceType from './serviceType.js';
+import Order from './order.js';
+import OrderHistory from './orderHistory.js';
+import Promotion from './promotion.js';
+import Region from './region.js';
+import Shipment from './shipment.js';
+import ShipmentOrder from './shipmentOrder.js';
+import ShippingRate from './shippingRate.js';
+import Vehicle from './vehicle.js';
 
 // Initialize models
 const db = {
@@ -29,9 +38,18 @@ const db = {
   OTP: OTP(sequelize),
   Office: Office(sequelize),
   Employee: Employee(sequelize),
+  ServiceType: ServiceType(sequelize),
+  Order: Order(sequelize),
+  OrderHistory: OrderHistory(sequelize),
+  Promotion: Promotion(sequelize),
+  Region: Region(sequelize),
+  Shipment: Shipment(sequelize),
+  ShipmentOrder: ShipmentOrder(sequelize),
+  ShippingRate: ShippingRate(sequelize),
+  Vehicle: Vehicle(sequelize),
 };
 
-// Gọi associate cho từng model nếu có
+// Call associate for each model if exists
 Object.values(db).forEach((model) => {
   if (model?.associate) {
     model.associate(db);

@@ -45,7 +45,7 @@ interface EmployeeTable extends Employee {
   key: string;
 }
 
-const EmployeeForm = () => {
+const OrderForm = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [newEmployee, setNewEmployee] = useState<Partial<Employee>>({});
@@ -805,4 +805,4 @@ const EmployeeForm = () => {
   );
 };
 
-export default EmployeeForm;
+export default OrderForm;

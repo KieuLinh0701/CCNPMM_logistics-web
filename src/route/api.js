@@ -4,6 +4,8 @@ import { verifyToken } from "../middleware/auth.js";
 import nodemailer from "nodemailer";
 import employeeController from "../controllers/employeeController.js";
 import officeController from "../controllers/officeController.js";
+import serviceTypeController from "../controllers/serviceTypeController.js";
+import orderController from "../controllers/orderController.js";
 
 let router = express.Router();
 
@@ -30,6 +32,12 @@ let initApiRoutes = (app) => {
     router.get("/employees/check-before-add", verifyToken, employeeController.checkBeforeAddEmployee);
     router.put("/employees/update/:id", verifyToken, employeeController.updateEmployee);
     router.post('/employees/import', verifyToken, employeeController.importEmployees);
+
+    // Service Type routes
+    router.get("/services/get-active", serviceTypeController.getActiveServiceTypes);
+
+    // Order Routes
+    router.get("/orders/calculate-shipping-fee", orderController.calculateShippingFee);
 
     // Test routes
     router.get('/test', (req, res) => {

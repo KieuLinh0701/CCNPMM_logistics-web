@@ -3,13 +3,33 @@ import { Model, DataTypes } from 'sequelize';
 export default (sequelize) => {
   class OrderHistory extends Model {
     static associate(models) {
-      // 1 lịch sử thuộc về 1 Order
-      OrderHistory.belongsTo(models.Order, { foreignKey: 'orderId', as: 'order' });
-      // Lịch sử có thể tham chiếu tới kho nguồn và kho đích
-      OrderHistory.belongsTo(models.Office, { foreignKey: 'fromOfficeId', as: 'fromOffice' });
-      OrderHistory.belongsTo(models.Office, { foreignKey: 'toOfficeId', as: 'toOffice' });
-      // ịch sử đơn có thể gắn với 1 chuyến xe (Shipment)
-      OrderHistory.belongsTo(models.Shipment, { foreignKey: 'shipmentId', as: 'shipment' });
+      OrderHistory.belongsTo(models.Order, { 
+        foreignKey: 'orderId', 
+        as: 'order',
+        onDelete: 'CASCADE', 
+        onUpdate: 'CASCADE'
+      });
+
+      OrderHistory.belongsTo(models.Office, { 
+        foreignKey: 'fromOfficeId', 
+        as: 'fromOffice',
+        onDelete: 'SET NULL',
+        onUpdate: 'CASCADE'
+      });
+
+      OrderHistory.belongsTo(models.Office, { 
+        foreignKey: 'toOfficeId', 
+        as: 'toOffice',
+        onDelete: 'SET NULL',
+        onUpdate: 'CASCADE'
+      });
+
+      OrderHistory.belongsTo(models.Shipment, { 
+        foreignKey: 'shipmentId', 
+        as: 'shipment',
+        onDelete: 'SET NULL',
+        onUpdate: 'CASCADE'
+      });
     }
   }
 
@@ -33,13 +53,13 @@ export default (sequelize) => {
       },
       action: {
         type: DataTypes.ENUM(
-          'ReadyForPickup',   // Người gửi chuẩn bị hàng xong
-          'PickedUp',         // Shipper tới cửa hàng lấy hàng
-          'Imported',         // Nhập kho
-          'Exported',         // Xuất kho
-          'Shipping',         // Đang đi giao
-          'Delivered',        // Đã giao thành công
-          'Returned'          // Đơn hàng hoàn về
+          'ReadyForPickup',
+          'PickedUp',
+          'Imported',
+          'Exported',
+          'Shipping',
+          'Delivered',
+          'Returned'
         ),
         allowNull: false,
         comment: 'Action type representing the shipping step'
@@ -52,12 +72,20 @@ export default (sequelize) => {
         type: DataTypes.DATE,
         allowNull: false,
         defaultValue: DataTypes.NOW,
+        validate: {
+          isBeforeNow(value) {
+            if (new Date(value) > new Date()) {
+              throw new Error('actionTime cannot be in the future');
+            }
+          }
+        }
       },
     },
     {
       sequelize,
       modelName: 'OrderHistory',
-      timestamps: false, 
+      tableName: 'OrderHistories', 
+      timestamps: false,
     }
   );
 
