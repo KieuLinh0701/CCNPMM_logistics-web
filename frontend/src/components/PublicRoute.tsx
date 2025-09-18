@@ -14,6 +14,8 @@ export const PublicRoute = ({ children }: PublicRouteProps) => {
       admin: "/admin/dashboard",
       manager: "/manager/dashboard",
       staff: "/staff/dashboard",
+      shipper: "/shipper/dashboard",
+      user: "/user/dashboard",
     };
     return <Navigate to={roleRoutes[user.role] || "/"} replace />;
   }

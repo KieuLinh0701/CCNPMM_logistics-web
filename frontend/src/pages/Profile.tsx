@@ -11,17 +11,16 @@ const Profile: React.FC = () => {
   const { user, loading } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
-    if (!user) {
-      dispatch(getProfile());
-    }
-  }, [dispatch, user]);
+    dispatch(getProfile());
+  }, [dispatch]);
 
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'admin': return 'red';
       case 'manager': return 'blue';
       case 'driver': return 'green';
-      case 'staff': return 'purple';
+      case 'user': return 'purple';
+      case 'shipper': return 'orange';
       default: return 'default';
     }
   };
@@ -31,7 +30,9 @@ const Profile: React.FC = () => {
       case 'admin': return 'Quản trị viên';
       case 'manager': return 'Quản lý';
       case 'driver': return 'Tài xế';
-      case 'staff': return 'Nhân viên';
+      case 'user': return 'Chủ cửa hàng';
+      case 'shipper': return 'Nhân viên giao hàng';
+      case 'driver': return 'Tài xê';
       default: return role;
     }
   };

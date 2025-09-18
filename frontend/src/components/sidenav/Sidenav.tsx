@@ -187,9 +187,86 @@ const Sidenav: React.FC<Props> = ({ color }) => {
       },
     ],
     user: [
-      { key: "/profile", label: "Profile", path: "/profile", icon: <UserOutlined /> },
-      { key: "/sign-in", label: "Sign In", path: "/sign-in", icon: <LoginOutlined /> },
-      { key: "/sign-up", label: "Sign Up", path: "/sign-up", icon: <UserAddOutlined /> },
+      {
+        key: "/user/dashboard",
+        label: "Báo cáo & Thống kê",
+        path: "/user/dashboard",
+        icon: <DashboardOutlined />,
+      },
+      {
+        key: "orders",
+        label: "Quản lý đơn hàng",
+        icon: <ShoppingOutlined />,
+        children: [
+          {
+            key: "/user/orders/list",
+            label: "Danh sách đơn hàng",
+            path: "/user/orders/list",
+          },
+          {
+            key: "/user/orders/assign",
+            label: "Phân công đơn hàng",
+            path: "/user/orders/assign",
+          },
+        ],
+      },
+      {
+        key: "/user/support",
+        label: "Hỗ trợ & Khiếu nại",
+        path: "/user/support",
+        icon: <GlobalOutlined />,
+      },
+      {
+        key: "staff",
+        label: "Quản lý nhân sự",
+        icon: <TeamOutlined />,
+        children: [
+          {
+            key: "/user/employees/list",
+            label: "Danh sách nhân viên",
+            path: "/user/employees/list",
+          },
+          {
+            key: "/user/staff/assign",
+            label: "Phân công công việc",
+            path: "/user/staff/assign",
+          },
+        ],
+      },
+      {
+        key: "/user/office",
+        label: "Thông tin bưu cục",
+        path: "/user/office",
+        icon: <HomeOutlined />,
+      },
+      {
+        key: "/user/warehouse",
+        label: "Đơn nhập/xuất kho",
+        path: "/user/warehouse",
+        icon: <DatabaseOutlined />,
+      },
+      {
+        key: "finance",
+        label: "Quản lý dòng tiền",
+        icon: <DollarOutlined />,
+        children: [
+          {
+            key: "/user/finance/tracking",
+            label: "Theo dõi thu - chi",
+            path: "/user/finance/tracking",
+          },
+          {
+            key: "/user/finance/confirm",
+            label: "Xác nhận đối soát",
+            path: "/user/finance/confirm",
+          },
+          {
+            key: "/user/finance/history",
+            label: "Lịch sử đối soát",
+            path: "/user/finance/history",
+          },
+        ],
+      },
     ],
   };
 

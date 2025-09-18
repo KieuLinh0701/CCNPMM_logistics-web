@@ -18,8 +18,8 @@ const Header: React.FC<HeaderProps> = () => {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
   const handleLogout = () => {
-    dispatch(logout()); // xoá user, token, isAuthenticated + localStorage
-    navigate("/login"); // chuyển về trang login
+    dispatch(logout()); 
+    navigate("/login"); 
   };
 
   const handleProfile = () => {
@@ -70,15 +70,17 @@ const Header: React.FC<HeaderProps> = () => {
 
       {/* Góc phải */}
       <Space size="middle">
-        <Button
-          type="primary"
-          ghost
-          style={{ borderColor: "#fff", color: "#fff" }}
-          icon={<PlusOutlined />}
-          onClick={() => navigate("/manager/orders/create")}
-        >
-          Tạo đơn hàng
-        </Button>
+        {user?.role === "manager" && (
+          <Button
+            type="primary"
+            ghost
+            style={{ borderColor: "#fff", color: "#fff" }}
+            icon={<PlusOutlined />}
+            onClick={() => navigate("/manager/orders/create")}
+          >
+            Tạo đơn hàng
+          </Button>
+        )}
 
         <Dropdown overlay={menu} placement="bottomRight" trigger={["click"]}>
           <Space style={{ cursor: "pointer", color: "#fff" }}>

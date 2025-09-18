@@ -214,6 +214,7 @@ const authSlice = createSlice({
         state.loading = false;
         if (action.payload.success && action.payload.user) {
           state.user = action.payload.user;
+          localStorage.setItem('user', JSON.stringify(action.payload.user));
         }
       })
       .addCase(getProfile.rejected, (state, action) => {
