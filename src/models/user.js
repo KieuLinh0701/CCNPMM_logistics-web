@@ -44,6 +44,18 @@ export default (sequelize) => {
         allowNull: false,
         unique: true,
       },
+      detailAddress: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      codeWard: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      codeCity: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
       role: {
         type: DataTypes.ENUM('admin', 'manager', 'driver', 'shipper', 'user'),
         defaultValue: 'user',
