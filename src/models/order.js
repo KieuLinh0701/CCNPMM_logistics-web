@@ -56,6 +56,12 @@ export default (sequelize) => {
         onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
       });
+
+      Order.belongsToMany(models.Product, {
+        through: models.OrderProduct,
+        foreignKey: 'orderId',
+        as: 'products',
+      });
     }
   }
 

@@ -1,3 +1,5 @@
+// Sản phẩm của user và có thể đưa vào order
+
 import { Model, DataTypes } from 'sequelize';
 
 export default (sequelize) => {
@@ -5,6 +7,13 @@ export default (sequelize) => {
     static associate(models) {
       // Định nghĩa mối quan hệ sau này
       User.hasOne(models.Employee, { foreignKey: 'userId', as: 'employee' })
+
+      User.hasMany(models.Product, {
+        foreignKey: 'userId',
+        as: 'products',
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+      });
     }
   }
 
