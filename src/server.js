@@ -5,9 +5,7 @@ import initWebRoutes from './route/web.js';
 import initApiRoutes from './route/api.js';
 import connectDB from './config/configdb.js';
 import dotenv from 'dotenv';
-
-// Import models to register them and trigger auto-sync
-import './models/index.js';
+import db from './models/index.js';
 
 dotenv.config();
 
@@ -23,7 +21,14 @@ initWebRoutes(app);
 initApiRoutes(app);
 
 // Connect database
-connectDB();
+(async () => {
+    try {
+        await connectDB();  // authenticate
+        await db.sequelize.sync({ alter: true }); // tạo/ cập nhật bảng
+    } catch (error) {
+        console.error("Database connection or sync failed:", error);
+    }
+})();
 
 let port = process.env.PORT || 8088;
 

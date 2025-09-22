@@ -56,12 +56,19 @@ export type UserRow = {
 export type Paginated<T> = { data: T[]; pagination: { page: number; limit: number; total: number }; success: boolean };
 export type PostOfficeRow = {
   id: number;
+  code: string;
   name: string;
   address: string;
-  phone: string;
-  workingHours: string;
-  area: string;
-  status: string;
+  phoneNumber: string;
+  email: string;
+  codeWard: number;
+  codeCity: number;
+  latitude: number;
+  longitude: number;
+  openingTime: string;
+  closingTime: string;
+  type: 'Head Office' | 'Post Office';
+  status: 'Active' | 'Inactive' | 'Maintenance';
   createdAt: string;
   updatedAt: string;
 };
@@ -69,11 +76,7 @@ export type PostOfficeRow = {
 export type ServiceTypeRow = {
   id: number;
   name: string;
-  basePrice: number;
-  codFee: number;
-  weightLimit: number;
   deliveryTime: string;
-  description?: string;
   status: string;
   createdAt: string;
   updatedAt: string;
@@ -177,23 +180,23 @@ export const adminAPI = {
 
   // PostOffice APIs
   listPostOffices: async (params?: { page?: number; limit?: number; search?: string }): Promise<Paginated<PostOfficeRow>> => {
-    const response = await api.get<Paginated<PostOfficeRow>>('/admin/postoffices', { params });
+    const response = await api.get<Paginated<PostOfficeRow>>('/admin/offices', { params });
     return response.data;
   },
   getPostOffice: async (id: number): Promise<{ success: boolean; data: PostOfficeRow }> => {
-    const response = await api.get<{ success: boolean; data: PostOfficeRow }>(`/admin/postoffices/${id}`);
+    const response = await api.get<{ success: boolean; data: PostOfficeRow }>(`/admin/offices/${id}`);
     return response.data;
   },
-  createPostOffice: async (payload: { name: string; address: string; phone: string; workingHours: string; area: string; status?: string }): Promise<{ success: boolean; data: PostOfficeRow }> => {
-    const response = await api.post<{ success: boolean; data: PostOfficeRow }>(`/admin/postoffices`, payload);
+  createPostOffice: async (payload: { code: string; name: string; address: string; phoneNumber: string; email: string; codeWard: number; codeCity: number; latitude: number; longitude: number; openingTime: string; closingTime: string; type?: 'Head Office' | 'Post Office'; status?: 'Active' | 'Inactive' | 'Maintenance' }): Promise<{ success: boolean; data: PostOfficeRow }> => {
+    const response = await api.post<{ success: boolean; data: PostOfficeRow }>(`/admin/offices`, payload);
     return response.data;
   },
-  updatePostOffice: async (id: number, payload: Partial<{ name: string; address: string; phone: string; workingHours: string; area: string; status: string }>): Promise<{ success: boolean; data: PostOfficeRow }> => {
-    const response = await api.put<{ success: boolean; data: PostOfficeRow }>(`/admin/postoffices/${id}`, payload);
+  updatePostOffice: async (id: number, payload: Partial<{ code: string; name: string; address: string; phoneNumber: string; email: string; codeWard: number; codeCity: number; latitude: number; longitude: number; openingTime: string; closingTime: string; type: 'Head Office' | 'Post Office'; status: 'Active' | 'Inactive' | 'Maintenance' }>): Promise<{ success: boolean; data: PostOfficeRow }> => {
+    const response = await api.put<{ success: boolean; data: PostOfficeRow }>(`/admin/offices/${id}`, payload);
     return response.data;
   },
   deletePostOffice: async (id: number): Promise<{ success: boolean }> => {
-    const response = await api.delete<{ success: boolean }>(`/admin/postoffices/${id}`);
+    const response = await api.delete<{ success: boolean }>(`/admin/offices/${id}`);
     return response.data;
   },
 
@@ -206,11 +209,11 @@ export const adminAPI = {
     const response = await api.get<{ success: boolean; data: ServiceTypeRow }>(`/admin/servicetypes/${id}`);
     return response.data;
   },
-  createServiceType: async (payload: { name: string; basePrice: number; codFee: number; weightLimit: number; deliveryTime: string; description?: string; status?: string }): Promise<{ success: boolean; data: ServiceTypeRow }> => {
+  createServiceType: async (payload: { name: string; deliveryTime?: string; status?: string }): Promise<{ success: boolean; data: ServiceTypeRow }> => {
     const response = await api.post<{ success: boolean; data: ServiceTypeRow }>(`/admin/servicetypes`, payload);
     return response.data;
   },
-  updateServiceType: async (id: number, payload: Partial<{ name: string; basePrice: number; codFee: number; weightLimit: number; deliveryTime: string; description: string; status: string }>): Promise<{ success: boolean; data: ServiceTypeRow }> => {
+  updateServiceType: async (id: number, payload: Partial<{ name: string; deliveryTime?: string; status?: string }>): Promise<{ success: boolean; data: ServiceTypeRow }> => {
     const response = await api.put<{ success: boolean; data: ServiceTypeRow }>(`/admin/servicetypes/${id}`, payload);
     return response.data;
   },

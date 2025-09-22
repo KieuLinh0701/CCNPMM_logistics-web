@@ -1,10 +1,19 @@
+// Sản phẩm của user và có thể đưa vào order
+
 import { Model, DataTypes } from 'sequelize';
 
 export default (sequelize) => {
   class User extends Model {
     static associate(models) {
       // Định nghĩa mối quan hệ sau này
-      // ví dụ: User.hasMany(models.OTP, { foreignKey: 'userId' });
+      User.hasOne(models.Employee, { foreignKey: 'userId', as: 'employee' })
+
+      User.hasMany(models.Product, {
+        foreignKey: 'userId',
+        as: 'products',
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+      });
     }
   }
 
@@ -35,9 +44,21 @@ export default (sequelize) => {
         allowNull: false,
         unique: true,
       },
+      detailAddress: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      codeWard: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      codeCity: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
       role: {
-        type: DataTypes.ENUM('admin', 'manager', 'staff', 'driver'),
-        defaultValue: 'staff',
+        type: DataTypes.ENUM('admin', 'manager', 'driver', 'shipper', 'user'),
+        defaultValue: 'user',
       },
       isVerified: {
         type: DataTypes.BOOLEAN,

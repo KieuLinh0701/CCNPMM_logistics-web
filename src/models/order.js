@@ -3,9 +3,65 @@ import { Model, DataTypes } from 'sequelize';
 export default (sequelize) => {
   class Order extends Model {
     static associate(models) {
-      // Định nghĩa mối quan hệ
-      Order.belongsTo(models.PostOffice, { foreignKey: 'postOfficeId', as: 'postOffice' });
-      Order.belongsTo(models.ServiceType, { foreignKey: 'serviceTypeId', as: 'serviceType' });
+      // 1 Order có nhiều lịch sử vận chuyển
+      Order.hasMany(models.OrderHistory, { 
+        foreignKey: 'orderId', 
+        as: 'histories',
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+      });
+
+      // 1 Order thuộc về 1 User (chủ cửa hàng)
+      Order.belongsTo(models.User, { 
+        foreignKey: 'userId', 
+        as: 'user',
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+      });
+
+      // 1 Order có thể tham chiếu tới kho nguồn và kho đích
+      Order.belongsTo(models.Office, { 
+        foreignKey: 'fromOfficeId', 
+        as: 'fromOffice',
+        onDelete: 'SET NULL',
+        onUpdate: 'CASCADE',
+      });
+      Order.belongsTo(models.Office, { 
+        foreignKey: 'toOfficeId', 
+        as: 'toOffice',
+        onDelete: 'SET NULL',
+        onUpdate: 'CASCADE',
+      });
+
+      // 1 Order thuộc về 1 dịch vụ giao hàng
+      Order.belongsTo(models.ServiceType, { 
+        foreignKey: 'serviceTypeId', 
+        as: 'serviceType',
+        onDelete: 'RESTRICT',
+        onUpdate: 'CASCADE',
+      });
+
+      // 1 Order có thể áp dụng 1 chương trình khuyến mãi
+      Order.belongsTo(models.Promotion, { 
+        foreignKey: 'promotionId', 
+        as: 'promotion',
+        onDelete: 'SET NULL',
+        onUpdate: 'CASCADE',
+      });
+
+      // 1 Order có nhiều ShipmentOrder
+      Order.hasMany(models.ShipmentOrder, { 
+        foreignKey: 'orderId', 
+        as: 'shipmentOrders',
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+      });
+
+      Order.belongsToMany(models.Product, {
+        through: models.OrderProduct,
+        foreignKey: 'orderId',
+        as: 'products',
+      });
     }
   }
 
@@ -17,88 +73,175 @@ export default (sequelize) => {
         unique: true,
         comment: 'Mã vận đơn'
       },
-      senderName: {
-        type: DataTypes.STRING(100),
-        allowNull: false,
-        comment: 'Tên người gửi'
-      },
-      senderPhone: {
-        type: DataTypes.STRING(20),
-        allowNull: false,
-        comment: 'SĐT người gửi'
-      },
-      senderAddress: {
-        type: DataTypes.TEXT,
-        allowNull: false,
-        comment: 'Địa chỉ người gửi'
-      },
-      receiverName: {
-        type: DataTypes.STRING(100),
-        allowNull: false,
-        comment: 'Tên người nhận'
-      },
-      receiverPhone: {
-        type: DataTypes.STRING(20),
-        allowNull: false,
-        comment: 'SĐT người nhận'
-      },
-      receiverAddress: {
-        type: DataTypes.TEXT,
-        allowNull: false,
-        comment: 'Địa chỉ người nhận'
-      },
-      weight: {
-        type: DataTypes.DECIMAL(8, 2),
-        allowNull: false,
-        comment: 'Trọng lượng (kg)'
-      },
-      basePrice: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: false,
-        comment: 'Giá cơ bản'
-      },
-      codAmount: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: true,
-        defaultValue: 0,
-        comment: 'Số tiền COD'
-      },
-      codFee: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: false,
-        defaultValue: 0,
-        comment: 'Phí COD'
-      },
-      totalAmount: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: false,
-        comment: 'Tổng tiền'
-      },
+
       status: {
         type: DataTypes.ENUM('pending', 'confirmed', 'picked_up', 'in_transit', 'delivered', 'cancelled'),
         defaultValue: 'pending',
         comment: 'Trạng thái đơn hàng'
       },
+
+      // Người gửi giá trị này chỉ khác null khi order không được tạo bởi user
+      senderName: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+        comment: 'Tên người gửi'
+      },
+      senderPhone: {
+        type: DataTypes.STRING(20),
+        allowNull: true,
+        comment: 'SĐT người gửi'
+      },
+
+      // Địa chỉ người gửi
+      senderCityCode: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      senderWardCode: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      senderDetailAddress: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+
+      // Người nhận 
+      recipientName: {
+        type: DataTypes.STRING(100),
+        allowNull: false,
+        comment: 'Tên người nhận'
+      },
+      recipientPhone: {
+        type: DataTypes.STRING(20),
+        allowNull: false,
+        comment: 'SĐT người nhận'
+      },
+
+      // Địa chỉ người nhận
+      recipientCityCode: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      recipientWardCode: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      recipientDetailAddress: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+
+      // Khối lượng 
+      weight: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+        validate: {
+          min: 0
+        }
+      },
+
+      serviceTypeId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+
+      // Chương trình khuyến mãi (nếu có)
+      promotionId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+
+      discountAmount: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+        validate: {
+          min: 0
+        }
+      },
+
+      // Phí vận chuyển
+      shippingFee: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        validate: {
+          min: 0
+        }
+      },
+
+      // Tiền thu hộ
+      cod: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+        validate: {
+          min: 0
+        }
+      },
+
+      // Giá trị đơn hàng 
+      orderValue: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+        validate: {
+          min: 0
+        }
+      },
+
+      payer: {
+        type: DataTypes.ENUM('Customer', 'Shop'),
+        allowNull: false,
+        defaultValue: 'Customer',
+      },
+      paymentMethod: {
+        type: DataTypes.ENUM('Cash', 'BankTransfer', 'VNPay', 'ZaloPay'),
+        allowNull: false,
+        defaultValue: 'Cash',
+      },
+      paymentStatus: {
+        type: DataTypes.ENUM('Paid', 'Unpaid'),
+        allowNull: false,
+        defaultValue: 'Unpaid',
+      },
+
+      // Người tạo đơn
+      userId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+
+      // Ghi chú
       notes: {
         type: DataTypes.TEXT,
         allowNull: true,
         comment: 'Ghi chú'
       },
-      postOfficeId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        comment: 'ID bưu cục'
+
+      // Thời gian giao hàng
+      deliveredAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
       },
-      serviceTypeId: {
+
+      // Bưu cục giao nhận
+      fromOfficeId: {
         type: DataTypes.INTEGER,
-        allowNull: false,
-        comment: 'ID loại dịch vụ'
+        allowNull: true,
+      },
+      toOfficeId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
       },
     },
     {
       sequelize,
       modelName: 'Order',
-      tableName: 'orders',
+      tableName: 'Orders',
+      timestamps: true,
+      createdAt: 'createdAt',
+      updatedAt: 'updatedAt',
     }
   );
 

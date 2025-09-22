@@ -3,42 +3,22 @@ import { Model, DataTypes } from 'sequelize';
 export default (sequelize) => {
   class ServiceType extends Model {
     static associate(models) {
-      // Định nghĩa mối quan hệ sau này
-      ServiceType.hasMany(models.Order, { foreignKey: 'serviceTypeId', as: 'orders' });
+      // 1 dịch vụ có nhiều ShippingRates
+      ServiceType.hasMany(models.ShippingRate, { foreignKey: 'serviceTypeId', as: 'rates' });
     }
   }
 
   ServiceType.init(
     {
       name: {
-        type: DataTypes.STRING(100),
+        type: DataTypes.STRING,
         allowNull: false,
-        comment: 'VD: Tiêu chuẩn, Nhanh, Hỏa tốc'
-      },
-      basePrice: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: false,
-        comment: 'Giá cơ bản'
-      },
-      codFee: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: false,
-        defaultValue: 0,
-        comment: 'Phí COD'
-      },
-      weightLimit: {
-        type: DataTypes.DECIMAL(8, 2),
-        allowNull: false,
-        comment: 'Giới hạn trọng lượng (kg)'
+        comment: 'VD: Tiêu chuẩn, Nhanh, Hỏa tốc',
       },
       deliveryTime: {
-        type: DataTypes.STRING(50),
-        allowNull: false,
-        comment: 'VD: "1-2 ngày", "3-5 ngày"'
-      },
-      description: {
         type: DataTypes.TEXT,
         allowNull: true,
+        comment: 'VD: "1-2 ngày", "Trong ngày"',
       },
       status: {
         type: DataTypes.ENUM('active', 'inactive'),
@@ -48,7 +28,6 @@ export default (sequelize) => {
     {
       sequelize,
       modelName: 'ServiceType',
-      tableName: 'servicetypes',
     }
   );
 

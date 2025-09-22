@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Card, Form, Input, Modal, Popconfirm, Select, Space, Table, Tag, message, InputNumber } from 'antd';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Button, Card, Form, Input, Modal, Popconfirm, Select, Space, Table, Tag, message } from 'antd';
 import { adminAPI, ServiceTypeRow } from '../../services/api';
 
 type QueryState = { page: number; limit: number; search: string };
@@ -13,7 +13,7 @@ const AdminServiceTypes: React.FC = () => {
   const [editing, setEditing] = useState<ServiceTypeRow | null>(null);
   const [form] = Form.useForm();
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const res = await adminAPI.listServiceTypes({ page: query.page, limit: query.limit, search: query.search });
@@ -24,9 +24,9 @@ const AdminServiceTypes: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [query.page, query.limit, query.search]);
 
-  useEffect(() => { fetchData(); }, [query.page, query.limit, query.search]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const onCreate = () => {
     setEditing(null);
@@ -43,17 +43,13 @@ const AdminServiceTypes: React.FC = () => {
     if (editing) {
       form.setFieldsValue({
         name: editing.name,
-        basePrice: editing.basePrice,
-        codFee: editing.codFee,
-        weightLimit: editing.weightLimit,
         deliveryTime: editing.deliveryTime,
-        description: editing.description,
         status: editing.status,
       });
     }
   }, [editing, open, form]);
 
-  const onDelete = async (id: number) => {
+  const onDelete = useCallback(async (id: number) => {
     try {
       await adminAPI.deleteServiceType(id);
       message.success('Đã xóa');
@@ -61,7 +57,7 @@ const AdminServiceTypes: React.FC = () => {
     } catch (e: any) {
       message.error(e?.response?.data?.message || 'Xóa thất bại');
     }
-  };
+  }, [fetchData]);
 
   const submit = async () => {
     try {
@@ -84,21 +80,6 @@ const AdminServiceTypes: React.FC = () => {
 
   const columns = useMemo(() => [
     { title: 'Tên dịch vụ', dataIndex: 'name' },
-    { 
-      title: 'Giá cơ bản', 
-      dataIndex: 'basePrice', 
-      render: (v: number) => `${v.toLocaleString()} VNĐ` 
-    },
-    { 
-      title: 'COD Fee', 
-      dataIndex: 'codFee', 
-      render: (v: number) => `${v.toLocaleString()} VNĐ` 
-    },
-    { 
-      title: 'Giới hạn trọng lượng', 
-      dataIndex: 'weightLimit', 
-      render: (v: number) => `${v} kg` 
-    },
     { title: 'Thời gian giao', dataIndex: 'deliveryTime' },
     { 
       title: 'Trạng thái', 
@@ -116,7 +97,7 @@ const AdminServiceTypes: React.FC = () => {
         </Space>
       )
     }
-  ], []);
+  ], [onDelete]);
 
   return (
     <Card title="Quản lý loại dịch vụ" extra={
@@ -145,20 +126,8 @@ const AdminServiceTypes: React.FC = () => {
           <Form.Item name="name" label="Tên dịch vụ" rules={[{ required: true }]}>
             <Input placeholder="VD: Tiêu chuẩn, Nhanh, Hỏa tốc" />
           </Form.Item>
-          <Form.Item name="basePrice" label="Giá cơ bản (VNĐ)" rules={[{ required: true, type: 'number', min: 0 }]}>
-            <InputNumber style={{ width: '100%' }} placeholder="0" />
-          </Form.Item>
-          <Form.Item name="codFee" label="COD Fee (VNĐ)" rules={[{ required: true, type: 'number', min: 0 }]}>
-            <InputNumber style={{ width: '100%' }} placeholder="0" />
-          </Form.Item>
-          <Form.Item name="weightLimit" label="Giới hạn trọng lượng (kg)" rules={[{ required: true, type: 'number', min: 0.1 }]}>
-            <InputNumber style={{ width: '100%' }} placeholder="0" step={0.1} />
-          </Form.Item>
-          <Form.Item name="deliveryTime" label="Thời gian giao" rules={[{ required: true }]}>
+          <Form.Item name="deliveryTime" label="Thời gian giao">
             <Input placeholder="VD: 1-2 ngày, 3-5 ngày" />
-          </Form.Item>
-          <Form.Item name="description" label="Mô tả">
-            <Input.TextArea rows={3} />
           </Form.Item>
           <Form.Item name="status" label="Trạng thái" initialValue="active"> 
             <Select options={[{ label: 'Hoạt động', value: 'active' }, { label: 'Khóa', value: 'inactive' }]} />

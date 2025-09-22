@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Card, Descriptions, Drawer, Form, Input, Modal, Popconfirm, Select, Space, Table, Tag, message } from 'antd';
 import { adminAPI, OrderRow } from '../../services/api';
 
@@ -23,7 +23,7 @@ const AdminOrders: React.FC = () => {
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [form] = Form.useForm();
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const res = await adminAPI.listOrders({ 
@@ -40,22 +40,22 @@ const AdminOrders: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [query.page, query.limit, query.search, query.status, query.postOfficeId]);
 
-  useEffect(() => { fetchData(); }, [query.page, query.limit, query.search, query.status, query.postOfficeId]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const onViewDetails = (record: OrderRow) => {
     setSelectedOrder(record);
     setOpen(true);
   };
 
-  const onUpdateStatus = (record: OrderRow) => {
+  const onUpdateStatus = useCallback((record: OrderRow) => {
     setSelectedOrder(record);
     form.setFieldsValue({ status: record.status });
     setStatusModalOpen(true);
-  };
+  }, [form]);
 
-  const onDelete = async (id: number) => {
+  const onDelete = useCallback(async (id: number) => {
     try {
       await adminAPI.deleteOrder(id);
       message.success('Đã xóa');
@@ -63,7 +63,7 @@ const AdminOrders: React.FC = () => {
     } catch (e: any) {
       message.error(e?.response?.data?.message || 'Xóa thất bại');
     }
-  };
+  }, [fetchData]);
 
   const submitStatusUpdate = async () => {
     try {
@@ -141,7 +141,7 @@ const AdminOrders: React.FC = () => {
         </Space>
       )
     }
-  ], []);
+  ], [onDelete, onUpdateStatus]);
 
   return (
     <Card title="Quản lý đơn hàng" extra={

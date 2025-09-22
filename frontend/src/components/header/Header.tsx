@@ -16,6 +16,9 @@ const Header: React.FC<HeaderProps> = () => {
   const navigate = useNavigate();
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const displayName = user?.firstName || user?.lastName
+    ? `${user?.firstName || ''} ${user?.lastName || ''}`.trim()
+    : (user?.email || 'User');
 
   const handleLogout = () => {
     dispatch(logout()); // xoá user, token, isAuthenticated + localStorage
@@ -76,7 +79,7 @@ const Header: React.FC<HeaderProps> = () => {
               color: "#fff",
               fontWeight: "bold",
             }}/>
-            <Text style={{ color: "#fff" }}>Kiều Linh</Text>
+            <Text style={{ color: "#fff" }}>{displayName}</Text>
           </Space>
         </Dropdown>
       </Space>

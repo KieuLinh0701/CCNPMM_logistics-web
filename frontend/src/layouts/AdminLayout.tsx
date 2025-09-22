@@ -5,7 +5,7 @@ import Header from "../components/header/Header";
 import Sidenav from "../components/sidenav/Sidenav";
 import { Outlet } from "react-router-dom";
 
-const { Header: AntHeader, Sider, Content, Footer } = Layout;
+const { Header: AntHeader, Sider, Content } = Layout;
 
 interface AdminLayoutProps {
 }

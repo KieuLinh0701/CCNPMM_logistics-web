@@ -26,8 +26,6 @@ import { PublicRoute } from './components/PublicRoute';
 import Profile from './pages/Profile';
 
 const App: React.FC = () => {
-  const user = JSON.parse(localStorage.getItem('user') || 'null');
-  const isAuthenticated = !!user?.token;
 
   return (
     <Provider store={store}>
