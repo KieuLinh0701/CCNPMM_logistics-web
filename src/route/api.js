@@ -6,6 +6,8 @@ import employeeController from "../controllers/employeeController.js";
 import officeController from "../controllers/officeController.js";
 import serviceTypeController from "../controllers/serviceTypeController.js";
 import orderController from "../controllers/orderController.js";
+import product from "../models/product.js";
+import productController from "../controllers/productController.js";
 
 let router = express.Router();
 
@@ -38,6 +40,14 @@ let initApiRoutes = (app) => {
 
     // Order Routes
     router.get("/orders/calculate-shipping-fee", orderController.calculateShippingFee);
+
+    // Product Routes
+    router.get("/products", verifyToken, productController.getProductsByUser);
+    router.get('/products/types', verifyToken, productController.getTypesEnum);
+    router.get('/products/statuses', verifyToken, productController.getStatusesEnum);
+    router.post('/products/add', verifyToken, productController.addProduct);
+    router.put("/products/update/:id", verifyToken, productController.updateProduct);
+    router.post('/products/import', verifyToken, productController.importProducts);
 
     // Test routes
     router.get('/test', (req, res) => {

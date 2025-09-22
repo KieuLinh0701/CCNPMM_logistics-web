@@ -33,7 +33,7 @@ export const getShiftEnum = createAsyncThunk(
   }
 );
 
-// Lấy Shift Enum
+// Lấy Status Enum
 export const getStatusEnum = createAsyncThunk(
   'employee/getStatus',
   async (_, { rejectWithValue }) => {

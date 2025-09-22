@@ -209,7 +209,7 @@ const EmployeeForm = () => {
         if (importResultData?.success) {
           message.success(
             importResultData.message ||
-              `Import hoàn tất: ${importResultData.totalImported} thành công, ${importResultData.totalFailed} thất bại`
+            `Import hoàn tất: ${importResultData.totalImported} thành công, ${importResultData.totalFailed} thất bại`
           );
 
           setImportResults(importResultData.results ?? []);
@@ -280,35 +280,6 @@ const EmployeeForm = () => {
     }
   };
 
-  // Filter
-  const filteredData = tableData.filter((emp) => {
-    const search = searchText.toLowerCase();
-    const fullName = `${emp.user?.lastName || ""} ${emp.user?.firstName || ""}`.toLowerCase();
-
-    const matchesSearch =
-      fullName.includes(search) ||
-      emp.user?.email?.toLowerCase().includes(search) ||
-      emp.user?.phoneNumber?.includes(search) ||
-      emp.id!.toString().includes(search);
-
-    const matchesShift = filterShift === "All" || emp.shift === filterShift;
-    const matchesStatus = filterStatus === "All" || emp.status === filterStatus;
-    const matchesRole = filterRole === "All" || emp.user?.role === filterRole;
-
-    let matchesDate = true;
-    if (dateRange) {
-      const [start, end] = dateRange;
-      const hire = dayjs(emp.hireDate);
-      matchesDate =
-        hire.isAfter(start.subtract(1, "day")) &&
-        hire.isBefore(end.add(1, "day"));
-    }
-
-    return (
-      matchesSearch && matchesShift && matchesStatus && matchesRole && matchesDate
-    );
-  });
-
   const columns: ColumnsType<EmployeeTable> = [
     { title: "Mã NV", dataIndex: "id", key: "id", align: "center" },
     { title: "Họ", dataIndex: ["user", "lastName"], key: "lastName", align: "center" },
@@ -366,6 +337,27 @@ const EmployeeForm = () => {
     },
   ];
 
+  const fetchEmployees = (page = currentPage) => {
+    if (!office?.id) return;
+
+    const payload: any = {
+      officeId: office.id,
+      page,
+      limit: pageSize,
+      searchText: searchText || undefined,
+      shift: filterShift !== "All" ? filterShift : undefined,
+      status: filterStatus !== "All" ? filterStatus : undefined,
+      role: filterRole !== "All" ? filterRole : undefined,
+    };
+
+    if (dateRange) {
+      payload.startDate = dateRange[0].startOf("day").toISOString();
+      payload.endDate = dateRange[1].endOf("day").toISOString();
+    }
+
+    dispatch(getEmployeesByOffice(payload));
+  };
+
   // Load data
   useEffect(() => {
     if (user?.id) {
@@ -411,6 +403,11 @@ const EmployeeForm = () => {
     dispatch(getAssignableRoles());
   }, [dispatch]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+    fetchEmployees(1);
+  }, [searchText, filterShift, filterStatus, filterRole, dateRange, office?.id]);
+
   return (
     <div style={{ padding: 24, background: "#F9FAFB", borderRadius: 12 }}>
       {/* Bộ lọc */}
@@ -425,6 +422,7 @@ const EmployeeForm = () => {
               allowClear
               style={{ flex: 1, height: 36, borderRadius: 8 }}
             />
+
 
             {/* Lọc theo ca */}
             <Select
@@ -530,16 +528,17 @@ const EmployeeForm = () => {
       {/* Bảng */}
       <Table
         columns={columns}
-        dataSource={filteredData}
+        dataSource={tableData}
         rowKey="key"
         bordered
         pagination={{
           current: currentPage,
-          pageSize: pageSize,
-          total: total,
+          pageSize,
+          total,
           onChange: (page, size) => {
             setCurrentPage(page);
             if (size) setPageSize(size);
+            fetchEmployees(page);
           },
         }}
         style={{ borderRadius: 12, overflow: "hidden", background: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
@@ -782,24 +781,24 @@ const EmployeeForm = () => {
         centered
       >
         <Table
-        dataSource={importResults.map((r, i) => ({
-          key: i,
-          email: r.email || "Không có email",
-          success: r.success ?? false,
-          message: r.message || "",
-        }))}
-        columns={[
-          { title: "Email", dataIndex: "email", key: "email" },
-          { 
-            title: "Trạng thái", 
-            dataIndex: "success", 
-            key: "success",
-            render: (success: boolean) =>
-              success ? <Tag color="green">Thành công</Tag> : <Tag color="red">Thất bại</Tag>
-          },
-          { title: "Message", dataIndex: "message", key: "message" },
-        ]}
-      />
+          dataSource={importResults.map((r, i) => ({
+            key: i,
+            email: r.email || "Không có email",
+            success: r.success ?? false,
+            message: r.message || "",
+          }))}
+          columns={[
+            { title: "Email", dataIndex: "email", key: "email" },
+            {
+              title: "Trạng thái",
+              dataIndex: "success",
+              key: "success",
+              render: (success: boolean) =>
+                success ? <Tag color="green">Thành công</Tag> : <Tag color="red">Thất bại</Tag>
+            },
+            { title: "Message", dataIndex: "message", key: "message" },
+          ]}
+        />
       </Modal>
     </div>
   );

@@ -24,6 +24,7 @@ import EmployeePage from './pages/manager/EmployeeForm';
 import CreateOrder from './pages/manager/CreateOrder';
 import UserDashboard from './pages/user/Dashboard';
 import UserLayout from './layouts/UserLayout';
+import ProductForm from './pages/owner/Product';
 
 const App: React.FC = () => {
   const user = JSON.parse(localStorage.getItem('user') || 'null');
@@ -64,6 +65,7 @@ const App: React.FC = () => {
             <Route path="/user" element={<PrivateRoute roles={["user"]}><UserLayout /></PrivateRoute>}>
               <Route path="dashboard" element={<UserDashboard />} />
               <Route path="profile" element={<Profile />} />
+              <Route path="products" element={<ProductForm />} />
             </Route>
 
           </Routes>

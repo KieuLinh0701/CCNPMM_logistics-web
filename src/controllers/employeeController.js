@@ -49,7 +49,7 @@ const employeeController = {
       const limit = parseInt(req.query.limit) || 10;
 
       const filters = {
-        searchText: req.query.searchText || undefined,
+        searchText: req.query.search || undefined,
         shift: req.query.shift || undefined,
         status: req.query.status || undefined,
         role: req.query.role || undefined,

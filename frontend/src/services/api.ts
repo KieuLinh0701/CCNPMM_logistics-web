@@ -4,6 +4,8 @@ import { Office, OfficeResponse } from '../types/office';
 import { Employee, EmployeeCheckResult, EmployeeResponse } from '../types/employee';
 import { ServiceTypeResponse } from '../types/serviceType';
 import { OrderResponse } from '../types/order';
+import { getProductsByUser } from '../store/productSlice';
+import { ImportProductsResponse, product, ProductResponse } from '../types/product';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8088/api';
 
@@ -216,6 +218,79 @@ export const serviceTypeAPI = {
   getActiveServiceTypes: async (): Promise<ServiceTypeResponse> => {
     const response = await api.get<ServiceTypeResponse>('/services/get-active');
     return response.data;
+  },
+}
+
+export const productAPI = {
+  // Get Statuses Enum
+  getStatusesEnum: async (): Promise<ProductResponse> => {
+    const response = await api.get<ProductResponse>('/products/statuses');
+    return response.data;
+  },
+
+  // Get Types Enum
+  getTypesEnum: async (): Promise<ProductResponse> => {
+    const response = await api.get<ProductResponse>('/products/types');
+    return response.data;
+  },
+
+  getProductsByUser: async (query: string): Promise<ProductResponse> => {
+    const res = await api.get<ProductResponse>(`/products?${query}`);
+    return res.data; 
+  },
+
+  addProduct: async (product: Partial<product>): Promise<ProductResponse> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("Không tìm thấy token xác thực");
+
+    const { id, ...payload } = product;
+
+    try {
+      const response = await api.post<ProductResponse>(
+        `/products/add`,
+        payload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi thêm sản phẩm');
+    }
+  },
+
+  // Update Product
+  updateProduct: async (product: Partial<product>): Promise<ProductResponse> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("Không tìm thấy token xác thực");
+
+    const { id, ...payload } = product;
+
+    try {
+      const response = await api.put<ProductResponse>(
+        `/products/update/${id}`,
+        payload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi cập nhật thông tin sản ph');
+    }
+  },
+
+  // Import Products
+  importProducts: async (products: Partial<product>[]): Promise<ImportProductsResponse> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("Không tìm thấy token xác thực");
+
+    try {
+      const response = await api.post<ImportProductsResponse>(
+        `/products/import`, 
+        { products }, 
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi import sản phẩm');
+    }
   },
 }
 

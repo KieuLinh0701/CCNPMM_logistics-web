@@ -4,6 +4,7 @@ import officeReducer from './officeSlice';
 import employeeReducer from './employeeSlice';
 import serviceTypeReducer from './serviceTypeSlice';
 import orderReducer from './orderSlice';
+import productReducer from './productSlice';
 
 export const store = configureStore({
   reducer: {
@@ -12,6 +13,7 @@ export const store = configureStore({
     employee: employeeReducer,
     serviceType: serviceTypeReducer,
     order: orderReducer,
+    product: productReducer,
   },
 });
 

@@ -15,6 +15,7 @@ import {
   HomeOutlined,
   TeamOutlined,
   DollarOutlined,
+  DropboxOutlined,
 } from "@ant-design/icons";
 
 const { SubMenu } = Menu;
@@ -213,25 +214,14 @@ const Sidenav: React.FC<Props> = ({ color }) => {
       {
         key: "/user/support",
         label: "Hỗ trợ & Khiếu nại",
-        path: "/user/support",
+        path: "/user/products",
         icon: <GlobalOutlined />,
       },
       {
-        key: "staff",
-        label: "Quản lý nhân sự",
-        icon: <TeamOutlined />,
-        children: [
-          {
-            key: "/user/employees/list",
-            label: "Danh sách nhân viên",
-            path: "/user/employees/list",
-          },
-          {
-            key: "/user/staff/assign",
-            label: "Phân công công việc",
-            path: "/user/staff/assign",
-          },
-        ],
+        key: "product",
+        label: "Quản lý sản phẩm",
+        path: "/user/products",
+        icon: <DropboxOutlined />,
       },
       {
         key: "/user/office",
