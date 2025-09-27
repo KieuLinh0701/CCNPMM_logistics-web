@@ -12,6 +12,8 @@ export const RoleRedirect: React.FC = () => {
     admin: "/admin/dashboard",
     manager: "/manager/dashboard",
     staff: "/staff/dashboard",
+    shipper: "/shipper/dashboard",
+    user: "/user/dashboard",
   };
 
   // Điều hướng theo role, nếu role không hợp lệ -> "/"

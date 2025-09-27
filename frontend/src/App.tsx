@@ -8,6 +8,7 @@ import { store } from './store/store';
 import LoginForm from './pages/LoginForm';
 import RegisterForm from './pages/RegisterForm';
 import Home from './pages/Home';
+import ShippingFee from './pages/tracking/ShippingFee';
 import './App.css';
 import AdminLayout from './layouts/AdminLayout';
 import AdminDashboard from './pages/admin/Dashboard';
@@ -24,6 +25,12 @@ import { PrivateRoute } from './components/PrivateRoute';
 import ForgotPasswordForm from './pages/ForgotPasswordForm';
 import { PublicRoute } from './components/PublicRoute';
 import Profile from './pages/Profile';
+import Office from './pages/manager/Office';
+import Warehouse from './pages/manager/Warehouse';
+import EmployeePage from './pages/manager/EmployeeForm';
+import CreateOrder from './pages/manager/CreateOrder';
+import UserDashboard from './pages/user/Dashboard';
+import UserLayout from './layouts/UserLayout';
 
 const App: React.FC = () => {
 
@@ -37,6 +44,7 @@ const App: React.FC = () => {
 
             {/* Trang Home */}
             <Route path="/home" element={<Home />} />
+            <Route path="/tracking/shipping-fee" element={<ShippingFee />} />
 
             {/* Login/Register */}
             <Route path="/login" element={<PublicRoute><LoginForm /></PublicRoute>} />
@@ -57,6 +65,16 @@ const App: React.FC = () => {
 
             <Route path="/manager" element={<PrivateRoute roles={["manager"]}><ManagerLayout /></PrivateRoute>}>
               <Route path="dashboard" element={<ManagerDashboard />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="office" element={<Office />} />
+              <Route path="warehouse" element={<Warehouse />} />
+              <Route path="employees/list" element={<EmployeePage />} />
+              <Route path="orders/list" element={<EmployeePage />} />
+              <Route path="orders/create" element={<CreateOrder />} />
+            </Route>
+
+            <Route path="/user" element={<PrivateRoute roles={["user"]}><UserLayout /></PrivateRoute>}>
+              <Route path="dashboard" element={<UserDashboard />} />
               <Route path="profile" element={<Profile />} />
             </Route>
 

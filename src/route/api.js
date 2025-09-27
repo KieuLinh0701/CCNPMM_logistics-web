@@ -9,6 +9,10 @@ import adminServiceTypeController from "../controllers/admin/adminServiceTypeCon
 import adminShippingRateController from "../controllers/admin/adminShippingRateController.js";
 import adminOrderController from "../controllers/admin/adminOrderController.js";
 import nodemailer from "nodemailer";
+import employeeController from "../controllers/employeeController.js";
+import officeController from "../controllers/officeController.js";
+import serviceTypeController from "../controllers/serviceTypeController.js";
+import orderController from "../controllers/orderController.js";
 
 let router = express.Router();
 
@@ -18,10 +22,29 @@ let initApiRoutes = (app) => {
     router.post('/auth/verify-otp', authController.verifyOTP);
     router.post('/auth/login', authController.login);
     router.get('/auth/profile', verifyToken, authController.getProfile);
-
     router.post('/auth/password/forgot', authController.forgotPassword);
     router.post('/auth/password/verify-otp', authController.verifyResetOTP);
     router.post('/auth/password/reset', authController.resetPassword);
+    router.get('/auth/roles/assignable', verifyToken, authController.getAssignableRoles);
+
+    // Office routes
+    router.get('/me/office', verifyToken, officeController.getOfficeByUser);
+    router.put('/offices/:id', verifyToken, officeController.update);
+
+    // Employee routes
+    router.get('/employees/shifts', verifyToken, employeeController.getShiftEnum);
+    router.get('/employees/status', verifyToken, employeeController.getStatusEnum);
+    router.get('/employees/by-office/:id', verifyToken, employeeController.getEmployeesByOffice);
+    router.post('/employees/add', verifyToken, employeeController.addEmployee);
+    router.get("/employees/check-before-add", verifyToken, employeeController.checkBeforeAddEmployee);
+    router.put("/employees/update/:id", verifyToken, employeeController.updateEmployee);
+    router.post('/employees/import', verifyToken, employeeController.importEmployees);
+
+    // Service Type routes
+    router.get("/services/get-active", serviceTypeController.getActiveServiceTypes);
+
+    // Order Routes
+    router.get("/orders/calculate-shipping-fee", orderController.calculateShippingFee);
 
     // Admin - Users CRUD
     router.get('/admin/users', verifyToken, requireRole(['admin']), adminUserController.list);

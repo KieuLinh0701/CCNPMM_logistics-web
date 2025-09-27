@@ -11,7 +11,7 @@ import { Outlet } from "react-router-dom";
 
 const { Header: AntHeader, Sider, Content } = Layout;
 
-const ManagerLayout: React.FC = () => {
+const ShipperLayout: React.FC = () => {
   const HEADER_HEIGHT = 64;
   const GAP = 8;
 
@@ -100,4 +100,4 @@ const ManagerLayout: React.FC = () => {
   );
 };
 
-export default ManagerLayout;
+export default ShipperLayout;

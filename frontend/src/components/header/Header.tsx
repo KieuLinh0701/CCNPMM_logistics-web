@@ -2,7 +2,7 @@ import React from "react";
 import { Layout, Button, Space, Typography, Avatar, Dropdown, Menu } from "antd";
 import { UserOutlined, LogoutOutlined, ProfileOutlined, PlusOutlined } from "@ant-design/icons";
 import { useDispatch } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { logout } from "../../store/authSlice";
 
 const { Header: AntHeader } = Layout;
@@ -21,8 +21,8 @@ const Header: React.FC<HeaderProps> = () => {
     : (user?.email || 'User');
 
   const handleLogout = () => {
-    dispatch(logout()); // xoá user, token, isAuthenticated + localStorage
-    navigate("/login"); // chuyển về trang login
+    dispatch(logout()); 
+    navigate("/login"); 
   };
 
   const handleProfile = () => {
@@ -31,6 +31,15 @@ const Header: React.FC<HeaderProps> = () => {
     } else {
       navigate("/profile"); 
     }
+  };
+
+  const capitalize = (str: string) => {
+    if (!str) return "";
+    return str
+      .split(" ")
+      .filter(Boolean) 
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
   };
 
   const menu = (
@@ -56,20 +65,25 @@ const Header: React.FC<HeaderProps> = () => {
       }}
     >
       {/* Góc trái - Tên website */}
-      <Text strong style={{ fontSize: "18px", color: "#fff" }}>
-        MyWebsite
-      </Text>
+      <Link to="/home">
+        <Text strong style={{ fontSize: "18px", color: "#fff" }}>
+          MyWebsite
+        </Text>
+      </Link>
 
       {/* Góc phải */}
       <Space size="middle">
-        <Button
-          type="primary"
-          ghost
-          style={{ borderColor: "#fff", color: "#fff" }}
-          icon={<PlusOutlined />}
-        >
-          Tạo đơn hàng
-        </Button>
+        {user?.role === "manager" && (
+          <Button
+            type="primary"
+            ghost
+            style={{ borderColor: "#fff", color: "#fff" }}
+            icon={<PlusOutlined />}
+            onClick={() => navigate("/manager/orders/create")}
+          >
+            Tạo đơn hàng
+          </Button>
+        )}
 
         <Dropdown overlay={menu} placement="bottomRight" trigger={["click"]}>
           <Space style={{ cursor: "pointer", color: "#fff" }}>
@@ -79,7 +93,11 @@ const Header: React.FC<HeaderProps> = () => {
               color: "#fff",
               fontWeight: "bold",
             }}/>
-            <Text style={{ color: "#fff" }}>{displayName}</Text>
+            <Text style={{ color: "#fff" }}>
+              {user?.firstName && user?.lastName
+                ? `${capitalize(user.lastName)} ${capitalize(user.firstName)}`
+                : "User"}
+            </Text>
           </Space>
         </Dropdown>
       </Space>

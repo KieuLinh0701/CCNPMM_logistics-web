@@ -5,6 +5,7 @@ import { AuthState, RegisterData, LoginData, VerifyOTPData, User, ForgotPassword
 const savedUser = localStorage.getItem('user');
 
 const initialState: AuthState = {
+  roles: [],
   user: savedUser ? JSON.parse(savedUser) : null,
   token: localStorage.getItem('token'),
   isAuthenticated: !!localStorage.getItem('token'),
@@ -119,6 +120,18 @@ export const resetPassword = createAsyncThunk(
   }
 );
 
+export const getAssignableRoles = createAsyncThunk(
+  'auth/roles/assignable',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await authAPI.getAssignableRoles();
+      return response;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Lấy thông tin chức vụ của nhân viên thất bại');
+    }
+  }
+);
+
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -201,6 +214,7 @@ const authSlice = createSlice({
         state.loading = false;
         if (action.payload.success && action.payload.user) {
           state.user = action.payload.user;
+          localStorage.setItem('user', JSON.stringify(action.payload.user));
         }
       })
       .addCase(getProfile.rejected, (state, action) => {
@@ -246,6 +260,23 @@ const authSlice = createSlice({
           state.loading = false;
         })
         .addCase(resetPassword.rejected, (state, action) => {
+          state.loading = false;
+          state.error = action.payload as string;
+        });
+
+    // Get Status In Employee
+      builder
+        .addCase(getAssignableRoles.pending, (state) => {
+          state.loading = true;
+          state.error = null;
+        })
+        .addCase(getAssignableRoles.fulfilled, (state, action) => {
+          state.loading = false;
+          if (action.payload.success && action.payload.roles) {
+            state.roles = action.payload.roles;
+          }
+        })
+        .addCase(getAssignableRoles.rejected, (state, action) => {
           state.loading = false;
           state.error = action.payload as string;
         });

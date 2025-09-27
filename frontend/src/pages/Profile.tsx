@@ -11,17 +11,16 @@ const Profile: React.FC = () => {
   const { user, loading } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
-    if (!user) {
-      dispatch(getProfile());
-    }
-  }, [dispatch, user]);
+    dispatch(getProfile());
+  }, [dispatch]);
 
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'admin': return 'red';
       case 'manager': return 'blue';
       case 'driver': return 'green';
-      case 'staff': return 'purple';
+      case 'user': return 'purple';
+      case 'shipper': return 'orange';
       default: return 'default';
     }
   };
@@ -31,11 +30,22 @@ const Profile: React.FC = () => {
       case 'admin': return 'Quản trị viên';
       case 'manager': return 'Quản lý';
       case 'driver': return 'Tài xế';
-      case 'staff': return 'Nhân viên';
+      case 'user': return 'Chủ cửa hàng';
+      case 'shipper': return 'Nhân viên giao hàng';
+      case 'driver': return 'Tài xê';
       default: return role;
     }
   };
 
+  const capitalize = (str: string) => {
+    if (!str) return "";
+    return str
+      .split(" ")
+      .filter(Boolean) 
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
+  };
+  
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '50px' }}>
@@ -45,16 +55,14 @@ const Profile: React.FC = () => {
   }
 
   return (
-    <Row justify="center">
+    <Row justify="center"
+      align="middle"
+      style={{ textAlign: 'center', padding: 16 }}>
       <Col xs={24} sm={20} md={16} lg={12}>
-        <Card
-          style={{ borderRadius: 16, padding: 24, textAlign: 'center' }}
-          bodyStyle={{ padding: 24 }}
-        >
           {/* Avatar + Tên + Role */}
           <Avatar size={100} icon={<UserOutlined />} style={{ marginBottom: 16 }} />
           <Title level={3} style={{ marginBottom: 8 }}>
-            {user?.firstName} {user?.lastName}
+            {capitalize(user?.lastName || "")} {capitalize(user?.firstName || "")}
           </Title>
           <Tag color={getRoleColor(user?.role || '')} style={{ fontSize: 14, padding: '4px 12px' }}>
             {getRoleText(user?.role || '')}
@@ -101,7 +109,6 @@ const Profile: React.FC = () => {
               Chỉnh sửa thông tin
             </Button>
           </div>
-        </Card>
       </Col>
     </Row>
   );

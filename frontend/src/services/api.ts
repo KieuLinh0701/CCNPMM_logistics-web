@@ -1,5 +1,9 @@
 import axios from 'axios';
 import { RegisterData, LoginData, VerifyOTPData, AuthResponse, ForgotPasswordData, VerifyResetOTPData, ResetPasswordData } from '../types/auth';
+import { Office, OfficeResponse } from '../types/office';
+import { Employee, EmployeeCheckResult, EmployeeResponse } from '../types/employee';
+import { ServiceTypeResponse } from '../types/serviceType';
+import { OrderResponse } from '../types/order';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8088/api';
 
@@ -154,6 +158,12 @@ export const authAPI = {
     const response = await api.post<AuthResponse>('/auth/password/reset', data);
     return response.data;
   },
+
+  // Get Assignable Roles
+  getAssignableRoles: async (): Promise<AuthResponse> => {
+    const response = await api.get<AuthResponse>('/auth/roles/assignable');
+    return response.data;
+  },
 };
 
 export const adminAPI = {
@@ -240,5 +250,143 @@ export const adminAPI = {
     return response.data;
   },
 };
+
+export const officeAPI = {
+  // Find Office By UserId
+  getByUserId: async (userId: number): Promise<OfficeResponse> => {
+    const response = await api.get<OfficeResponse>('/me/office', {
+      params: { userId }, 
+    });
+    return response.data;
+  },
+
+  // Update Office
+  update: async (officeData: Partial<Office>): Promise<OfficeResponse> => {
+    if (!officeData.id) throw new Error("Office id không tồn tại");
+
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("Không tìm thấy token xác thực");
+
+    const { id, ...data } = officeData;
+
+    const response = await api.put<OfficeResponse>(
+      `/offices/${id}`,
+      data,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    return response.data;
+  },
+};
+
+export const employeeAPI = {
+  // Get Shift Enum
+  getShiftEnum: async (): Promise<EmployeeResponse> => {
+    const response = await api.get<EmployeeResponse>('/employees/shifts');
+    return response.data;
+  },
+
+  // Get Status Enum
+  getStatusEnum: async (): Promise<EmployeeResponse> => {
+    const response = await api.get<EmployeeResponse>('/employees/status');
+    return response.data;
+  },
+
+  getEmployeesByOffice: async (officeId: number, query: string): Promise<EmployeeResponse> => {
+    const res = await api.get<EmployeeResponse>(`/employees/by-office/${officeId}?${query}`);
+    return res.data; 
+  },
+
+  // Check Before Add Employee
+  checkBeforeAdd: async (
+    email: string,
+    phoneNumber: string,
+    officeId?: number
+  ): Promise<EmployeeCheckResult> => {
+      const response = await api.get<EmployeeCheckResult>(
+  `/employees/check-before-add`,
+    {
+      params: { email, phoneNumber, officeId } 
+    }
+    );
+    return response.data;
+  },
+
+  // Add Employee
+  addEmployee: async (employee: Partial<Employee>): Promise<EmployeeResponse> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("Không tìm thấy token xác thực");
+
+    const { id, ...payload } = employee;
+
+    try {
+      const response = await api.post<EmployeeResponse>(
+        `/employees/add`,
+        payload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi thêm nhân viên');
+    }
+  },
+
+  // Update Employee
+  updateEmployee: async (employee: Partial<Employee>): Promise<EmployeeResponse> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("Không tìm thấy token xác thực");
+
+    const { id, ...payload } = employee;
+
+    try {
+      const response = await api.put<EmployeeResponse>(
+        `/employees/update/${id}`,
+        payload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi cập nhật thông tin nhân viên');
+    }
+  },
+
+  // Import Employees
+  importEmployees: async (employees: Partial<Employee>[]): Promise<EmployeeResponse> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("Không tìm thấy token xác thực");
+
+    try {
+      const response = await api.post<EmployeeResponse>(
+        `/employees/import`, 
+        { employees }, 
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi import nhân viên');
+    }
+  },
+};
+
+export const serviceTypeAPI = {
+  // Get Active Service Types
+  getActiveServiceTypes: async (): Promise<ServiceTypeResponse> => {
+    const response = await api.get<ServiceTypeResponse>('/services/get-active');
+    return response.data;
+  },
+}
+
+export const orderAPI = {
+  calculateShippingFee: async(weight: number, serviceTypeId: number, senderCodeCity: number, recipientCodeCity: number
+  ): Promise<OrderResponse> => {
+    const response = await api.get<OrderResponse>(
+      '/orders/calculate-shipping-fee',
+      {
+        params: { weight, serviceTypeId, senderCodeCity, recipientCodeCity, },
+      }
+    );
+    return response.data;
+  },
+}
 
 export default api;

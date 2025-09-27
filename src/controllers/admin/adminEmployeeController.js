@@ -46,7 +46,7 @@ const create = async (req, res) => {
 
 const update = async (req, res) => {
   try {
-    const result = await employeeService.updateEmployee(req.params.id, req.body);
+    const result = await employeeService.updateEmployeeBasic(req.params.id, req.body);
     
     if (!result.success) {
       return res.status(404).json(result);

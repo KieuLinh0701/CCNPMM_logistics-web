@@ -1,13 +1,13 @@
 import db from '../models/index.js';
 
-// List offices with pagination and search
-const listOffices = async (params) => {
-  return new Promise(async (resolve, reject) => {
+const officeService = {
+  // List offices with pagination and search
+  async listOffices(params) {
     try {
       const { page = 1, limit = 20, search = "", type, status } = params;
       const offset = (Number(page) - 1) * Number(limit);
       const where = {};
-      
+
       if (search) {
         where[db.Sequelize.Op.or] = [
           { name: { [db.Sequelize.Op.like]: `%${search}%` } },
@@ -16,19 +16,14 @@ const listOffices = async (params) => {
           { email: { [db.Sequelize.Op.like]: `%${search}%` } },
         ];
       }
-      
-      if (type) {
-        where.type = type;
-      }
-      
-      if (status) {
-        where.status = status;
-      }
-      
-      const { rows, count } = await db.Office.findAndCountAll({ 
-        where, 
-        limit: Number(limit), 
-        offset, 
+
+      if (type) where.type = type;
+      if (status) where.status = status;
+
+      const { rows, count } = await db.Office.findAndCountAll({
+        where,
+        limit: Number(limit),
+        offset,
         order: [["createdAt", "DESC"]],
         include: [
           {
@@ -45,21 +40,19 @@ const listOffices = async (params) => {
           }
         ]
       });
-      
-      resolve({
+
+      return {
         success: true,
         data: rows,
         pagination: { page: Number(page), limit: Number(limit), total: count }
-      });
+      };
     } catch (error) {
-      reject(error);
+      return { success: false, message: error.message };
     }
-  });
-};
+  },
 
-// Get office by ID
-const getOfficeById = async (officeId) => {
-  return new Promise(async (resolve, reject) => {
+  // Get office by ID
+  async getOfficeById(officeId) {
     try {
       const office = await db.Office.findByPk(officeId, {
         include: [
@@ -77,105 +70,77 @@ const getOfficeById = async (officeId) => {
           }
         ]
       });
-      
-      if (!office) {
-        resolve({ success: false, message: "Không tìm thấy văn phòng" });
-        return;
-      }
-      resolve({ success: true, data: office });
-    } catch (error) {
-      reject(error);
-    }
-  });
-};
 
-// Create new office
-const createOffice = async (officeData) => {
-  return new Promise(async (resolve, reject) => {
+      if (!office) {
+        return { success: false, message: "Không tìm thấy văn phòng" };
+      }
+      return { success: true, data: office };
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  },
+
+  // Create new office
+  async createOffice(officeData) {
     try {
-      const { 
-        code, name, address, codeWard, codeCity, latitude, longitude, 
-        email, phoneNumber, openingTime, closingTime, type = "Post Office", status = "Active" 
+      const {
+        code, name, address, codeWard, codeCity, latitude, longitude,
+        email, phoneNumber, openingTime, closingTime,
+        type = "Post Office", status = "Active"
       } = officeData;
-      
+
       if (!code || !name || !address || !codeWard || !codeCity || !latitude || !longitude || !email || !phoneNumber) {
-        resolve({ success: false, message: "Thiếu thông tin bắt buộc" });
-        return;
+        return { success: false, message: "Thiếu thông tin bắt buộc" };
       }
-      
-      // Check if office code already exists
+
+      // Check unique constraints
       const existsCode = await db.Office.findOne({ where: { code } });
-      if (existsCode) {
-        resolve({ success: false, message: "Mã văn phòng đã tồn tại" });
-        return;
-      }
-      
-      // Check if office name already exists
+      if (existsCode) return { success: false, message: "Mã văn phòng đã tồn tại" };
+
       const existsName = await db.Office.findOne({ where: { name } });
-      if (existsName) {
-        resolve({ success: false, message: "Tên văn phòng đã tồn tại" });
-        return;
-      }
-      
-      // Check if phone number already exists
+      if (existsName) return { success: false, message: "Tên văn phòng đã tồn tại" };
+
       const existsPhone = await db.Office.findOne({ where: { phoneNumber } });
-      if (existsPhone) {
-        resolve({ success: false, message: "Số điện thoại đã tồn tại" });
-        return;
-      }
-      
-      const created = await db.Office.create({ 
+      if (existsPhone) return { success: false, message: "Số điện thoại đã tồn tại" };
+
+      const created = await db.Office.create({
         code, name, address, codeWard, codeCity, latitude, longitude,
         email, phoneNumber, openingTime, closingTime, type, status
       });
-      
-      resolve({ success: true, data: created });
-    } catch (error) {
-      reject(error);
-    }
-  });
-};
 
-// Update office
-const updateOffice = async (officeId, updateData) => {
-  return new Promise(async (resolve, reject) => {
+      return { success: true, data: created };
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  },
+
+  // Update office (admin update)
+  async updateOffice(officeId, updateData) {
     try {
-      const { 
+      const {
         code, name, address, codeWard, codeCity, latitude, longitude,
         email, phoneNumber, openingTime, closingTime, type, status
       } = updateData;
-      
+
       const office = await db.Office.findByPk(officeId);
-      if (!office) {
-        resolve({ success: false, message: "Không tìm thấy văn phòng" });
-        return;
-      }
-      
-      // Check for conflicts if updating unique fields
+      if (!office) return { success: false, message: "Không tìm thấy văn phòng" };
+
+      // Unique checks
       if (code && code !== office.code) {
         const existsCode = await db.Office.findOne({ where: { code } });
-        if (existsCode) {
-          resolve({ success: false, message: "Mã văn phòng đã tồn tại" });
-          return;
-        }
+        if (existsCode) return { success: false, message: "Mã văn phòng đã tồn tại" };
       }
-      
+
       if (name && name !== office.name) {
         const existsName = await db.Office.findOne({ where: { name } });
-        if (existsName) {
-          resolve({ success: false, message: "Tên văn phòng đã tồn tại" });
-          return;
-        }
+        if (existsName) return { success: false, message: "Tên văn phòng đã tồn tại" };
       }
-      
+
       if (phoneNumber && phoneNumber !== office.phoneNumber) {
         const existsPhone = await db.Office.findOne({ where: { phoneNumber } });
-        if (existsPhone) {
-          resolve({ success: false, message: "Số điện thoại đã tồn tại" });
-          return;
-        }
+        if (existsPhone) return { success: false, message: "Số điện thoại đã tồn tại" };
       }
-      
+
       // Update fields
       if (typeof code !== "undefined") office.code = code;
       if (typeof name !== "undefined") office.name = name;
@@ -190,44 +155,75 @@ const updateOffice = async (officeId, updateData) => {
       if (typeof closingTime !== "undefined") office.closingTime = closingTime;
       if (typeof type !== "undefined") office.type = type;
       if (typeof status !== "undefined") office.status = status;
-      
-      await office.save();
-      resolve({ success: true, data: office });
-    } catch (error) {
-      reject(error);
-    }
-  });
-};
 
-// Delete office
-const deleteOffice = async (officeId) => {
-  return new Promise(async (resolve, reject) => {
+      await office.save();
+      return { success: true, data: office };
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  },
+
+  // Delete office
+  async deleteOffice(officeId) {
     try {
       const office = await db.Office.findByPk(officeId);
-      if (!office) {
-        resolve({ success: false, message: "Không tìm thấy văn phòng" });
-        return;
-      }
-      
-      // Check if office has employees
+      if (!office) return { success: false, message: "Không tìm thấy văn phòng" };
+
       const employeeCount = await db.Employee.count({ where: { officeId } });
       if (employeeCount > 0) {
-        resolve({ success: false, message: "Không thể xóa văn phòng có nhân viên" });
-        return;
+        return { success: false, message: "Không thể xóa văn phòng có nhân viên" };
       }
-      
+
       await office.destroy();
-      resolve({ success: true });
+      return { success: true };
     } catch (error) {
-      reject(error);
+      return { success: false, message: error.message };
     }
-  });
+  },
+
+  // Get Office By UserId
+  async getByUserId(userId) { 
+    try { 
+      const employee = await db.Employee.findOne({ where: { userId }, include: [{ model: db.Office, as: 'office' }] }); 
+      if (!employee || !employee.office) { 
+        return { success: false, 
+          message: 'Không tìm thấy bưu cục' 
+        }; 
+      } 
+      
+      return { 
+        success: true, 
+        message: 'Lấy thông tin bưu cục thành công', 
+        office: employee.office 
+      }; 
+    } catch (error) {
+        console.error(error); 
+        return { 
+          success: false, 
+          message: 'Lỗi server' 
+        }; 
+    } 
+  },
+
+  // Update Office by user
+  async update(userId, officeId, data) {
+    try {
+      // Lấy office theo employee
+      const employee = await db.Employee.findOne({ where: { userId }, include: [{ model: db.Office, as: 'office' }] });
+      const office = employee?.office;
+
+      if (!office || office.id !== Number(officeId)) {
+        return { success: false, message: 'Office không tồn tại hoặc không có quyền cập nhật' };
+      }
+
+      await office.update(data);
+
+      return { success: true, office };
+    } catch (error) {
+      console.error('Update office error:', error);
+      return { success: false, message: 'Lỗi server' };
+    }
+  }
 };
 
-export default {
-  listOffices,
-  getOfficeById,
-  createOffice,
-  updateOffice,
-  deleteOffice
-};
+export default officeService;
