@@ -16,6 +16,8 @@ const Header: React.FC<HeaderProps> = () => {
   const navigate = useNavigate();
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const fileName = user?.images ? String(user.images).split('/').pop() : undefined;
+  const avatarSrc = fileName ? `/uploads/${fileName}` : undefined;
   const displayName = user?.firstName || user?.lastName
     ? `${user?.firstName || ''} ${user?.lastName || ''}`.trim()
     : (user?.email || 'User');
@@ -87,7 +89,7 @@ const Header: React.FC<HeaderProps> = () => {
 
         <Dropdown overlay={menu} placement="bottomRight" trigger={["click"]}>
           <Space style={{ cursor: "pointer", color: "#fff" }}>
-            <Avatar icon={<UserOutlined />} 
+            <Avatar src={avatarSrc} icon={<UserOutlined />} 
             style={{
               background: "linear-gradient(135deg, #3a7bd5, #00d2ff)",
               color: "#fff",

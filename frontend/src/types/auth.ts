@@ -8,6 +8,10 @@ export interface User {
   isVerified: boolean;
   isActive: boolean;
   lastLoginAt?: string;
+  images?: string;
+  detailAddress?: string;
+  codeWard?: number;
+  codeCity?: number;
   createdAt: string;
   updatedAt: string;
 }

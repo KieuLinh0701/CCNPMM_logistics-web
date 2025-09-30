@@ -2,6 +2,9 @@ import express from "express";
 import authController from "../controllers/authController.js";
 import { verifyToken, requireRole } from "../middleware/auth.js";
 import nodemailer from "nodemailer";
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import userController from "../controllers/userController.js";
 import officeController from "../controllers/officeController.js";
 import employeeController from "../controllers/employeeController.js";
@@ -14,11 +17,28 @@ import orderController from "../controllers/orderController.js";
 let router = express.Router();
 
 let initApiRoutes = (app) => {
+    // Static serve uploads
+    const uploadRoot = 'C:/uploads';
+    if (!fs.existsSync(uploadRoot)) {
+        try { fs.mkdirSync(uploadRoot, { recursive: true }); } catch (_) {}
+    }
+    app.use('/uploads', express.static(uploadRoot));
+    const storage = multer.diskStorage({
+        destination: (req, file, cb) => cb(null, uploadRoot),
+        filename: (req, file, cb) => {
+            const ext = path.extname(file.originalname);
+            const base = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_-]/g, '');
+            cb(null, `${base}-${Date.now()}${ext}`);
+        },
+    });
+    const upload = multer({ storage });
     // Auth routes
     router.post('/auth/register', authController.register);
     router.post('/auth/verify-otp', authController.verifyOTP);
     router.post('/auth/login', authController.login);
     router.get('/auth/profile', verifyToken, authController.getProfile);
+    router.put('/auth/profile', verifyToken, authController.updateProfile);
+    router.put('/auth/profile/avatar', verifyToken, upload.single('avatar'), authController.updateAvatar);
     router.post('/auth/password/forgot', authController.forgotPassword);
     router.post('/auth/password/verify-otp', authController.verifyResetOTP);
     router.post('/auth/password/reset', authController.resetPassword);

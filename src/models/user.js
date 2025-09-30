@@ -71,6 +71,11 @@ export default (sequelize) => {
       lastLoginAt: {
         type: DataTypes.DATE,
       },
+      images: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'Lưu ảnh ở C:/uploads',
+      },
     },
     {
       sequelize,

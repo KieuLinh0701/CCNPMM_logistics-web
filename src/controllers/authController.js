@@ -116,6 +116,36 @@ const getProfile = async (req, res) => {
   }
 };
 
+// Update profile
+const updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { firstName, lastName, phoneNumber, detailAddress, codeWard, codeCity } = req.body;
+    const result = await authService.updateUserProfile(userId, { firstName, lastName, phoneNumber, detailAddress, codeWard, codeCity });
+    return res.status(result.success ? 200 : 400).json(result);
+  } catch (error) {
+    
+    return res.status(500).json({ success: false, message: 'Lỗi server' });
+  }
+};
+
+// Update avatar
+const updateAvatar = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    if (!req.file || !req.file.path) {
+      return res.status(400).json({ success: false, message: 'Không có file upload' });
+    }
+    const windowsPath = req.file.path.replace(/\\/g, '/');
+    const result = await authService.updateUserAvatar(userId, windowsPath);
+    return res.status(result.success ? 200 : 400).json(result);
+  } catch (error) {
+    
+    return res.status(500).json({ success: false, message: 'Lỗi server' });
+  }
+};
+
 // Forgot Password
 const forgotPassword = async (req, res) => {
   try {
@@ -218,6 +248,8 @@ export default {
   verifyOTP,
   login,
   getProfile,
+  updateProfile,
+  updateAvatar,
   forgotPassword,
   verifyResetOTP,
   resetPassword,

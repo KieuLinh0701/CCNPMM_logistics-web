@@ -157,6 +157,22 @@ export const authAPI = {
     return response.data;
   },
 
+  // Update profile
+  updateProfile: async (payload: Partial<{ firstName: string; lastName: string; phoneNumber: string; detailAddress?: string; codeWard?: number; codeCity?: number }>): Promise<AuthResponse> => {
+    const response = await api.put<AuthResponse>('/auth/profile', payload);
+    return response.data;
+  },
+
+  // Update avatar
+  updateAvatar: async (file: File): Promise<AuthResponse> => {
+    const form = new FormData();
+    form.append('avatar', file);
+    const response = await api.put<AuthResponse>('/auth/profile/avatar', form, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
+  },
+
   // Forgot password
   forgotPassword: async (data: ForgotPasswordData): Promise<AuthResponse> => {
     const response = await api.post<AuthResponse>('/auth/password/forgot', data);

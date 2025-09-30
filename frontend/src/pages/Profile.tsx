@@ -1,18 +1,35 @@
-import React, { useEffect } from 'react';
-import { Card, Button, Avatar, Typography, Row, Col, Tag, message, Space } from 'antd';
+import React, { useEffect, useState } from 'react';
+import { Card, Button, Avatar, Typography, Row, Col, Tag, message, Space, Modal, Form, Input, Upload } from 'antd';
+import { UploadOutlined } from '@ant-design/icons';
 import { UserOutlined, EditOutlined, MailOutlined, PhoneOutlined, IdcardOutlined, CheckCircleOutlined, CloseCircleOutlined, LoginOutlined, CalendarOutlined } from '@ant-design/icons';
 import { useAppDispatch, useAppSelector } from '../hooks/redux';
-import { getProfile } from '../store/authSlice';
+import { getProfile, updateAvatar, updateProfile } from '../store/authSlice';
 
 const { Title, Text } = Typography;
 
 const Profile: React.FC = () => {
   const dispatch = useAppDispatch();
   const { user, loading } = useAppSelector((state) => state.auth);
+  const [open, setOpen] = useState(false);
+  const [form] = Form.useForm();
+  const [avatarPreview, setAvatarPreview] = useState<string | undefined>(undefined);
+  const [avatarSrc, setAvatarSrc] = useState<string | undefined>(undefined);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
   useEffect(() => {
     dispatch(getProfile());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (user?.images) {
+      const fileName = user.images.split('/').pop();
+      setAvatarSrc(fileName ? `/uploads/${fileName}` : undefined);
+      setAvatarPreview(fileName ? `/uploads/${fileName}` : undefined);
+    } else {
+      setAvatarSrc(undefined);
+      setAvatarPreview(undefined);
+    }
+  }, [user?.images]);
 
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -60,7 +77,7 @@ const Profile: React.FC = () => {
       style={{ textAlign: 'center', padding: 16 }}>
       <Col xs={24} sm={20} md={16} lg={12}>
           {/* Avatar + Tên + Role */}
-          <Avatar size={100} icon={<UserOutlined />} style={{ marginBottom: 16 }} />
+          <Avatar size={120} src={avatarSrc} icon={<UserOutlined />} style={{ marginBottom: 16 }} />
           <Title level={3} style={{ marginBottom: 8 }}>
             {capitalize(user?.lastName || "")} {capitalize(user?.firstName || "")}
           </Title>
@@ -104,12 +121,102 @@ const Profile: React.FC = () => {
               shape="round" 
               size="large"
               style={{backgroundColor: "#1C3D90"}}
-              onClick={() => message.info('Tính năng đang phát triển')}
+              onClick={() => {
+                form.setFieldsValue({
+                  firstName: user?.firstName,
+                  lastName: user?.lastName,
+                  phoneNumber: user?.phoneNumber,
+                  detailAddress: user?.detailAddress,
+                  codeWard: user?.codeWard,
+                  codeCity: user?.codeCity,
+                });
+                setAvatarPreview(user?.images ? `/uploads/${user.images.split('/').pop()}` : undefined);
+                setOpen(true);
+              }}
             >
               Chỉnh sửa thông tin
             </Button>
           </div>
       </Col>
+      <Modal
+        title="Chỉnh sửa thông tin"
+        open={open}
+        onCancel={() => {
+          setOpen(false);
+          // Revert preview and pending file when cancel
+          if (user?.images) {
+            const fileName = user.images.split('/').pop();
+            const url = fileName ? `/uploads/${fileName}` : undefined;
+            setAvatarPreview(url);
+          } else {
+            setAvatarPreview(undefined);
+          }
+          setAvatarFile(null);
+        }}
+        onOk={async () => {
+          try {
+            const values = await form.validateFields();
+            await (dispatch(updateProfile({
+              firstName: values.firstName,
+              lastName: values.lastName,
+              phoneNumber: values.phoneNumber,
+              detailAddress: values.detailAddress,
+              codeWard: values.codeWard ? Number(values.codeWard) : undefined,
+              codeCity: values.codeCity ? Number(values.codeCity) : undefined,
+            }) as any)).unwrap();
+            // Chỉ cập nhật ảnh khi ấn Đồng ý
+            if (avatarFile) {
+              await (dispatch(updateAvatar(avatarFile) as any)).unwrap();
+              setAvatarFile(null);
+            }
+            message.success('Cập nhật thành công');
+            setOpen(false);
+          } catch (e: any) {
+            if (!e?.errorFields) message.error(e || 'Cập nhật thất bại');
+          }
+        }}
+      >
+        <Form form={form} layout="vertical">
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+            <Upload
+              accept="image/*"
+              showUploadList={false}
+              beforeUpload={() => false}
+              onChange={async (info) => {
+                const raw = info.file as any;
+                const blob: Blob | undefined = (raw?.originFileObj as File) || (raw as Blob);
+                if (blob && blob instanceof Blob) {
+                  // Live preview
+                  const url = URL.createObjectURL(blob);
+                  setAvatarPreview(url);
+                  const file: File = blob instanceof File ? blob : new File([blob], 'avatar.jpg', { type: blob.type || 'image/jpeg' });
+                  setAvatarFile(file);
+                }
+              }}
+            >
+              <Avatar size={96} src={avatarPreview} icon={<UserOutlined />} style={{ cursor: 'pointer' }} />
+            </Upload>
+          </div>
+          <Form.Item name="firstName" label="Tên" rules={[{ required: true, message: 'Vui lòng nhập tên' }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="lastName" label="Họ" rules={[{ required: true, message: 'Vui lòng nhập họ' }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="phoneNumber" label="Số điện thoại" rules={[{ required: true, message: 'Vui lòng nhập số điện thoại' }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="detailAddress" label="Địa chỉ">
+            <Input />
+          </Form.Item>
+          <Form.Item name="codeWard" label="Phường/Xã (mã)">
+            <Input />
+          </Form.Item>
+          <Form.Item name="codeCity" label="Tỉnh/Thành (mã)">
+            <Input />
+          </Form.Item>
+        </Form>
+      </Modal>
     </Row>
   );
 };
