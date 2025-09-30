@@ -1,22 +1,10 @@
-import serviceTypeService from "../services/serviceTypeService.js";
+import productService from "../services/productService.js";
 
-const serviceTypeController = {
-  // Public: get active service types
-  async getActiveServiceTypes(req, res) {
-    try {
-      const result = await serviceTypeService.getActiveServiceTypes();
-      return res.status(200).json(result);
-    } catch (error) {
-      console.error('Get Type Service Active error:', error);
-      return res.status(500).json({ success: false, message: 'Lỗi server' });
-    }
-  },
-
-  // Admin CRUD
+const productController = {
   async list(req, res) {
     try {
       const { page, limit, search } = req.query;
-      const result = await serviceTypeService.listServiceTypes({ page, limit, search });
+      const result = await productService.list({ page, limit, search });
       if (!result.success) return res.status(400).json(result);
       return res.json(result);
     } catch (error) {
@@ -26,7 +14,7 @@ const serviceTypeController = {
 
   async getById(req, res) {
     try {
-      const result = await serviceTypeService.getServiceTypeById(req.params.id);
+      const result = await productService.getById(req.params.id);
       if (!result.success) return res.status(404).json(result);
       return res.json(result);
     } catch (error) {
@@ -36,7 +24,7 @@ const serviceTypeController = {
 
   async create(req, res) {
     try {
-      const result = await serviceTypeService.createServiceType(req.body);
+      const result = await productService.create(req.body);
       if (!result.success) return res.status(400).json(result);
       return res.status(201).json(result);
     } catch (error) {
@@ -46,7 +34,7 @@ const serviceTypeController = {
 
   async update(req, res) {
     try {
-      const result = await serviceTypeService.updateServiceType(req.params.id, req.body);
+      const result = await productService.update(req.params.id, req.body);
       if (!result.success) return res.status(404).json(result);
       return res.json(result);
     } catch (error) {
@@ -56,7 +44,7 @@ const serviceTypeController = {
 
   async remove(req, res) {
     try {
-      const result = await serviceTypeService.deleteServiceType(req.params.id);
+      const result = await productService.remove(req.params.id);
       if (!result.success) return res.status(404).json(result);
       return res.json(result);
     } catch (error) {
@@ -65,4 +53,7 @@ const serviceTypeController = {
   },
 };
 
-export default serviceTypeController;
+export default productController;
+
+
+

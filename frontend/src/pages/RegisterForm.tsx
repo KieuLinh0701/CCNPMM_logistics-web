@@ -126,8 +126,10 @@ const RegisterForm: React.FC = () => {
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="role" label="Vai trò" initialValue="staff">
+              <Form.Item name="role" label="Vai trò" initialValue="user">
                 <Select size="large">
+                  <Option value="user">Khách hàng</Option>
+                  <Option value="shipper">Shipper</Option>
                   <Option value="staff">Nhân viên</Option>
                   <Option value="driver">Tài xế</Option>
                   <Option value="manager">Quản lý</Option>

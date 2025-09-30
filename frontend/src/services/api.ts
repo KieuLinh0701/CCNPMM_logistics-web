@@ -86,6 +86,22 @@ export type ServiceTypeRow = {
   updatedAt: string;
 };
 
+export type VehicleRow = {
+  id: number;
+  licensePlate: string;
+  type: 'Truck' | 'Van';
+  capacity: number;
+  status: 'Available' | 'InUse' | 'Maintenance';
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+  shipments?: {
+    id: number;
+    status: string;
+    createdAt: string;
+  }[];
+};
+
 export type OrderRow = {
   id: number;
   trackingNumber: string;
@@ -247,6 +263,32 @@ export const adminAPI = {
   },
   deleteOrder: async (id: number): Promise<{ success: boolean }> => {
     const response = await api.delete<{ success: boolean }>(`/admin/orders/${id}`);
+    return response.data;
+  },
+
+  // Vehicle APIs
+  listVehicles: async (params?: { page?: number; limit?: number; search?: string; type?: string; status?: string }): Promise<Paginated<VehicleRow>> => {
+    const response = await api.get<Paginated<VehicleRow>>('/admin/vehicles', { params });
+    return response.data;
+  },
+  getVehicle: async (id: number): Promise<{ success: boolean; data: VehicleRow }> => {
+    const response = await api.get<{ success: boolean; data: VehicleRow }>(`/admin/vehicles/${id}`);
+    return response.data;
+  },
+  createVehicle: async (payload: { licensePlate: string; type: 'Truck' | 'Van'; capacity: number; status?: 'Available' | 'InUse' | 'Maintenance'; description?: string }): Promise<{ success: boolean; data: VehicleRow }> => {
+    const response = await api.post<{ success: boolean; data: VehicleRow }>(`/admin/vehicles`, payload);
+    return response.data;
+  },
+  updateVehicle: async (id: number, payload: Partial<{ licensePlate: string; type: 'Truck' | 'Van'; capacity: number; status: 'Available' | 'InUse' | 'Maintenance'; description: string }>): Promise<{ success: boolean; data: VehicleRow }> => {
+    const response = await api.put<{ success: boolean; data: VehicleRow }>(`/admin/vehicles/${id}`, payload);
+    return response.data;
+  },
+  deleteVehicle: async (id: number): Promise<{ success: boolean }> => {
+    const response = await api.delete<{ success: boolean }>(`/admin/vehicles/${id}`);
+    return response.data;
+  },
+  getVehicleStats: async (): Promise<{ success: boolean; data: { total: number; available: number; inUse: number; maintenance: number } }> => {
+    const response = await api.get<{ success: boolean; data: { total: number; available: number; inUse: number; maintenance: number } }>('/admin/vehicles/stats');
     return response.data;
   },
 };

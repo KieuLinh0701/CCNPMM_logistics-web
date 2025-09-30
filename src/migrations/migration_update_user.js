@@ -3,7 +3,7 @@
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.changeColumn('Users', 'role', {
-      type: Sequelize.ENUM('admin', 'manager', 'driver', 'shipper', 'user'),
+      type: Sequelize.ENUM('admin', 'manager', 'staff', 'driver', 'shipper', 'user'),
       defaultValue: 'user',
       allowNull: false,
     });
@@ -11,8 +11,8 @@ module.exports = {
 
   async down(queryInterface, Sequelize) {
     await queryInterface.changeColumn('Users', 'role', {
-      type: Sequelize.ENUM('admin', 'manager', 'staff', 'driver'),
-      defaultValue: 'staff',
+      type: Sequelize.ENUM('admin', 'manager', 'driver', 'shipper', 'user'),
+      defaultValue: 'user',
       allowNull: false,
     });
   }

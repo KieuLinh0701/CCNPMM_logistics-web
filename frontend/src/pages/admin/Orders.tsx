@@ -106,28 +106,28 @@ const AdminOrders: React.FC = () => {
   };
 
   const columns = useMemo(() => [
-    { title: 'Mã vận đơn', dataIndex: 'trackingNumber' },
-    { title: 'Người gửi', dataIndex: 'senderName' },
-    { title: 'Người nhận', dataIndex: 'receiverName' },
+    { title: 'Mã vận đơn', dataIndex: 'trackingNumber', render: (v: string) => v || '-' },
+    { title: 'Người gửi', dataIndex: 'senderName', render: (v: string) => v || '-' },
+    { title: 'Người nhận', dataIndex: 'receiverName', render: (v: string) => v || '-' },
     { 
       title: 'Bưu cục', 
       dataIndex: ['postOffice', 'name'],
-      render: (_: any, record: OrderRow) => record.postOffice?.name || 'N/A'
+      render: (_: any, record: OrderRow) => record?.postOffice?.name || 'N/A'
     },
     { 
       title: 'Dịch vụ', 
       dataIndex: ['serviceType', 'name'],
-      render: (_: any, record: OrderRow) => record.serviceType?.name || 'N/A'
+      render: (_: any, record: OrderRow) => record?.serviceType?.name || 'N/A'
     },
     { 
       title: 'Tổng tiền', 
       dataIndex: 'totalAmount', 
-      render: (v: number) => `${v.toLocaleString()} VNĐ` 
+      render: (v: number | undefined) => v != null ? `${v.toLocaleString()} VNĐ` : '-' 
     },
     { 
       title: 'Trạng thái', 
       dataIndex: 'status', 
-      render: (v: string) => <Tag color={getStatusColor(v)}>{getStatusText(v)}</Tag> 
+      render: (v: string | undefined) => v ? <Tag color={getStatusColor(v)}>{getStatusText(v)}</Tag> : '-' 
     },
     {
       title: 'Thao tác',
@@ -187,10 +187,10 @@ const AdminOrders: React.FC = () => {
             <Descriptions.Item label="Trọng lượng">{selectedOrder.weight} kg</Descriptions.Item>
             <Descriptions.Item label="Bưu cục">{selectedOrder.postOffice?.name}</Descriptions.Item>
             <Descriptions.Item label="Dịch vụ">{selectedOrder.serviceType?.name}</Descriptions.Item>
-            <Descriptions.Item label="Giá cơ bản">{selectedOrder.basePrice.toLocaleString()} VNĐ</Descriptions.Item>
-            <Descriptions.Item label="COD Amount">{selectedOrder.codAmount.toLocaleString()} VNĐ</Descriptions.Item>
-            <Descriptions.Item label="COD Fee">{selectedOrder.codFee.toLocaleString()} VNĐ</Descriptions.Item>
-            <Descriptions.Item label="Tổng tiền">{selectedOrder.totalAmount.toLocaleString()} VNĐ</Descriptions.Item>
+            <Descriptions.Item label="Giá cơ bản">{selectedOrder.basePrice?.toLocaleString() || '0'} VNĐ</Descriptions.Item>
+            <Descriptions.Item label="COD Amount">{selectedOrder.codAmount?.toLocaleString() || '0'} VNĐ</Descriptions.Item>
+            <Descriptions.Item label="COD Fee">{selectedOrder.codFee?.toLocaleString() || '0'} VNĐ</Descriptions.Item>
+            <Descriptions.Item label="Tổng tiền">{selectedOrder.totalAmount?.toLocaleString() || '0'} VNĐ</Descriptions.Item>
             <Descriptions.Item label="Trạng thái">
               <Tag color={getStatusColor(selectedOrder.status)}>{getStatusText(selectedOrder.status)}</Tag>
             </Descriptions.Item>

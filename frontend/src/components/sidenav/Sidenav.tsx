@@ -11,8 +11,6 @@ import {
   BarChartOutlined,
   ToolOutlined,
   ProfileOutlined,
-  LoginOutlined,
-  UserAddOutlined,
   ShoppingOutlined,
   CarOutlined,
   DatabaseOutlined,
@@ -78,6 +76,12 @@ const Sidenav: React.FC<Props> = ({ color }) => {
         icon: <ShoppingCartOutlined />,
       },
       {
+        key: "/admin/vehicles",
+        label: "Phương tiện",
+        path: "/admin/vehicles",
+        icon: <CarOutlined />,
+      },
+      {
         key: "/admin/fees",
         label: "Quản lý phí",
         path: "/admin/fees",
@@ -90,46 +94,12 @@ const Sidenav: React.FC<Props> = ({ color }) => {
         icon: <BarChartOutlined />,
       },
       {
-        key: "/admin/services",
-        label: "Dịch vụ",
-        path: "/admin/services",
-        icon: <ToolOutlined />,
-      },
-      {
         key: "/admin/profile",
         label: "Hồ sơ",
         path: "/admin/profile",
         icon: <ProfileOutlined />,
       },
-      {
-        key: "/tables",
-        label: "Tables",
-        path: "/tables",
-        icon: <TableOutlined />,
-      },
-      {
-        key: "/billing",
-        label: "Billing",
-        path: "/billing",
-        icon: <CreditCardOutlined />,
-      },
-      {
-        key: "orders",
-        label: "Quản lý đơn hàng",
-        icon: <ShoppingOutlined />,
-        children: [
-          {
-            key: "/orders/list",
-            label: "Danh sách đơn hàng",
-            path: "/orders/list",
-          },
-          {
-            key: "/orders/history",
-            label: "Lịch sử đơn hàng",
-            path: "/orders/history",
-          },
-        ],
-      },
+      
     ],
     manager: [
       {

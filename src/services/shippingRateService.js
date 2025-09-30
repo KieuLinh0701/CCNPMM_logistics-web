@@ -207,10 +207,12 @@ const deleteShippingRate = async (shippingRateId) => {
 };
 
 // Calculate shipping cost
-const calculateShippingCost = async (serviceTypeId, regionType, weight) => {
+const calculateShippingCost = async (params) => {
   return new Promise(async (resolve, reject) => {
     try {
-      if (!serviceTypeId || !regionType || !weight || weight <= 0) {
+      const { serviceTypeId, regionId, weight, distance } = params;
+      
+      if (!serviceTypeId || !regionId || !weight || weight <= 0) {
         resolve({ success: false, message: "Thông tin không hợp lệ" });
         return;
       }
@@ -219,7 +221,7 @@ const calculateShippingCost = async (serviceTypeId, regionType, weight) => {
       const shippingRate = await db.ShippingRate.findOne({
         where: {
           serviceTypeId,
-          regionType,
+          regionType: regionId,
           weightFrom: { [db.Sequelize.Op.lte]: weight },
           [db.Sequelize.Op.or]: [
             { weightTo: { [db.Sequelize.Op.gte]: weight } },

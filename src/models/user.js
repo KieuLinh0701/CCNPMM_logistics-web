@@ -57,7 +57,7 @@ export default (sequelize) => {
         allowNull: true,
       },
       role: {
-        type: DataTypes.ENUM('admin', 'manager', 'driver', 'shipper', 'user'),
+        type: DataTypes.ENUM('admin', 'manager', 'staff', 'driver', 'shipper', 'user'),
         defaultValue: 'user',
       },
       isVerified: {

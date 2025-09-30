@@ -1,38 +1,11 @@
-import officeService from '../services/officeService.js';
+import vehicleService from '../services/vehicleService.js';
 
-const officeController = {
-  // Get Office By User Id
-  async getOfficeByUser(req, res) {
-    try {
-      const userId = req.user.id;
-      const result = await officeService.getByUserId(userId);
-      return res.status(200).json(result);
-    } catch (error) {
-      console.error('Get Office By UserId error:', error);
-      return res.status(500).json({ success: false, message: 'Lỗi server' });
-    }
-  },
-
-  // Update Office by user
-  async update(req, res) {
-    try {
-      const userId = req.user.id;
-      const officeId = req.params.id;
-      const updateData = req.body;
-      if (!officeId) return res.status(400).json({ success: false, message: 'Office id không được để trống' });
-      const result = await officeService.update(userId, officeId, updateData);
-      return res.status(200).json(result);
-    } catch (error) {
-      console.error('Update office error:', error);
-      return res.status(500).json({ success: false, message: 'Lỗi server' });
-    }
-  },
-
+const vehicleController = {
   // Admin CRUD
   async list(req, res) {
     try {
       const { page, limit, search, type, status } = req.query;
-      const result = await officeService.listOffices({ page, limit, search, type, status });
+      const result = await vehicleService.listVehicles({ page, limit, search, type, status });
       if (!result.success) return res.status(400).json(result);
       return res.json(result);
     } catch (error) {
@@ -42,7 +15,7 @@ const officeController = {
 
   async getById(req, res) {
     try {
-      const result = await officeService.getOfficeById(req.params.id);
+      const result = await vehicleService.getVehicleById(req.params.id);
       if (!result.success) return res.status(404).json(result);
       return res.json(result);
     } catch (error) {
@@ -52,7 +25,7 @@ const officeController = {
 
   async create(req, res) {
     try {
-      const result = await officeService.createOffice(req.body);
+      const result = await vehicleService.createVehicle(req.body);
       if (!result.success) {
         const statusCode = result.message.includes('đã tồn tại') ? 409 : 400;
         return res.status(statusCode).json(result);
@@ -63,9 +36,9 @@ const officeController = {
     }
   },
 
-  async adminUpdate(req, res) {
+  async update(req, res) {
     try {
-      const result = await officeService.updateOffice(req.params.id, req.body);
+      const result = await vehicleService.updateVehicle(req.params.id, req.body);
       if (!result.success) {
         const statusCode = result.message.includes('đã tồn tại') ? 409 : 404;
         return res.status(statusCode).json(result);
@@ -78,13 +51,24 @@ const officeController = {
 
   async remove(req, res) {
     try {
-      const result = await officeService.deleteOffice(req.params.id);
+      const result = await vehicleService.deleteVehicle(req.params.id);
       if (!result.success) return res.status(404).json(result);
       return res.json(result);
     } catch (error) {
       return res.status(500).json({ success: false, message: error.message });
     }
   },
+
+  async getStats(req, res) {
+    try {
+      const result = await vehicleService.getVehicleStats();
+      if (!result.success) return res.status(400).json(result);
+      return res.json(result);
+    } catch (error) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
+  }
 };
 
-export default officeController;
+export default vehicleController;
+

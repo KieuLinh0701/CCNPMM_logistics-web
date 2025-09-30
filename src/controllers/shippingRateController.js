@@ -1,22 +1,17 @@
-import serviceTypeService from "../services/serviceTypeService.js";
+import shippingRateService from '../services/shippingRateService.js';
 
-const serviceTypeController = {
-  // Public: get active service types
-  async getActiveServiceTypes(req, res) {
-    try {
-      const result = await serviceTypeService.getActiveServiceTypes();
-      return res.status(200).json(result);
-    } catch (error) {
-      console.error('Get Type Service Active error:', error);
-      return res.status(500).json({ success: false, message: 'Lỗi server' });
-    }
-  },
-
+const shippingRateController = {
   // Admin CRUD
   async list(req, res) {
     try {
-      const { page, limit, search } = req.query;
-      const result = await serviceTypeService.listServiceTypes({ page, limit, search });
+      const { page, limit, search, serviceTypeId, regionId } = req.query;
+      const result = await shippingRateService.listShippingRates({ 
+        page, 
+        limit, 
+        search, 
+        serviceTypeId, 
+        regionId 
+      });
       if (!result.success) return res.status(400).json(result);
       return res.json(result);
     } catch (error) {
@@ -26,7 +21,7 @@ const serviceTypeController = {
 
   async getById(req, res) {
     try {
-      const result = await serviceTypeService.getServiceTypeById(req.params.id);
+      const result = await shippingRateService.getShippingRateById(req.params.id);
       if (!result.success) return res.status(404).json(result);
       return res.json(result);
     } catch (error) {
@@ -36,7 +31,7 @@ const serviceTypeController = {
 
   async create(req, res) {
     try {
-      const result = await serviceTypeService.createServiceType(req.body);
+      const result = await shippingRateService.createShippingRate(req.body);
       if (!result.success) return res.status(400).json(result);
       return res.status(201).json(result);
     } catch (error) {
@@ -46,7 +41,7 @@ const serviceTypeController = {
 
   async update(req, res) {
     try {
-      const result = await serviceTypeService.updateServiceType(req.params.id, req.body);
+      const result = await shippingRateService.updateShippingRate(req.params.id, req.body);
       if (!result.success) return res.status(404).json(result);
       return res.json(result);
     } catch (error) {
@@ -56,13 +51,30 @@ const serviceTypeController = {
 
   async remove(req, res) {
     try {
-      const result = await serviceTypeService.deleteServiceType(req.params.id);
+      const result = await shippingRateService.deleteShippingRate(req.params.id);
       if (!result.success) return res.status(404).json(result);
       return res.json(result);
     } catch (error) {
       return res.status(500).json({ success: false, message: error.message });
     }
   },
+
+  async calculateCost(req, res) {
+    try {
+      const { serviceTypeId, regionId, weight, distance } = req.query;
+      const result = await shippingRateService.calculateShippingCost({
+        serviceTypeId,
+        regionId,
+        weight,
+        distance
+      });
+      if (!result.success) return res.status(400).json(result);
+      return res.json(result);
+    } catch (error) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
+  }
 };
 
-export default serviceTypeController;
+export default shippingRateController;
+
