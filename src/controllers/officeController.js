@@ -85,6 +85,26 @@ const officeController = {
       return res.status(500).json({ success: false, message: error.message });
     }
   },
+
+  async searchOffices(req, res) {
+    try {
+      const { city, ward, search } = req.query;
+      const result = await officeService.searchOffices({ city, ward, search });
+      return res.json(result);
+    } catch (error) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  async getPublicOffices(req, res) {
+    try {
+      const { page, limit, city } = req.query;
+      const result = await officeService.getPublicOffices({ page, limit, city });
+      return res.json(result);
+    } catch (error) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
+  },
 };
 
 export default officeController;

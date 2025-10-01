@@ -223,6 +223,59 @@ const officeService = {
       console.error('Update office error:', error);
       return { success: false, message: 'Lỗi server' };
     }
+  },
+
+  // Public methods for guests
+  async searchOffices(params) {
+    try {
+      const { city, ward, search } = params;
+      const where = { status: 'Active' };
+
+      if (city) where.codeCity = city;
+      if (ward) where.codeWard = ward;
+      if (search) {
+        where[db.Sequelize.Op.or] = [
+          { name: { [db.Sequelize.Op.like]: `%${search}%` } },
+          { address: { [db.Sequelize.Op.like]: `%${search}%` } }
+        ];
+      }
+
+      const offices = await db.Office.findAll({
+        where,
+        attributes: ['id', 'name', 'address', 'phoneNumber', 'email', 'openingTime', 'closingTime', 'type', 'latitude', 'longitude'],
+        order: [['name', 'ASC']]
+      });
+
+      return { success: true, data: offices };
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  },
+
+  async getPublicOffices(params) {
+    try {
+      const { page = 1, limit = 20, city } = params;
+      const offset = (Number(page) - 1) * Number(limit);
+      const where = { status: 'Active' };
+
+      if (city) where.codeCity = city;
+
+      const { rows, count } = await db.Office.findAndCountAll({
+        where,
+        attributes: ['id', 'name', 'address', 'phoneNumber', 'email', 'openingTime', 'closingTime', 'type', 'latitude', 'longitude'],
+        limit: Number(limit),
+        offset,
+        order: [['name', 'ASC']]
+      });
+
+      return {
+        success: true,
+        data: rows,
+        pagination: { page: Number(page), limit: Number(limit), total: count }
+      };
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
   }
 };
 

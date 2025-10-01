@@ -63,6 +63,17 @@ const serviceTypeController = {
       return res.status(500).json({ success: false, message: error.message });
     }
   },
+
+  // Public method for guests
+  async getPublicServiceTypes(req, res) {
+    try {
+      const result = await serviceTypeService.getActiveServiceTypes();
+      return res.status(200).json(result);
+    } catch (error) {
+      console.error('Get Public Service Types error:', error);
+      return res.status(500).json({ success: false, message: 'Lỗi server' });
+    }
+  },
 };
 
 export default serviceTypeController;

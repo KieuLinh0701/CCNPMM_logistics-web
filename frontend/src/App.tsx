@@ -9,6 +9,12 @@ import LoginForm from './pages/LoginForm';
 import RegisterForm from './pages/RegisterForm';
 import Home from './pages/Home';
 import ShippingFee from './pages/tracking/ShippingFee';
+import OrderTracking from './pages/tracking/OrderTracking';
+import OfficeSearch from './pages/tracking/OfficeSearch';
+import CompanyInfo from './pages/info/CompanyInfo';
+import ContactForm from './pages/info/ContactForm';
+import ServiceDetails from './pages/info/ServiceDetails';
+import ShippingRates from './pages/info/ShippingRates';
 import './App.css';
 import AdminLayout from './layouts/AdminLayout';
 import AdminDashboard from './pages/admin/Dashboard';
@@ -44,7 +50,17 @@ const App: React.FC = () => {
 
             {/* Trang Home */}
             <Route path="/home" element={<Home />} />
+            
+            {/* Public tracking pages */}
             <Route path="/tracking/shipping-fee" element={<ShippingFee />} />
+            <Route path="/tracking/order-tracking" element={<OrderTracking />} />
+            <Route path="/tracking/office-search" element={<OfficeSearch />} />
+            
+            {/* Public info pages */}
+            <Route path="/info/company" element={<CompanyInfo />} />
+            <Route path="/info/contact" element={<ContactForm />} />
+            <Route path="/info/services" element={<ServiceDetails />} />
+            <Route path="/info/shipping-rates" element={<ShippingRates />} />
 
             {/* Login/Register */}
             <Route path="/login" element={<PublicRoute><LoginForm /></PublicRoute>} />

@@ -9,15 +9,12 @@ import {
   ShoppingCartOutlined,
   DollarOutlined,
   BarChartOutlined,
-  ToolOutlined,
   ProfileOutlined,
   ShoppingOutlined,
   CarOutlined,
   DatabaseOutlined,
   HomeOutlined,
   TeamOutlined,
-  TableOutlined,
-  CreditCardOutlined,
   GlobalOutlined,
 } from "@ant-design/icons";
 
@@ -306,7 +303,7 @@ const Sidenav: React.FC<Props> = ({ color }) => {
       }
     });
     setOpenKeys(keys);
-  }, [pathname]);
+  }, [pathname, menuItems]);
 
   return (
     <div className="sidenav">

@@ -63,7 +63,7 @@ const orderSlice = createSlice({
       })
       .addCase(calculateShippingFee.fulfilled, (state, action) => {
         state.loading = false;
-        if (action.payload.success && action.payload.shippingFee) {
+        if (action.payload.success && typeof action.payload.shippingFee === 'number') {
           state.shippingFee = action.payload.shippingFee;
         }
       })

@@ -79,6 +79,23 @@ const orderController = {
       return res.status(500).json({ success: false, message: error.message });
     }
   },
+
+  async trackOrder(req, res) {
+    try {
+      const { trackingNumber } = req.params;
+      const normalized = (trackingNumber || "").trim();
+      const result = await orderService.trackOrder(normalized);
+
+      if (!result.success) {
+        return res.status(404).json(result);
+      }
+
+      return res.json(result);
+    } catch (error) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
 };
 
 export default orderController;

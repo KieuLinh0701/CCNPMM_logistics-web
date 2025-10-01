@@ -55,7 +55,7 @@ const ShippingFee: React.FC = () => {
         })
       );
 
-      if (resultAction.payload) {
+      if (resultAction.payload && typeof resultAction.payload.shippingFee === 'number') {
         setShippingFeeResult(resultAction.payload.shippingFee); 
       }
     } catch (error) {

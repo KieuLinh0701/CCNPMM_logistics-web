@@ -73,6 +73,17 @@ const shippingRateController = {
     } catch (error) {
       return res.status(500).json({ success: false, message: error.message });
     }
+  },
+
+  // Public method for guests
+  async getPublicShippingRates(req, res) {
+    try {
+      const { serviceTypeId } = req.query;
+      const result = await shippingRateService.getPublicShippingRates(serviceTypeId);
+      return res.json(result);
+    } catch (error) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
   }
 };
 

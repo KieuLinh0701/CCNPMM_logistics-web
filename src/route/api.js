@@ -62,6 +62,46 @@ let initApiRoutes = (app) => {
 
     // Order Routes
     router.get("/orders/calculate-shipping-fee", orderController.calculateShippingFee);
+    
+    // Public routes for guests
+    // Order tracking
+    router.get("/public/orders/track/:trackingNumber", orderController.trackOrder);
+    
+    // Office search
+    router.get("/public/offices/search", officeController.searchOffices);
+    router.get("/public/offices", officeController.getPublicOffices);
+    
+    // Service types for public
+    router.get("/public/services", serviceTypeController.getPublicServiceTypes);
+    
+    // Shipping rates for public
+    router.get("/public/shipping-rates", shippingRateController.getPublicShippingRates);
+    
+    // Company information
+    router.get("/public/company-info", (req, res) => {
+        return res.json({
+            success: true,
+            data: {
+                name: "CCNPMM Logistics",
+                description: "Dịch vụ vận chuyển hàng hóa chuyên nghiệp",
+                address: "123 Đường ABC, Quận XYZ, TP.HCM",
+                phone: "1900-1234",
+                email: "info@ccnpmm.com",
+                website: "www.ccnpmm.com"
+            }
+        });
+    });
+    
+    // Contact form submission
+    router.post("/public/contact", (req, res) => {
+        const { name, email, phone, subject, message } = req.body;
+        // TODO: Implement email sending for contact form
+        return res.json({
+            success: true,
+            message: "Cảm ơn bạn đã liên hệ. Chúng tôi sẽ phản hồi trong thời gian sớm nhất."
+        });
+    });
+
 
     // Admin - Users CRUD
     router.get('/admin/users', verifyToken, requireRole(['admin']), userController.list);

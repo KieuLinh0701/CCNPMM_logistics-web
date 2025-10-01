@@ -264,11 +264,44 @@ const calculateShippingCost = async (params) => {
   });
 };
 
+// Get public shipping rates
+const getPublicShippingRates = async (serviceTypeId) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const where = {};
+      if (serviceTypeId) {
+        where.serviceTypeId = serviceTypeId;
+      }
+
+      const shippingRates = await db.ShippingRate.findAll({
+        where,
+        include: [
+          {
+            model: db.ServiceType,
+            as: 'serviceType',
+            attributes: ['id', 'name', 'deliveryTime'],
+            where: { status: 'Active' }
+          }
+        ],
+        order: [['serviceTypeId', 'ASC'], ['regionType', 'ASC'], ['weightFrom', 'ASC']]
+      });
+
+      resolve({
+        success: true,
+        data: shippingRates
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
 export default {
   listShippingRates,
   getShippingRateById,
   createShippingRate,
   updateShippingRate,
   deleteShippingRate,
-  calculateShippingCost
+  calculateShippingCost,
+  getPublicShippingRates
 };

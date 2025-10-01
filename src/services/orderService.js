@@ -183,6 +183,28 @@ const orderService = {
       };
     }
   },
+
+  async trackOrder(trackingNumber) {
+    try {
+      const order = await db.Order.findOne({
+        where: { trackingNumber },
+        include: [
+          { model: db.Office, as: 'fromOffice', attributes: ['id','name','address','phoneNumber','type'] },
+          { model: db.Office, as: 'toOffice', attributes: ['id','name','address','phoneNumber','type'] },
+          { model: db.ServiceType, as: 'serviceType', attributes: ['id','name','deliveryTime'] },
+          { model: db.OrderHistory, as: 'histories', attributes: ['id', 'status', ['note','notes'], ['actionTime','createdAt']] }
+        ]
+      });
+
+      if (!order) {
+        return { success: false, message: "Không tìm thấy đơn hàng với mã vận đơn này" };
+      }
+
+      return { success: true, data: order };
+    } catch (error) {
+      return { success: false, message: "Lỗi server khi tra cứu đơn hàng" };
+    }
+  },
 };
 
 export default orderService;
