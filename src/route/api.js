@@ -13,6 +13,7 @@ import serviceTypeController from "../controllers/serviceTypeController.js";
 import shippingRateController from "../controllers/shippingRateController.js";
 import vehicleController from "../controllers/vehicleController.js";
 import orderController from "../controllers/orderController.js";
+import shipperController from "../controllers/shipperController.js";
 
 let router = express.Router();
 
@@ -159,6 +160,34 @@ let initApiRoutes = (app) => {
     router.put('/admin/vehicles/:id', verifyToken, requireRole(['admin']), vehicleController.update);
     router.delete('/admin/vehicles/:id', verifyToken, requireRole(['admin']), vehicleController.remove);
     router.get('/admin/vehicles/stats', verifyToken, requireRole(['admin']), vehicleController.getStats);
+
+    // SHIPPER
+    // Shipper Dashboard
+    router.get('/shipper/dashboard', verifyToken, requireRole(['shipper']), shipperController.getDashboard);
+    
+    // Shipper Orders
+    router.get('/shipper/orders', verifyToken, requireRole(['shipper']), shipperController.getOrders);
+    router.get('/shipper/orders/:id', verifyToken, requireRole(['shipper']), shipperController.getOrderDetail);
+    router.put('/shipper/orders/:id/status', verifyToken, requireRole(['shipper']), shipperController.updateDeliveryStatus);
+    
+    // Shipper History
+    router.get('/shipper/history', verifyToken, requireRole(['shipper']), shipperController.getDeliveryHistory);
+    
+    // Shipper Route
+    router.get('/shipper/route', verifyToken, requireRole(['shipper']), shipperController.getDeliveryRoute);
+    router.post('/shipper/route/start', verifyToken, requireRole(['shipper']), shipperController.startRoute);
+    
+    // Shipper COD Management
+    router.get('/shipper/cod', verifyToken, requireRole(['shipper']), shipperController.getCODTransactions);
+    router.post('/shipper/cod/submit', verifyToken, requireRole(['shipper']), shipperController.submitCOD);
+    
+    // Shipper Incident Report
+    router.post('/shipper/incident', verifyToken, requireRole(['shipper']), shipperController.reportIncident);
+
+    // Shipper self-assign
+    router.get('/shipper/orders-unassigned', verifyToken, requireRole(['shipper']), shipperController.getUnassignedOrders);
+    router.post('/shipper/orders/:id/claim', verifyToken, requireRole(['shipper']), shipperController.claimOrder);
+    router.post('/shipper/orders/:id/unclaim', verifyToken, requireRole(['shipper']), shipperController.unclaimOrder);
 
     // Test routes
     router.get('/test', (req, res) => {

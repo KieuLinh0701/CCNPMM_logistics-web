@@ -37,6 +37,17 @@ import EmployeePage from './pages/manager/EmployeeForm';
 import CreateOrder from './pages/manager/CreateOrder';
 import UserDashboard from './pages/user/Dashboard';
 import UserLayout from './layouts/UserLayout';
+import ShipperLayout from './layouts/ShipperLayout';
+import ShipperDashboard from './pages/shipper/Dashboard';
+import ShipperOrders from './pages/shipper/Orders';
+import ShipperOrderDetail from './pages/shipper/OrderDetail';
+import ShipperDeliveryUpdate from './pages/shipper/DeliveryUpdate';
+import ShipperPostOfficeHandover from './pages/shipper/PostOfficeHandover';
+import ShipperCODManagement from './pages/shipper/CODManagement';
+import ShipperIncidentReport from './pages/shipper/IncidentReport';
+import ShipperDeliveryHistory from './pages/shipper/DeliveryHistory';
+import ShipperDeliveryRoute from './pages/shipper/DeliveryRoute';
+import ShipperNotifications from './pages/shipper/Notifications';
 
 const App: React.FC = () => {
 
@@ -91,6 +102,20 @@ const App: React.FC = () => {
 
             <Route path="/user" element={<PrivateRoute roles={["user"]}><UserLayout /></PrivateRoute>}>
               <Route path="dashboard" element={<UserDashboard />} />
+              <Route path="profile" element={<Profile />} />
+            </Route>
+
+            <Route path="/shipper" element={<PrivateRoute roles={["driver", "shipper"]}><ShipperLayout /></PrivateRoute>}>
+              <Route path="dashboard" element={<ShipperDashboard />} />
+              <Route path="orders" element={<ShipperOrders />} />
+              <Route path="orders/:id" element={<ShipperOrderDetail />} />
+              <Route path="delivery/:id" element={<ShipperDeliveryUpdate />} />
+              <Route path="pickup" element={<ShipperPostOfficeHandover />} />
+              <Route path="cod" element={<ShipperCODManagement />} />
+              <Route path="report" element={<ShipperIncidentReport />} />
+              <Route path="history" element={<ShipperDeliveryHistory />} />
+              <Route path="route" element={<ShipperDeliveryRoute />} />
+              <Route path="notifications" element={<ShipperNotifications />} />
               <Route path="profile" element={<Profile />} />
             </Route>
 

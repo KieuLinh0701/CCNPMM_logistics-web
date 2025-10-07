@@ -708,6 +708,45 @@ const employeeService = {
       return { success: false, message: "Lỗi server khi xóa nhân viên" };
     }
   },
+
+  // Get employee by user ID (for shipper)
+  async getEmployeeByUserId(userId) {
+    try {
+      console.log('=== EMPLOYEE SERVICE GET BY USER ID START ===');
+      console.log('User ID:', userId);
+      
+      const employee = await db.Employee.findOne({
+        where: { userId },
+        include: [
+          {
+            model: db.User,
+            as: 'user',
+            attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber', 'role']
+          },
+          {
+            model: db.Office,
+            as: 'office',
+            attributes: ['id', 'name', 'address', 'type']
+          }
+        ]
+      });
+
+      console.log('Employee found:', employee);
+      
+      if (!employee) {
+        console.log('No employee found for userId:', userId);
+        return null;
+      }
+
+      return employee;
+    } catch (error) {
+      console.error('=== EMPLOYEE SERVICE GET BY USER ID ERROR ===');
+      console.error('Error details:', error);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+      throw error;
+    }
+  },
 };
 
 

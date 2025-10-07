@@ -12,6 +12,7 @@ export const RoleRedirect: React.FC = () => {
     admin: "/admin/dashboard",
     manager: "/manager/dashboard",
     staff: "/staff/dashboard",
+    driver: "/shipper/dashboard",
     shipper: "/shipper/dashboard",
     user: "/user/dashboard",
   };
