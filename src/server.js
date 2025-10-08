@@ -24,7 +24,7 @@ initApiRoutes(app);
 (async () => {
     try {
         await connectDB();  // authenticate
-        //await db.sequelize.sync({ alter: true }); // tạo/ cập nhật bảng
+        await db.sequelize.sync({ alter: true }); // tạo/ cập nhật bảng
     } catch (error) {
         console.error("Database connection or sync failed:", error);
     }

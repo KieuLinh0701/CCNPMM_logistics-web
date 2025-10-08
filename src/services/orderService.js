@@ -71,12 +71,30 @@ const orderService = {
     }
   },
 
-  async updateOrderStatus(orderId, status) {
+  async updateOrderStatus(orderId, updateData = {}, officeId) {
     try {
       const order = await db.Order.findByPk(orderId);
-      if (!order) return { success: false, message: "Không tìm thấy đơn hàng" };
+      if (!order) {
+        return { success: false, message: "Không tìm thấy đơn hàng" };
+      }
 
-      order.status = status;
+      // Optional access check: order must belong to shipper's office
+      if (officeId && order.toOfficeId !== Number(officeId)) {
+        return { success: false, message: 'Đơn không thuộc bưu cục của bạn' };
+      }
+
+      // Only allow specific fields to be updated safely
+      const nextStatus = updateData?.status;
+      if (typeof nextStatus === 'string' && nextStatus.length > 0) {
+        order.status = nextStatus;
+      }
+
+      // deliveredAt when delivered
+      if (nextStatus === 'delivered') {
+        order.deliveredAt = new Date();
+      }
+
+      // Persist
       await order.save();
       return { success: true, data: order };
     } catch (error) {

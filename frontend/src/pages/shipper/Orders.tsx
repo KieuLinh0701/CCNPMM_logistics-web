@@ -138,15 +138,37 @@ const ShipperOrders: React.FC = () => {
       content: 'Bạn có chắc chắn muốn bắt đầu giao đơn hàng này?',
       onOk: async () => {
         try {
-          // TODO: Gọi API cập nhật trạng thái
-          setOrders(prev => prev.map(order => 
-            order.id === orderId 
-              ? { ...order, status: 'in_progress' as const }
-              : order
-          ));
+          setLoading(true);
+          await shipperService.updateDeliveryStatus(orderId, { status: 'in_transit' });
           message.success('Đã bắt đầu giao hàng');
+          fetchOrders();
         } catch (error) {
           message.error('Lỗi khi cập nhật trạng thái');
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
+  };
+
+  const handleUnclaim = async (orderId: number) => {
+    Modal.confirm({
+      title: 'Hủy nhận đơn',
+      content: 'Bạn có chắc muốn hủy nhận đơn này? Đơn sẽ quay lại danh sách chưa gán.',
+      okText: 'Hủy nhận',
+      okButtonProps: { danger: true },
+      cancelText: 'Đóng',
+      onOk: async () => {
+        try {
+          setLoading(true);
+          await shipperService.unclaimOrder(orderId);
+          message.success('Đã hủy nhận đơn');
+          fetchOrders();
+        } catch (error) {
+          console.error('Error unclaiming order:', error);
+          message.error('Không thể hủy nhận đơn (chỉ cho phép khi chuyến còn Pending)');
+        } finally {
+          setLoading(false);
         }
       }
     });
@@ -267,8 +289,8 @@ const ShipperOrders: React.FC = () => {
     },
     {
       title: 'Thao tác',
-      key: 'action',
-      width: 120,
+      key: 'actions',
+      width: 160,
       render: (record: OrderItem) => (
         <Space direction="vertical" size={4}>
           <Button 
@@ -279,7 +301,10 @@ const ShipperOrders: React.FC = () => {
           >
             Chi tiết
           </Button>
-          {record.status === 'assigned' && (
+          {activeTab === 'unassigned' && (
+            <Button type="link" size="small" onClick={() => handleClaim(record.id)}>Nhận đơn</Button>
+          )}
+          {activeTab === 'assigned' && record.status !== 'in_progress' && (
             <Button 
               type="primary" 
               size="small"
@@ -289,7 +314,10 @@ const ShipperOrders: React.FC = () => {
               Bắt đầu giao
             </Button>
           )}
-          {record.status === 'in_progress' && (
+          {activeTab === 'assigned' && (
+            <Button danger type="link" size="small" onClick={() => handleUnclaim(record.id)}>Bỏ nhận</Button>
+          )}
+          {activeTab === 'assigned' && record.status === 'in_progress' && (
             <Button 
               type="default" 
               size="small"
@@ -298,19 +326,6 @@ const ShipperOrders: React.FC = () => {
             >
               Cập nhật
             </Button>
-          )}
-        </Space>
-      ),
-    },
-    {
-      title: 'Thao tác',
-      key: 'actions',
-      width: 140,
-      render: (record: OrderItem) => (
-        <Space size={4}>
-          <Button type="link" onClick={() => navigate(`/shipper/orders/${record.id}`)}>Chi tiết</Button>
-          {activeTab === 'unassigned' && (
-            <Button type="link" onClick={() => handleClaim(record.id)}>Nhận đơn</Button>
           )}
         </Space>
       )
