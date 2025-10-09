@@ -131,6 +131,7 @@ const shipperService = {
       serviceType: typeof o?.serviceType === 'object' && o?.serviceType !== null
         ? (o.serviceType.name ?? '')
         : (o?.serviceType ?? ''),
+      recipientAddress: (o?.recipientAddress || o?.recipientDetailAddress || '').replace(/,\s*\d+,\s*\d+$/, ''),
     }));
     const pagination = data?.pagination ?? data?.meta ?? { page: params.page ?? 1, limit: params.limit ?? 10, total: orders.length };
     console.log('[shipperService.getOrders] parsed', { count: orders.length, pagination });
@@ -158,6 +159,7 @@ const shipperService = {
       serviceType: typeof o?.serviceType === 'object' && o?.serviceType !== null
         ? (o.serviceType.name ?? '')
         : (o?.serviceType ?? ''),
+      recipientAddress: (o?.recipientAddress || o?.recipientDetailAddress || '').replace(/,\s*\d+,\s*\d+$/, ''),
     }));
     const pagination = data?.pagination ?? data?.meta ?? { page: params.page ?? 1, limit: params.limit ?? 10, total: orders.length };
     const result = { orders, pagination };
@@ -187,8 +189,8 @@ const shipperService = {
         ? (data.serviceType.name ?? '')
         : (data?.serviceType ?? ''),
       recipientAddress: typeof data?.recipientAddress === 'string'
-        ? data.recipientAddress
-        : [data?.recipientDetailAddress, data?.recipientWardCode, data?.recipientCityCode].filter(Boolean).join(', ')
+        ? data.recipientAddress.replace(/,\s*\d+,\s*\d+$/, '')
+        : [data?.recipientDetailAddress].filter(Boolean).join(', ').replace(/,\s*\d+,\s*\d+$/, '')
     };
     console.log('[shipperService.getOrderDetail] normalized data', normalized);
     return normalized as ShipperOrder;
@@ -245,7 +247,11 @@ const shipperService = {
   // Route
   async getDeliveryRoute(): Promise<ShipperRoute> {
     const response = await api.get('/shipper/route');
-    return (response.data as any).data;
+    const data = response.data as { success: boolean; data?: ShipperRoute; message?: string };
+    if (data.success && data.data) {
+      return data.data;
+    }
+    throw new Error(data.message || 'Lỗi khi tải dữ liệu lộ trình');
   },
 
   async startRoute(routeId: number): Promise<void> {

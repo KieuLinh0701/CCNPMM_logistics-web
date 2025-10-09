@@ -227,6 +227,12 @@ const Sidenav: React.FC<Props> = ({ color }) => {
         icon: <BoxPlotOutlined />,
       },
       {
+        key: "/shipper/orders-unassigned",
+        label: "Danh sách đơn hàng",
+        path: "/shipper/orders-unassigned",
+        icon: <InboxOutlined />,
+      },
+      {
         key: "/shipper/route",
         label: "Lộ trình giao hàng",
         path: "/shipper/route",
@@ -275,6 +281,12 @@ const Sidenav: React.FC<Props> = ({ color }) => {
         label: "Tổng quan",
         path: "/shipper/dashboard",
         icon: <DashboardOutlined />,
+      },
+      {
+        key: "/shipper/orders-unassigned",
+        label: "Danh sách đơn hàng",
+        path: "/shipper/orders-unassigned",
+        icon: <InboxOutlined />,
       },
       {
         key: "/shipper/orders",

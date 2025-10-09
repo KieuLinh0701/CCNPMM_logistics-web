@@ -48,6 +48,7 @@ import ShipperIncidentReport from './pages/shipper/IncidentReport';
 import ShipperDeliveryHistory from './pages/shipper/DeliveryHistory';
 import ShipperDeliveryRoute from './pages/shipper/DeliveryRoute';
 import ShipperNotifications from './pages/shipper/Notifications';
+import UnassignedOrders from './pages/shipper/UnassignedOrders';
 
 const App: React.FC = () => {
 
@@ -108,6 +109,7 @@ const App: React.FC = () => {
             <Route path="/shipper" element={<PrivateRoute roles={["driver", "shipper"]}><ShipperLayout /></PrivateRoute>}>
               <Route path="dashboard" element={<ShipperDashboard />} />
               <Route path="orders" element={<ShipperOrders />} />
+              <Route path="orders-unassigned" element={<UnassignedOrders />} />
               <Route path="orders/:id" element={<ShipperOrderDetail />} />
               <Route path="delivery/:id" element={<ShipperDeliveryUpdate />} />
               <Route path="pickup" element={<ShipperPostOfficeHandover />} />

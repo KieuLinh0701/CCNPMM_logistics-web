@@ -84,13 +84,13 @@ const ShipperOrders: React.FC = () => {
     pageSize: 10,
     total: 0
   });
-  const [activeTab, setActiveTab] = useState<'assigned' | 'unassigned'>('assigned');
+  // Chỉ hiển thị các đơn đã được phân (assigned)
 
   // Bỏ dữ liệu mẫu: lấy hoàn toàn từ API
 
   useEffect(() => {
     fetchOrders();
-  }, [pagination.current, pagination.pageSize, filters, activeTab]);
+  }, [pagination.current, pagination.pageSize, filters]);
 
   const fetchOrders = async () => {
     try {
@@ -101,11 +101,7 @@ const ShipperOrders: React.FC = () => {
         status: filters.status,
         search: filters.search
       } as any;
-      console.log('[Orders] fetchOrders start', { activeTab, params });
-      const res = activeTab === 'unassigned'
-        ? await shipperService.getUnassignedOrders(params)
-        : await shipperService.getOrders(params);
-      console.log('[Orders] fetchOrders response', res);
+      const res = await shipperService.getOrders(params);
       setOrders(res.orders as any);
       setPagination(prev => ({ ...prev, total: res.pagination.total }));
     } catch (error) {
@@ -116,21 +112,7 @@ const ShipperOrders: React.FC = () => {
     }
   };
 
-  const handleClaim = async (orderId: number) => {
-    try {
-      setLoading(true);
-      console.log('[Orders] claim start', { orderId });
-      await shipperService.claimOrder(orderId);
-      message.success('Đã nhận đơn');
-      console.log('[Orders] claim success, refetching');
-      fetchOrders();
-    } catch (error) {
-      console.error('Error claiming order:', error);
-      message.error('Lỗi khi nhận đơn');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Loại bỏ logic Nhận đơn khỏi trang này
 
   const handleStartDelivery = (orderId: number) => {
     Modal.confirm({
@@ -301,10 +283,7 @@ const ShipperOrders: React.FC = () => {
           >
             Chi tiết
           </Button>
-          {activeTab === 'unassigned' && (
-            <Button type="link" size="small" onClick={() => handleClaim(record.id)}>Nhận đơn</Button>
-          )}
-          {activeTab === 'assigned' && record.status !== 'in_progress' && (
+          {record.status !== 'in_progress' && (
             <Button 
               type="primary" 
               size="small"
@@ -314,10 +293,10 @@ const ShipperOrders: React.FC = () => {
               Bắt đầu giao
             </Button>
           )}
-          {activeTab === 'assigned' && (
+          {(
             <Button danger type="link" size="small" onClick={() => handleUnclaim(record.id)}>Bỏ nhận</Button>
           )}
-          {activeTab === 'assigned' && record.status === 'in_progress' && (
+          {record.status === 'in_progress' && (
             <Button 
               type="default" 
               size="small"
@@ -443,51 +422,22 @@ const ShipperOrders: React.FC = () => {
 
         <Divider />
 
-        {/* Tabs: Đơn được phân / Đơn chưa gán */}
-        <Tabs
-          activeKey={activeTab}
-          onChange={(k) => {
-            setActiveTab(k as 'assigned' | 'unassigned');
-            setPagination(prev => ({ ...prev, current: 1 }));
+        <Table
+          columns={columns}
+          dataSource={orders}
+          rowKey="id"
+          loading={loading}
+          pagination={{
+            ...pagination,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} đơn hàng`,
+            onChange: (page, pageSize) => setPagination(prev => ({ ...prev, current: page, pageSize }))
           }}
-        >
-          <Tabs.TabPane tab="Đơn được phân" key="assigned">
-            <Table
-              columns={columns}
-              dataSource={orders}
-              rowKey="id"
-              loading={loading}
-              pagination={{
-                ...pagination,
-                showSizeChanger: true,
-                showQuickJumper: true,
-                showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} đơn hàng`,
-                onChange: (page, pageSize) => setPagination(prev => ({ ...prev, current: page, pageSize }))
-              }}
-              scroll={{ x: 1000 }}
-              size="small"
-              rowClassName={(record) => record.priority === 'urgent' ? 'urgent-row' : ''}
-            />
-          </Tabs.TabPane>
-          <Tabs.TabPane tab="Đơn chưa gán" key="unassigned">
-            <Table
-              columns={columns}
-              dataSource={orders}
-              rowKey="id"
-              loading={loading}
-              pagination={{
-                ...pagination,
-                showSizeChanger: true,
-                showQuickJumper: true,
-                showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} đơn hàng`,
-                onChange: (page, pageSize) => setPagination(prev => ({ ...prev, current: page, pageSize }))
-              }}
-              scroll={{ x: 1000 }}
-              size="small"
-              rowClassName={(record) => record.priority === 'urgent' ? 'urgent-row' : ''}
-            />
-          </Tabs.TabPane>
-        </Tabs>
+          scroll={{ x: 1000 }}
+          size="small"
+          rowClassName={(record) => record.priority === 'urgent' ? 'urgent-row' : ''}
+        />
       </Card>
 
       {/* Style cho dòng ưu tiên */}

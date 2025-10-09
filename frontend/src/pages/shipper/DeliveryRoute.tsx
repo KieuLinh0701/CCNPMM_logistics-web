@@ -31,6 +31,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import shipperService from '../../services/shipperService';
 import dayjs from 'dayjs';
+import StaticGMap from '../../components/StaticGMap';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -96,17 +97,42 @@ const ShipperDeliveryRoute: React.FC = () => {
 
   const handleStartRoute = async () => {
     if (!routeInfo) return;
-    
+
+    const openDirections = () => {
+      if (!deliveryStops || deliveryStops.length === 0) {
+        message.warning('Không có điểm dừng nào trong tuyến');
+        return;
+      }
+
+      const origin = 'Current+Location';
+      const stops = deliveryStops.map(s => s.recipientAddress);
+
+      let destination = encodeURIComponent(stops[stops.length - 1]);
+      let waypoints = '';
+
+      if (stops.length > 1) {
+        const mid = stops.slice(0, -1).map(a => encodeURIComponent(a)).join('|');
+        waypoints = `&waypoints=${mid}`;
+      }
+
+      const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypoints}&travelmode=driving`;
+      window.open(url, '_blank');
+    };
+
     Modal.confirm({
       title: 'Bắt đầu tuyến giao hàng',
       content: 'Bạn có chắc chắn muốn bắt đầu tuyến giao hàng này?',
       onOk: async () => {
         try {
-          await shipperService.startRoute(routeInfo.id);
+          if (typeof (shipperService as any).startRoute === 'function') {
+            await (shipperService as any).startRoute(routeInfo.id);
+          }
           setRouteInfo(prev => prev ? { ...prev, status: 'in_progress' } : null);
           message.success('Đã bắt đầu tuyến giao hàng');
+          openDirections();
         } catch (error) {
-          message.error('Lỗi khi bắt đầu tuyến giao hàng');
+          // Vẫn mở Google Maps để hỗ trợ shipper nếu API chưa sẵn sàng
+          openDirections();
         }
       }
     });
@@ -123,8 +149,11 @@ const ShipperDeliveryRoute: React.FC = () => {
   };
 
   const handleNavigateToStop = (stop: DeliveryStop) => {
-    // TODO: Implement navigation to stop
-    message.info(`Chỉ đường đến ${stop.recipientName}`);
+    // Open Google Maps with the address
+    const address = encodeURIComponent(stop.recipientAddress);
+    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${address}`;
+    window.open(mapsUrl, '_blank');
+    message.success(`Đã mở bản đồ đến ${stop.recipientName}`);
   };
 
   const handleViewStopDetail = (stop: DeliveryStop) => {
@@ -177,6 +206,11 @@ const ShipperDeliveryRoute: React.FC = () => {
           description="Hiện tại không có lộ trình giao hàng nào được phân công cho bạn."
           type="info"
           showIcon
+          action={
+            <Button size="small" onClick={fetchRouteData}>
+              Tải lại
+            </Button>
+          }
         />
       </div>
     );
@@ -184,7 +218,7 @@ const ShipperDeliveryRoute: React.FC = () => {
 
   return (
     <div style={{ padding: '24px' }}>
-      <Title level={2}>Lộ trình giao hàng</Title>
+      <Title level={2} style={{ marginBottom: '24px' }}>Lộ trình giao hàng</Title>
       
       {/* Thông tin tuyến */}
       <Card style={{ marginBottom: '24px' }}>
@@ -260,6 +294,15 @@ const ShipperDeliveryRoute: React.FC = () => {
           />
         </div>
       </Card>
+
+      {/* Bản đồ Google tĩnh (hiển thị điểm dừng đầu tiên nếu có) */}
+      {deliveryStops.length > 0 && (
+        <StaticGMap
+          title="Bản đồ lộ trình (Google Maps)"
+          query={deliveryStops[0].recipientAddress}
+          height={450}
+        />
+      )}
 
       {/* Danh sách điểm dừng */}
       <Card title="Danh sách điểm dừng">
