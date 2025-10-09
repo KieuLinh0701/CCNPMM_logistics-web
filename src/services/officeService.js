@@ -2,27 +2,28 @@ import db from '../models';
 
 const officeService = {
   // Get Office By UserId
-  async getByUserId(userId) { 
-    try { 
-      const employee = await db.Employee.findOne({ where: { userId }, include: [{ model: db.Office, as: 'office' }] }); 
-      if (!employee || !employee.office) { 
-        return { success: false, 
-          message: 'Không tìm thấy bưu cục' 
-        }; 
-      } 
-      
-      return { 
-        success: true, 
-        message: 'Lấy thông tin bưu cục thành công', 
-        office: employee.office 
-      }; 
+  async getByUserId(userId) {
+    try {
+      const employee = await db.Employee.findOne({ where: { userId }, include: [{ model: db.Office, as: 'office' }] });
+      if (!employee || !employee.office) {
+        return {
+          success: false,
+          message: 'Không tìm thấy bưu cục'
+        };
+      }
+
+      return {
+        success: true,
+        message: 'Lấy thông tin bưu cục thành công',
+        office: employee.office
+      };
     } catch (error) {
-        console.error(error); 
-        return { 
-          success: false, 
-          message: 'Lỗi server' 
-        }; 
-    } 
+      console.error(error);
+      return {
+        success: false,
+        message: 'Lỗi server'
+      };
+    }
   },
 
   // Update Office
@@ -43,7 +44,40 @@ const officeService = {
       console.error('Update office error:', error);
       return { success: false, message: 'Lỗi server' };
     }
-  }
+  },
+
+  async getOfficesByArea(codeCity, codeWard) {
+    try {
+      const whereClause = {};
+      if (codeCity != null) whereClause.codeCity = codeCity;
+      if (codeWard != null) whereClause.codeWard = codeWard;
+
+      console.log('Where clause:', whereClause);
+
+      const offices = await db.Office.findAll({ where: whereClause });
+
+      if (!offices || offices.length === 0) {
+        return {
+          success: false,
+          message: 'Không tìm thấy bưu cục',
+          offices: [],
+        };
+      }
+
+      return {
+        success: true,
+        message: 'Lấy thông tin bưu cục thành công',
+        offices,
+      };
+    } catch (error) {
+      console.error(error);
+      return {
+        success: false,
+        message: 'Lỗi server',
+        offices: [],
+      };
+    }
+  },
 };
 
 export default officeService;

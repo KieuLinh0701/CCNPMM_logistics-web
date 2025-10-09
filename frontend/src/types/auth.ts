@@ -4,6 +4,9 @@ export interface User {
   firstName: string;
   lastName: string;
   phoneNumber: string;
+  codeCity: number;
+  codeWard: number;
+  detailAddress: string;
   role: 'admin' | 'manager' | 'shipper' | 'driver' | 'user';
   isVerified: boolean;
   isActive: boolean;

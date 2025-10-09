@@ -6,8 +6,9 @@ import employeeController from "../controllers/employeeController.js";
 import officeController from "../controllers/officeController.js";
 import serviceTypeController from "../controllers/serviceTypeController.js";
 import orderController from "../controllers/orderController.js";
-import product from "../models/product.js";
 import productController from "../controllers/productController.js";
+import promotionController from "../controllers/promotionController.js";
+import payment from "./payment.js";
 
 let router = express.Router();
 
@@ -25,6 +26,7 @@ let initApiRoutes = (app) => {
     // Office routes
     router.get('/me/office', verifyToken, officeController.getOfficeByUser);
     router.put('/offices/:id', verifyToken, officeController.update);
+    router.get('/offices', officeController.getOfficesByArea);
 
     // Employee routes
     router.get('/employees/shifts', verifyToken, employeeController.getShiftEnum);
@@ -40,6 +42,17 @@ let initApiRoutes = (app) => {
 
     // Order Routes
     router.get("/orders/calculate-shipping-fee", orderController.calculateShippingFee);
+    router.get('/orders/statuses', verifyToken, orderController.getStatusesEnum);
+    router.get('/orders/payment-methods', verifyToken, orderController.getPaymentMethodsEnum);
+    router.post('/orders/create', verifyToken, orderController.createOrder);
+    router.get('/orders/by-user', verifyToken, orderController.getOrdersByUser);
+    router.get('/orders/payers', verifyToken, orderController.getPayersEnum);
+    router.get('/orders/payment-statuses', verifyToken, orderController.getPaymentStatuesEnum);
+    router.put('/orders/cancel', verifyToken, orderController.cancelOrder);
+    router.get('/orders/:id', verifyToken, orderController.getOrderById);
+    router.put('/orders/edit', verifyToken, orderController.updateOrder);
+    router.put('/orders/to-pending', verifyToken, orderController.updateOrderStatusToPending);
+    router.get('/orders/by-office/:officeId', verifyToken, orderController.getOrdersByOffice);
 
     // Product Routes
     router.get("/products", verifyToken, productController.getProductsByUser);
@@ -48,7 +61,14 @@ let initApiRoutes = (app) => {
     router.post('/products/add', verifyToken, productController.addProduct);
     router.put("/products/update/:id", verifyToken, productController.updateProduct);
     router.post('/products/import', verifyToken, productController.importProducts);
+    router.get("/products/get-active", verifyToken, productController.getActiveProductsByUser);
 
+    // Promotion Routes
+    router.get("/promotions/get-active", promotionController.getActivePromotions);
+
+    // VNPAY
+    router.use("/payment", payment);
+    
     // Test routes
     router.get('/test', (req, res) => {
         return res.json({

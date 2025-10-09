@@ -55,7 +55,7 @@ const HeaderHome: React.FC = () => {
       label: (
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <LogoutOutlined style={{ color: "#ff4d4f" }} />
-          Đăng xuất
+          Logout
         </span>
       ),
       danger: true,

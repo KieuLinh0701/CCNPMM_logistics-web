@@ -17,6 +17,7 @@ const initialState: ProductState = {
   totalFailed: 0,
   createdProducts: [],
   failedProducts: [],
+  nextCursor: null,
 };
 
 // Lấy Danh sách sản phẩm của cửa hàng
@@ -41,13 +42,14 @@ export const getProductsByUser = createAsyncThunk<
     type?: string;
     status?: string;
     sort?: string;
+    stockFilter?: string;
     startDate?: string;
     endDate?: string;
   },
   { rejectValue: string }
 >(
   'products',
-  async ({ page, limit, searchText, type, status, sort, startDate, endDate }, thunkAPI) => {
+  async ({ page, limit, searchText, type, status, sort, startDate, endDate, stockFilter }, thunkAPI) => {
     try {
       // Build query param
       const params = new URLSearchParams({
@@ -57,9 +59,10 @@ export const getProductsByUser = createAsyncThunk<
       if (searchText) params.append("search", searchText);
       if (type) params.append("type", type);
       if (status) params.append("status", status);
-      if (sort) params.append("role", sort);
+      if (sort) params.append("sort", sort);
       if (startDate) params.append("startDate", startDate);
       if (endDate) params.append("endDate", endDate);
+      if (stockFilter) params.append("stockFilter", stockFilter);
 
       const data = await productAPI.getProductsByUser(params.toString());
       return data;
@@ -133,6 +136,32 @@ export const importProducts = createAsyncThunk<
   }
 );
 
+export const getActiveProductsByUser = createAsyncThunk<
+  ProductResponse,
+  {
+    limit: number,
+    searchText?: string;
+    lastId?: number;
+  },
+  { rejectValue: string }
+>(
+  'products/get-active',
+  async ({ limit, searchText, lastId }, thunkAPI) => {
+    try {
+      const params = new URLSearchParams({
+        limit: limit.toString(),
+      });
+      if (searchText) params.append("search", searchText);
+      if (lastId) params.append("lastId", String(lastId));
+
+      const data = await productAPI.getActiveProductsByUser(params.toString());
+      return data;
+    } catch (err: any) {
+      return thunkAPI.rejectWithValue(err.response?.data?.message || 'Lỗi khi lấy danh sách sản phẩm của cửa hàng');
+    }
+  }
+);
+
 const productSlice = createSlice({
   name: 'product',
   initialState,
@@ -145,7 +174,7 @@ const productSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    // Get Statused In Employee
+    // Get Statused 
     builder
       .addCase(getStatusesEnum.pending, (state) => {
         state.loading = true;
@@ -246,7 +275,6 @@ const productSlice = createSlice({
       .addCase(importProducts.fulfilled, (state, action) => {
         state.loading = false;
 
-        // action.payload đã là ImportProductsResponse
         const importData = action.payload;
 
         if (importData.success) {
@@ -256,7 +284,6 @@ const productSlice = createSlice({
           state.createdProducts = importData.createdProducts || [];
           state.failedProducts = importData.failedProducts || [];
 
-          // Nếu có sản phẩm thành công, thêm vào danh sách hiện có
           importData.results?.forEach((r: ImportProductResult) => {
             if (r.success && r.product) {
               state.products.unshift(r.product);
@@ -272,6 +299,30 @@ const productSlice = createSlice({
         state.totalFailed = 0;
         state.createdProducts = [];
         state.failedProducts = [];
+      });
+
+    // Get Active Products By User
+    builder
+      .addCase(getActiveProductsByUser.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getActiveProductsByUser.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload.success) {
+          if (action.meta.arg.lastId) {
+            state.products = [...state.products, ...(action.payload.products || [])];
+          } else {
+            state.products = action.payload.products || [];
+          }
+          state.total = action.payload.total || 0;
+          state.limit = action.payload.limit || 10;
+          state.nextCursor = action.payload.nextCursor || null;
+        }
+      })
+      .addCase(getActiveProductsByUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
       });
   },
 });

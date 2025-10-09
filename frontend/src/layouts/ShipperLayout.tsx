@@ -2,8 +2,8 @@
 import React, { useState } from "react";
 import { Layout, Button } from "antd";
 import {
-  MenuFoldOutlined,
   MenuUnfoldOutlined,
+  MenuFoldOutlined,
 } from "@ant-design/icons";
 import Header from "../components/header/Header";
 import Sidenav from "../components/sidenav/Sidenav";
@@ -19,8 +19,14 @@ const ShipperLayout: React.FC = () => {
 
   return (
     <Layout style={{ minHeight: "100vh", background: "#f0f2f5" }}>
+      {/* ✅ Header cố định */}
       <AntHeader
         style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1000,
           background: "#fff",
           height: HEADER_HEIGHT,
           boxShadow: "0 2px 8px #f0f1f2",
@@ -30,57 +36,57 @@ const ShipperLayout: React.FC = () => {
         <Header />
       </AntHeader>
 
-      <Layout style={{ padding: GAP }}>
+      {/* ✅ Layout chính */}
+      <Layout style={{ padding: GAP, marginTop: HEADER_HEIGHT }}>
         <Sider
           width={220}
           collapsible
           collapsed={collapsed}
           collapsedWidth={60}
           trigger={null}
-          breakpoint="lg"  
-          onBreakpoint={(broken) => setCollapsed(broken)}
+          breakpoint="lg" 
+          onBreakpoint={(broken) => setCollapsed(broken)} 
           style={{
+            position: "fixed",
+            top: HEADER_HEIGHT + GAP,
+            left: GAP,
+            height: `calc(100vh - ${HEADER_HEIGHT + GAP * 2}px)`,
             background: "#fff",
-            marginRight: GAP,
             borderRadius: 6,
-            position: "relative", 
+            overflow: "auto",
           }}
         >
-          <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
-            <div style={{ flex: 1, overflowY: "auto" }}>
-              <Sidenav color="#fff" />
-            </div>
-            <div
-              style={{
-                padding: "8px",
-                borderTop: "1px solid #f0f0f0",
-                textAlign: "center",
-              }}
-            >
-              <Button
-                type="text"
-                icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-                onClick={() => setCollapsed(!collapsed)}
-                style={{
-                  fontSize: "18px",
-                  width: "100%",
-                  height: 40,
-                  borderRadius: "8px", 
-                }}
-              />
-            </div>
+          <div style={{ paddingBottom: 40 }}>
+            <Sidenav color="#fff" />
           </div>
+
+          {/* Nút toggle cố định đáy */}
+          <Button
+            type="text"
+            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            onClick={() => setCollapsed(!collapsed)}
+            style={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              width: "100%",
+              textAlign: "center",
+              background: "#fff",
+              borderTop: "1px solid #f0f0f0",
+              borderRadius: 0,
+            }}
+          />
         </Sider>
 
+        {/* Nội dung */}
         <Layout
           style={{
+            marginLeft: collapsed ? 60 + GAP : 220 + GAP,
             background: "#fff",
             padding: GAP,
             borderRadius: 6,
             flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
+            transition: "all 0.2s",
           }}
         >
           <Content

@@ -4,54 +4,61 @@ export default (sequelize) => {
   class Order extends Model {
     static associate(models) {
       // 1 Order có nhiều lịch sử vận chuyển
-      Order.hasMany(models.OrderHistory, { 
-        foreignKey: 'orderId', 
+      Order.hasMany(models.OrderHistory, {
+        foreignKey: 'orderId',
         as: 'histories',
         onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
       });
 
       // 1 Order thuộc về 1 User (chủ cửa hàng)
-      Order.belongsTo(models.User, { 
-        foreignKey: 'userId', 
+      Order.belongsTo(models.User, {
+        foreignKey: 'userId',
         as: 'user',
         onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
       });
 
+      Order.belongsTo(models.User, {
+        foreignKey: 'createdBy',
+        as: 'creator',
+        onDelete: 'SET NULL',
+        onUpdate: 'CASCADE',
+      });
+
       // 1 Order có thể tham chiếu tới kho nguồn và kho đích
-      Order.belongsTo(models.Office, { 
-        foreignKey: 'fromOfficeId', 
+      Order.belongsTo(models.Office, {
+        foreignKey: 'fromOfficeId',
         as: 'fromOffice',
         onDelete: 'SET NULL',
         onUpdate: 'CASCADE',
       });
-      Order.belongsTo(models.Office, { 
-        foreignKey: 'toOfficeId', 
+      Order.belongsTo(models.Office, {
+        foreignKey: 'toOfficeId',
         as: 'toOffice',
         onDelete: 'SET NULL',
         onUpdate: 'CASCADE',
       });
 
       // 1 Order thuộc về 1 dịch vụ giao hàng
-      Order.belongsTo(models.ServiceType, { 
-        foreignKey: 'serviceTypeId', 
+      Order.belongsTo(models.ServiceType, {
+        foreignKey: 'serviceTypeId',
         as: 'serviceType',
         onDelete: 'RESTRICT',
         onUpdate: 'CASCADE',
       });
 
       // 1 Order có thể áp dụng 1 chương trình khuyến mãi
-      Order.belongsTo(models.Promotion, { 
-        foreignKey: 'promotionId', 
+      Order.belongsTo(models.Promotion, {
+        foreignKey: 'promotionId',
         as: 'promotion',
         onDelete: 'SET NULL',
         onUpdate: 'CASCADE',
       });
 
       // 1 Order có nhiều ShipmentOrder
-      Order.hasMany(models.ShipmentOrder, { 
-        foreignKey: 'orderId', 
+      Order.hasMany(models.ShipmentOrder, {
+        foreignKey: 'orderId',
         as: 'shipmentOrders',
         onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
@@ -61,6 +68,14 @@ export default (sequelize) => {
         through: models.OrderProduct,
         foreignKey: 'orderId',
         as: 'products',
+      });
+
+      // Order.js
+      Order.hasMany(models.OrderProduct, {
+        foreignKey: 'orderId',
+        as: 'orderProducts',
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
       });
     }
   }
@@ -75,9 +90,23 @@ export default (sequelize) => {
       },
 
       status: {
-        type: DataTypes.ENUM('pending', 'confirmed', 'picked_up', 'in_transit', 'delivered', 'cancelled'),
+        type: DataTypes.ENUM('draft', 'pending', 'confirmed', 'picked_up', 'in_transit', 'delivered', 'cancelled'),
         defaultValue: 'pending',
         comment: 'Trạng thái đơn hàng'
+      },
+
+      // Người tạo đơn (user/manager tại office)
+      createdBy: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        comment: 'ID của người tạo đơn (staff/manager)'
+      },
+
+      // Loại người tạo
+      createdByType: {
+        type: DataTypes.ENUM('user', 'manager'),
+        allowNull: false,
+        comment: 'Loại người tạo đơn'
       },
 
       // Người gửi giá trị này chỉ khác null khi order không được tạo bởi user
@@ -94,11 +123,11 @@ export default (sequelize) => {
 
       // Địa chỉ người gửi
       senderCityCode: {
-        type: DataTypes.STRING,
+        type: DataTypes.INTEGER,
         allowNull: true,
       },
       senderWardCode: {
-        type: DataTypes.STRING,
+        type: DataTypes.INTEGER,
         allowNull: true,
       },
       senderDetailAddress: {
@@ -120,11 +149,11 @@ export default (sequelize) => {
 
       // Địa chỉ người nhận
       recipientCityCode: {
-        type: DataTypes.STRING,
+        type: DataTypes.INTEGER,
         allowNull: false,
       },
       recipientWardCode: {
-        type: DataTypes.STRING,
+        type: DataTypes.INTEGER,
         allowNull: false,
       },
       recipientDetailAddress: {
@@ -201,7 +230,7 @@ export default (sequelize) => {
         defaultValue: 'Cash',
       },
       paymentStatus: {
-        type: DataTypes.ENUM('Paid', 'Unpaid'),
+        type: DataTypes.ENUM('Paid', 'Unpaid', 'Refunded'),
         allowNull: false,
         defaultValue: 'Unpaid',
       },

@@ -5,6 +5,7 @@ import employeeReducer from './employeeSlice';
 import serviceTypeReducer from './serviceTypeSlice';
 import orderReducer from './orderSlice';
 import productReducer from './productSlice';
+import promotionReducer from './promotionSlice';
 
 export const store = configureStore({
   reducer: {
@@ -14,6 +15,7 @@ export const store = configureStore({
     serviceType: serviceTypeReducer,
     order: orderReducer,
     product: productReducer,
+    promotion: promotionReducer,
   },
 });
 

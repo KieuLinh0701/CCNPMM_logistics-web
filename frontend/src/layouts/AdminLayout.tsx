@@ -1,57 +1,104 @@
 // MainLayout.tsx
-import React from "react";
-import { Layout } from "antd";
+import React, { useState } from "react";
+import { Layout, Button } from "antd";
+import {
+  MenuUnfoldOutlined,
+  MenuFoldOutlined,
+} from "@ant-design/icons";
 import Header from "../components/header/Header";
 import Sidenav from "../components/sidenav/Sidenav";
 import { Outlet } from "react-router-dom";
 
-const { Header: AntHeader, Sider, Content, Footer } = Layout;
+const { Header: AntHeader, Sider, Content } = Layout;
 
-interface AdminLayoutProps {
-}
+const AdminLayout: React.FC = () => {
+  const HEADER_HEIGHT = 64;
+  const GAP = 8;
 
-const AdminLayout: React.FC<AdminLayoutProps> = () => {
-  const HEADER_HEIGHT = 64; // chiều cao header
-  const GAP = 8; // khoảng cách giữa Header/Sidenav/Content/Footer
+  const [collapsed, setCollapsed] = useState(false);
 
   return (
     <Layout style={{ minHeight: "100vh", background: "#f0f2f5" }}>
-      {/* Header trên cùng */}
+      {/* ✅ Header cố định */}
       <AntHeader
         style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1000,
           background: "#fff",
-          padding: 0,
           height: HEADER_HEIGHT,
           boxShadow: "0 2px 8px #f0f1f2",
+          padding: 0,
         }}
       >
-        <Header/>
+        <Header />
       </AntHeader>
 
-      <Layout style={{ padding: GAP }}>
-        {/* Sidebar bên trái */}
+      {/* ✅ Layout chính */}
+      <Layout style={{ padding: GAP, marginTop: HEADER_HEIGHT }}>
         <Sider
-          width={200}
+          width={220}
+          collapsible
+          collapsed={collapsed}
+          collapsedWidth={60}
+          trigger={null}
+          breakpoint="lg" 
+          onBreakpoint={(broken) => setCollapsed(broken)} 
           style={{
+            position: "fixed",
+            top: HEADER_HEIGHT + GAP,
+            left: GAP,
+            height: `calc(100vh - ${HEADER_HEIGHT + GAP * 2}px)`,
             background: "#fff",
-            minHeight: `calc(100vh - ${HEADER_HEIGHT}px - ${GAP * 2}px)`,
-            marginRight: GAP,
+            borderRadius: 6,
+            overflow: "auto",
           }}
         >
-          <Sidenav color="#fff" />
+          <div style={{ paddingBottom: 40 }}>
+            <Sidenav color="#fff" />
+          </div>
+
+          {/* Nút toggle cố định đáy */}
+          <Button
+            type="text"
+            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            onClick={() => setCollapsed(!collapsed)}
+            style={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              width: "100%",
+              textAlign: "center",
+              background: "#fff",
+              borderTop: "1px solid #f0f0f0",
+              borderRadius: 0,
+            }}
+          />
         </Sider>
 
-        {/* Content bên phải Sidebar */}
-        <Layout style={{ background: "#fff", padding: GAP }}>
+        {/* Nội dung */}
+        <Layout
+          style={{
+            marginLeft: collapsed ? 60 + GAP : 220 + GAP,
+            background: "#fff",
+            padding: GAP,
+            borderRadius: 6,
+            flex: 1,
+            transition: "all 0.2s",
+          }}
+        >
           <Content
             style={{
               background: "#fff",
               padding: GAP,
-              minHeight: `calc(100vh - ${HEADER_HEIGHT}px - ${GAP * 3}px - 64px)`,
-              // 64px là dự trữ cho Footer
+              borderRadius: 6,
+              flex: 1,
+              overflowY: "auto",
             }}
           >
-            <Outlet /> {/* Route con sẽ hiển thị ở đây */}
+            <Outlet />
           </Content>
         </Layout>
       </Layout>

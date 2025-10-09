@@ -24,11 +24,16 @@ import EmployeePage from './pages/manager/EmployeeForm';
 import CreateOrder from './pages/manager/CreateOrder';
 import UserDashboard from './pages/user/Dashboard';
 import UserLayout from './layouts/UserLayout';
-import ProductForm from './pages/owner/Product';
+import OrderList from './pages/user/order/list/OrderList';
+import CreateOrderUser from './pages/user/CreateOrder';
+import OrderDetail from './pages/user/order/detail/OrderDetail';
+import OrderSuccess from './pages/user/order/success_fail/OrderSuccess';
+import OrderEdit from './pages/user/order/edit/OrderEdit';
+import OrderListManager from './pages/manager/order/OrderList';
+import Products from './pages/user/product/Products';
 
 const App: React.FC = () => {
   const user = JSON.parse(localStorage.getItem('user') || 'null');
-  const isAuthenticated = !!user?.token;
 
   return (
     <Provider store={store}>
@@ -58,14 +63,20 @@ const App: React.FC = () => {
               <Route path="office" element={<Office />} />
               <Route path="warehouse" element={<Warehouse />} />
               <Route path="employees/list" element={<EmployeePage />} />
-              <Route path="orders/list" element={<EmployeePage />} />
+              <Route path="orders/list" element={<OrderListManager />} />
               <Route path="orders/create" element={<CreateOrder />} />
             </Route>
 
             <Route path="/user" element={<PrivateRoute roles={["user"]}><UserLayout /></PrivateRoute>}>
               <Route path="dashboard" element={<UserDashboard />} />
               <Route path="profile" element={<Profile />} />
-              <Route path="products" element={<ProductForm />} />
+              <Route path="products" element={<Products />} />
+              <Route path="orders" element={<OrderList />} />
+              <Route path="orders/create" element={<CreateOrderUser />} />
+              <Route path="orders/edit/:id" element={<OrderEdit />} />
+              <Route path="orders/success/:id" element={<OrderSuccess />} />
+              <Route path="orders/failed/:id" element={<OrderSuccess />} />
+              <Route path="orders/detail/:id" element={<OrderDetail />} />
             </Route>
 
           </Routes>

@@ -7,6 +7,8 @@ import connectDB from './config/configdb.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
+const { VNPay, ignoreLogger, ProductCode, VnpLocale, dateFormat } = require('vnpay')
+
 let app = express();
 
 // Middleware

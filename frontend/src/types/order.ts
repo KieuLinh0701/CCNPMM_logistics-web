@@ -1,19 +1,24 @@
 import { User } from "./auth";
 import { Office } from "./office";
-import { promotion } from "./promotion";
+import { OrderProduct } from "./orderProduct";
+import { Promotion } from "./promotion";
 import { serviceType } from "./serviceType";
 
 export interface Order {
-  id: number;
-  trackingNumber: string;
+  id?: number;
+  trackingNumber?: string;
 
   senderName: string;
   senderPhone: string;
-  senderAddress: Address;
+  senderCityCode: number;
+  senderWardCode: number;
+  senderDetailAddress: string;
 
   recipientName: string;
   recipientPhone: string;
-  recipientAddress: Address;
+  recipientCityCode: number;
+  recipientWardCode: number;
+  recipientDetailAddress: string;
 
   weight: number;
   serviceType: serviceType; 
@@ -22,41 +27,59 @@ export interface Order {
 
   payer: 'Customer' |  'Shop';
   paymentMethod: 'Cash' | 'BankTransfer' | 'VNPay' | 'ZaloPay';
-  paymentStatus: 'Paid' | 'Unpaid';
+  paymentStatus: 'Paid' | 'Unpaid'  | 'Refunded';
 
   notes: string;
 
-  user: User;
+  user?: User | null;
 
-  promotion: promotion | null; 
+  promotion?: Promotion | null; 
 
   discountAmount: number;
   shippingFee: number;
 
-  status: 'pending' | 'confirmed' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled';
+  status: 'draft' | 'pending' | 'confirmed' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled';
 
-  deliveredAt: Date;
+  deliveredAt?: Date;
 
   fromOffice: Office;
-  toOffice: Office;
-}
+  toOffice?: Office;
 
-export interface Address {
-  codeCity: number;
-  codeWard: number;
-  detailAddress: string;
+  orderProducts?: OrderProduct[];
+  createdAt?: Date;
+
+  createdBy: User;
+  createdByType: 'user' | 'manager';
 }
 
 export interface OrderResponse {
   success: boolean;
   message?: string; 
-  order?: Order;  
+  order?: Order;
+  orders: Order[];  
   shippingFee: number, 
+  total?: number,
+  page?: number,
+  limit?: number,
+  statuses?: string[];
+  paymentMethods?: string[];
+  payers?: string[];
+  paymentStatuses?: string[];
+  paymentUrl?: string;
 }
 
 export interface OrderState {
   order: Order | null;
+  orders: Order[];
+  statuses: string[];
+  paymentMethods: string[];
   loading: boolean;
   error: string | null;
   shippingFee: number | 0; 
+  total: number;
+  page: number;
+  limit: number;
+  payers: string[];
+  paymentStatuses: string[];
+  paymentUrl: string | null;
 }

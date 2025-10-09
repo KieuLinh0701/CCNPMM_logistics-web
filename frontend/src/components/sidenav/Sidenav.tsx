@@ -35,11 +35,11 @@ type Props = {
 const Sidenav: React.FC<Props> = ({ color }) => {
   const { pathname } = useLocation();
 
-  // Lấy user từ localStorage
+  // ✅ Lấy role từ localStorage
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const role = user?.role || "user";
 
-  // Config menu theo role
+  // ✅ Config menu theo role
   const menuConfig: Record<string, MenuItem[]> = {
     admin: [
       {
@@ -200,22 +200,16 @@ const Sidenav: React.FC<Props> = ({ color }) => {
         icon: <ShoppingOutlined />,
         children: [
           {
-            key: "/user/orders/list",
+            key: "/user/orders",
             label: "Danh sách đơn hàng",
-            path: "/user/orders/list",
+            path: "/user/orders",
           },
           {
-            key: "/user/orders/assign",
-            label: "Phân công đơn hàng",
-            path: "/user/orders/assign",
+            key: "/user/orders/support",
+            label: "Hỗ trợ & Khiếu nại",
+            path: "/user/orders/support",
           },
         ],
-      },
-      {
-        key: "/user/support",
-        label: "Hỗ trợ & Khiếu nại",
-        path: "/user/products",
-        icon: <GlobalOutlined />,
       },
       {
         key: "product",
@@ -262,7 +256,7 @@ const Sidenav: React.FC<Props> = ({ color }) => {
 
   const menuItems = menuConfig[role] || menuConfig.user;
 
-  // Mở submenu tự động khi vào đúng path
+  // ✅ mở submenu theo path hiện tại
   const [openKeys, setOpenKeys] = useState<string[]>([]);
   useEffect(() => {
     const keys: string[] = [];
@@ -279,7 +273,7 @@ const Sidenav: React.FC<Props> = ({ color }) => {
       <Menu
         theme="light"
         mode="inline"
-        selectedKeys={[pathname]} // dùng pathname thay vì page
+        selectedKeys={[pathname]}
         openKeys={openKeys}
         onOpenChange={(keys) => setOpenKeys(keys as string[])}
       >

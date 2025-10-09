@@ -68,3 +68,13 @@
   }
 }
 
+/* Ẩn thanh cuộn ngang */
+.ant-table-content {
+  overflow-x: auto !important;
+  scrollbar-width: none; /* Firefox */
+}
+
+.ant-table-content::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}
+

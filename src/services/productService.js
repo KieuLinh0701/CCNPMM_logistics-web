@@ -78,7 +78,7 @@ const productService = {
       let whereCondition = { userId };
 
       // Lọc dữ liệu
-      const { searchText, type, status, startDate, endDate, sort } = filters || {};
+      const { searchText, type, status, startDate, endDate, sort, stockFilter } = filters || {};
 
       if (searchText) {
         whereCondition.name = { [Op.like]: `%${searchText}%` };
@@ -90,37 +90,48 @@ const productService = {
       }
 
       // Order
-      let order = [['id', 'ASC']];
-      if (sort === 'bestSelling' || sort === 'leastSelling') {
-        order = [
-          [
-            literal(
-              '(SELECT COUNT(*) FROM "OrderProducts" WHERE "OrderProducts"."productId" = "Product"."id")'
-            ),
-            sort === 'bestSelling' ? 'DESC' : 'ASC',
-          ],
-        ];
-      } 
+      let order = [['id', 'DESC']];
 
-      // --- Lấy dữ liệu + đếm tổng chuẩn ---
+      if (sort != 'none') {
+        if (sort === 'bestSelling') {
+          order = [['soldQuantity', 'DESC']];
+        } else if (sort === 'leastSelling') {
+          order = [['soldQuantity', 'ASC']];
+        } else if (sort === 'highestPrice') {
+          order = [['price', 'DESC']];
+        } else if (sort === 'lowestPrice') {
+          order = [['price', 'ASC']];
+        } else if (sort === 'highestStock') {
+          order = [['stock', 'DESC']];
+        } else if (sort === 'lowestStock') {
+          order = [['stock', 'ASC']];
+        }
+      }
+
+      if (stockFilter && stockFilter !== 'All') {
+        switch (stockFilter) {
+          case 'inStock':
+            whereCondition.stock = { [Op.gt]: 0 };
+            break;
+          case 'outOfStock':
+            whereCondition.stock = 0;
+            break;
+          case 'lowStock':
+            whereCondition.stock = {
+              [Op.gt]: 0,
+              [Op.lte]: 10
+            };
+            break;
+          default:
+            break;
+        }
+      }
+
       const productsResult = await db.Product.findAndCountAll({
         where: whereCondition,
-        include: [
-          {
-            model: db.Order,
-            as: 'orders',
-            attributes: [],
-            through: { attributes: [] },
-          },
-        ],
-        attributes: {
-          include: [[fn('COUNT', col('orders.id')), 'totalSold']],
-        },
-        group: ['Product.id'],
-        order, // order theo sort
+        order,
         limit,
         offset: (page - 1) * limit,
-        subQuery: false,
       });
 
       return {
@@ -138,19 +149,20 @@ const productService = {
   },
 
   // Add Product
-  async addProduct(userId, name, weight, type, status) {
+  async addProduct(userId, name, weight, type, status, price, stock) {
     const t = await db.sequelize.transaction();
     try {
-      const missingFields = [];
-      if (!name) missingFields.push("name");
-      if (!weight) missingFields.push("weight");
-      if (!type) missingFields.push("type");
-
-      if (missingFields.length > 0) {
-        return {
-          success: false,
-          message: `Thiếu thông tin: ${missingFields.join(", ")}`
-        };
+      if (!name || name.trim().length === 0) {
+        return { success: false, message: "Tên sản phẩm không được để trống" };
+      }
+      if (!weight || weight <= 0) {
+        return { success: false, message: "Trọng lượng phải lớn hơn 0" };
+      }
+      if (!price || price < 0) {
+        return { success: false, message: "Giá sản phẩm không hợp lệ" };
+      }
+      if (!type || !['Fresh', 'Letter', 'Goods'].includes(type)) {
+        return { success: false, message: "Loại sản phẩm không hợp lệ" };
       }
 
       // Kiểm tra user
@@ -159,22 +171,21 @@ const productService = {
 
       // Tạo sản phẩm mới
       const newProduct = await db.Product.create({
-        name: name,
-        weight: weight,
+        name: name.trim(),
+        weight: parseFloat(weight),
         status: status || "Active",
         type: type,
+        price: parseInt(price) || 0,
+        stock: parseInt(stock) || 0,
         userId: user.id,
       }, { transaction: t });
-
-      const plainProduct = newProduct.toJSON();
-      plainProduct.totalSold = 0;
 
       await t.commit();
 
       return {
         success: true,
         message: "Tạo sản phẩm thành công",
-        product: plainProduct,
+        product: newProduct,
       };
     } catch (error) {
       await t.rollback();
@@ -184,32 +195,62 @@ const productService = {
   },
 
   // Update Product
-  async updateProduct(productId, userId, name, weight, type, status) {
+  async updateProduct(productId, userId, name, weight, type, status, price) {
     const t = await db.sequelize.transaction();
     try {
       if (!productId) return { success: false, message: "Thiếu thông tin: productId" };
 
-      const missingFields = [];
-      if (!name) missingFields.push("name");
-      if (!weight) missingFields.push("weight");
-      if (!type) missingFields.push("type");
-      if (missingFields.length > 0)
-        return { success: false, message: `Thiếu thông tin: ${missingFields.join(", ")}` };
+      if (!name || name.trim().length === 0) {
+        return { success: false, message: "Tên sản phẩm không được để trống" };
+      }
+      if (!weight || weight <= 0) {
+        return { success: false, message: "Trọng lượng phải lớn hơn 0" };
+      }
+      if (!price || price < 0) {
+        return { success: false, message: "Giá sản phẩm không hợp lệ" };
+      }
+      if (!type || !['Fresh', 'Letter', 'Goods'].includes(type)) {
+        return { success: false, message: "Loại sản phẩm không hợp lệ" };
+      }
 
       const user = await db.User.findOne({ where: { id: userId } });
       if (!user) return { success: false, message: 'Người dùng không tồn tại' };
 
-      const product = await db.Product.findOne({ where: { id: productId, userId: user.id } });
-      if (!product)
+      const product = await db.Product.findOne({
+        where: {
+          id: productId,
+          userId: user.id
+        }
+      });
+      if (!product) {
         return { success: false, message: "Sản phẩm không tồn tại hoặc bạn không có quyền sửa" };
+      }
 
-      await product.update({ name, weight, type, status }, { transaction: t });
+      // THIẾU: Kiểm tra status hợp lệ
+      if (!status || !['Active', 'Inactive'].includes(status)) {
+        return { success: false, message: "Trạng thái sản phẩm không hợp lệ" };
+      }
 
-      const plainProduct = product.toJSON();
-      plainProduct.totalSold = await this.getTotalSold(product.id);
+      await product.update({
+        name: name.trim(),
+        weight,
+        price,
+        type,
+        status
+      }, { transaction: t });
 
       await t.commit();
-      return { success: true, message: "Cập nhật sản phẩm thành công", product: plainProduct };
+
+      const updatedProduct = await db.Product.findOne({
+        where: { id: productId },
+        attributes: { exclude: ['createdAt', 'updatedAt'] }
+      });
+
+      return {
+        success: true,
+        message: "Cập nhật sản phẩm thành công",
+        product: updatedProduct
+      };
     } catch (error) {
       await t.rollback();
       console.error("Update Product error:", error);
@@ -234,13 +275,14 @@ const productService = {
       }
 
       for (const p of products) {
-        const { name, weight, type, status } = p;
+        const { name, weight, type, status, price, stock } = p;
 
         // Validate dữ liệu
         const missingFields = [];
         if (!name) missingFields.push("name");
         if (!weight) missingFields.push("weight");
         if (!type) missingFields.push("type");
+        if (!price) missingFields.push("price");
 
         if (missingFields.length > 0) {
           importedResults.push({
@@ -259,6 +301,8 @@ const productService = {
               weight,
               type,
               status: status || "Active",
+              price: price || 0,
+              stock: stock || 0,
               userId: user.id,
               createdAt: new Date(),
               updatedAt: new Date()
@@ -304,6 +348,53 @@ const productService = {
       await t.rollback();
       console.error("Import Products error:", error);
       return { success: false, message: "Lỗi server khi import sản phẩm" };
+    }
+  },
+
+  // Get Active Products By User 
+  async getActiveProductsByUser(userId, limit = 10, filters = {}) {
+    try {
+      const { Op } = db.Sequelize;
+      const { searchText, lastId } = filters;
+
+      // Kiểm tra user
+      const user = await db.User.findOne({ where: { id: userId } });
+      if (!user) return { success: false, message: 'Người dùng không tồn tại' };
+
+      // Điều kiện where chỉ lấy sản phẩm active
+      let whereCondition = {
+        userId,
+        status: 'Active',
+        stock: {
+          [db.Sequelize.Op.gt]: 0
+        }
+      };
+
+      if (searchText) {
+        whereCondition.name = { [Op.like]: `%${searchText}%` };
+      }
+
+      if (lastId) {
+        // Chỉ lấy sản phẩm có id nhỏ hơn lastId (load tiếp theo)
+        whereCondition.id = { [Op.lt]: lastId };
+      }
+
+      // Lấy dữ liệu
+      const products = await db.Product.findAll({
+        where: whereCondition,
+        order: [['id', 'DESC']],
+        limit,
+      });
+
+      return {
+        success: true,
+        message: 'Lấy danh sách sản phẩm active thành công',
+        products,
+        nextCursor: products.length > 0 ? products[products.length - 1].id : null,
+      };
+    } catch (error) {
+      console.error('Get Active Products By User error:', error);
+      return { success: false, message: 'Lỗi server' };
     }
   },
 

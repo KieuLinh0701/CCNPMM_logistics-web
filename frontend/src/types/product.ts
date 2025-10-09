@@ -1,11 +1,16 @@
+import { Order } from "./order";
+
 export interface product {
   id: number;
   name: string;
   weight: number;
+  price: number,
   type: string;
   createdAt: Date,
   totalSold: number,
   status: 'Active' | 'Inactive';
+  stock: number;
+  soldQuantity: number;
 }
 
 export interface ImportProductResult {
@@ -35,6 +40,7 @@ export interface ProductResponse {
   limit?: number,
   types?: string[],
   statuses?: string[];
+  nextCursor?: number;
 }
 
 export interface ProductState {
@@ -52,4 +58,5 @@ export interface ProductState {
   totalFailed?: number;
   createdProducts?: string[];
   failedProducts?: { name: string; message: string }[];
+  nextCursor?: number | null;
 }

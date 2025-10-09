@@ -3,9 +3,11 @@ import { RegisterData, LoginData, VerifyOTPData, AuthResponse, ForgotPasswordDat
 import { Office, OfficeResponse } from '../types/office';
 import { Employee, EmployeeCheckResult, EmployeeResponse } from '../types/employee';
 import { ServiceTypeResponse } from '../types/serviceType';
-import { OrderResponse } from '../types/order';
+import { Order, OrderResponse } from '../types/order';
 import { getProductsByUser } from '../store/productSlice';
 import { ImportProductsResponse, product, ProductResponse } from '../types/product';
+import { PromotionResponse } from '../types/promotion';
+import { cancelOrder, getPayersEnum, getPaymentStatusesEnum } from '../store/orderSlice';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8088/api';
 
@@ -100,7 +102,7 @@ export const officeAPI = {
   // Find Office By UserId
   getByUserId: async (userId: number): Promise<OfficeResponse> => {
     const response = await api.get<OfficeResponse>('/me/office', {
-      params: { userId }, 
+      params: { userId },
     });
     return response.data;
   },
@@ -122,6 +124,11 @@ export const officeAPI = {
 
     return response.data;
   },
+
+  getOfficesByArea: async (query: string): Promise<OfficeResponse> => {
+    const res = await api.get<OfficeResponse>(`/offices?${query}`);
+    return res.data;
+  },
 };
 
 export const employeeAPI = {
@@ -139,7 +146,7 @@ export const employeeAPI = {
 
   getEmployeesByOffice: async (officeId: number, query: string): Promise<EmployeeResponse> => {
     const res = await api.get<EmployeeResponse>(`/employees/by-office/${officeId}?${query}`);
-    return res.data; 
+    return res.data;
   },
 
   // Check Before Add Employee
@@ -148,11 +155,11 @@ export const employeeAPI = {
     phoneNumber: string,
     officeId?: number
   ): Promise<EmployeeCheckResult> => {
-      const response = await api.get<EmployeeCheckResult>(
-  `/employees/check-before-add`,
-    {
-      params: { email, phoneNumber, officeId } 
-    }
+    const response = await api.get<EmployeeCheckResult>(
+      `/employees/check-before-add`,
+      {
+        params: { email, phoneNumber, officeId }
+      }
     );
     return response.data;
   },
@@ -202,8 +209,8 @@ export const employeeAPI = {
 
     try {
       const response = await api.post<EmployeeResponse>(
-        `/employees/import`, 
-        { employees }, 
+        `/employees/import`,
+        { employees },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       return response.data;
@@ -236,7 +243,7 @@ export const productAPI = {
 
   getProductsByUser: async (query: string): Promise<ProductResponse> => {
     const res = await api.get<ProductResponse>(`/products?${query}`);
-    return res.data; 
+    return res.data;
   },
 
   addProduct: async (product: Partial<product>): Promise<ProductResponse> => {
@@ -283,8 +290,8 @@ export const productAPI = {
 
     try {
       const response = await api.post<ImportProductsResponse>(
-        `/products/import`, 
-        { products }, 
+        `/products/import`,
+        { products },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       return response.data;
@@ -292,10 +299,15 @@ export const productAPI = {
       throw new Error(error.response?.data?.message || 'Lỗi khi import sản phẩm');
     }
   },
+
+  getActiveProductsByUser: async (query: string): Promise<ProductResponse> => {
+    const res = await api.get<ProductResponse>(`/products/get-active?${query}`);
+    return res.data;
+  },
 }
 
 export const orderAPI = {
-  calculateShippingFee: async(weight: number, serviceTypeId: number, senderCodeCity: number, recipientCodeCity: number
+  calculateShippingFee: async (weight: number, serviceTypeId: number, senderCodeCity: number, recipientCodeCity: number
   ): Promise<OrderResponse> => {
     const response = await api.get<OrderResponse>(
       '/orders/calculate-shipping-fee',
@@ -304,6 +316,124 @@ export const orderAPI = {
       }
     );
     return response.data;
+  },
+
+  // Get Statuses Enum
+  getStatusesEnum: async (): Promise<OrderResponse> => {
+    const response = await api.get<OrderResponse>('/orders/statuses');
+    return response.data;
+  },
+
+  // Get Payment Methods Enum
+  getPaymentMethodsEnum: async (): Promise<OrderResponse> => {
+    const response = await api.get<OrderResponse>('/orders/payment-methods');
+    return response.data;
+  },
+
+  // Create new order
+  createOrder: async (orderData: Order): Promise<OrderResponse> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("Không tìm thấy token xác thực");
+
+    try {
+      const response = await api.post<OrderResponse>(
+        '/orders/create',
+        orderData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi tạo đơn hàng');
+    }
+  },
+
+  getOrdersByUser: async (query: string): Promise<OrderResponse> => {
+    const res = await api.get<OrderResponse>(`/orders/by-user?${query}`);
+    return res.data;
+  },
+
+  // Get Payers Enum
+  getPayersEnum: async (): Promise<OrderResponse> => {
+    const response = await api.get<OrderResponse>('/orders/payers');
+    return response.data;
+  },
+
+  // Get Payment Statuses Enum
+  getPaymentStatusesEnum: async (): Promise<OrderResponse> => {
+    const response = await api.get<OrderResponse>('/orders/payment-statuses');
+    return response.data;
+  },
+
+  cancelOrder: async (orderId: number): Promise<OrderResponse> => {
+    const res = await api.put<OrderResponse>(`/orders/cancel`, { orderId });
+    return res.data;
+  },
+
+  getOrderById: async (orderId: number): Promise<OrderResponse> => {
+    const res = await api.get<OrderResponse>(`/orders/${orderId}`);
+    return res.data;
+  },
+
+  createVNPayURL: async (orderId: number): Promise<{ paymentUrl: string }> => {
+    const res = await api.post<{ paymentUrl: string }>(`/payment/create-url`, { orderId });
+    return res.data;
+  },
+
+  // Check trạng thái thanh toán VNPay
+  checkVNPayPayment: async (query: string): Promise<any> => {
+    const res = await api.get<any>(`/payment/check-vnpay${query}`);
+    return res.data;
+  },
+
+  // Create new order
+  updateOrder: async (orderData: Order): Promise<OrderResponse> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("Không tìm thấy token xác thực");
+
+    try {
+      const response = await api.put<OrderResponse>(
+        '/orders/edit',
+        orderData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi cập nhật đơn hàng');
+    }
+  },
+
+  updateOrderStatusToPending: async (orderId: number): Promise<OrderResponse> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("Không tìm thấy token xác thực");
+
+    try {
+      const response = await api.put<OrderResponse>(
+        '/orders/to-pending',
+        { orderId },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi cập nhật trạng thái đơn hàng thành đang xử lý');
+    }
+  },
+
+  getOrdersByOffice: async (officeId: number, query: string): Promise<OrderResponse> => {
+    const res = await api.get<OrderResponse>(`/orders/by-office/${officeId}?${query}`);
+    return res.data;
+  },
+}
+
+export const promotionAPI = {
+
+  getActivePromotions: async (query: string): Promise<PromotionResponse> => {
+    const res = await api.get<PromotionResponse>(`/promotions/get-active?${query}`);
+    return res.data;
   },
 }
 

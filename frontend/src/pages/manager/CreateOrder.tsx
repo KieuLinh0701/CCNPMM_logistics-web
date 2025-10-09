@@ -32,7 +32,7 @@ const { Option } = Select;
 const CreateOrder: React.FC = () => {
   const [form] = Form.useForm();
   const dispatch = useDispatch<AppDispatch>();
-  
+
   const [totalFee, setTotalFee] = useState<number>(0);
 
   // Lấy serviceType slice
@@ -72,7 +72,7 @@ const CreateOrder: React.FC = () => {
 
   useEffect(() => {
     if (serviceTypes && serviceTypes.length > 0 && !selectedServiceType) {
-      setSelectedServiceType(serviceTypes[0]); 
+      setSelectedServiceType(serviceTypes[0]);
     }
   }, [serviceTypes]);
 
@@ -114,19 +114,15 @@ const CreateOrder: React.FC = () => {
     const order: Partial<Order> = {
       senderName: values.senderName,
       senderPhone: values.senderPhone,
-      senderAddress: {
-        codeCity: values.sender.province,
-        codeWard: values.sender.commune,
-        detailAddress: values.sender.address,
-      },
+      senderCityCode: values.sender.province,
+      senderWardCode: values.sender.commune,
+      senderDetailAddress: values.sender.address,
 
       recipientName: values.recipientName,
       recipientPhone: values.recipientPhone,
-      recipientAddress: {
-        codeCity: values.recipient.province,
-        codeWard: values.recipient.commune,
-        detailAddress: values.recipient.address,
-      },
+      recipientCityCode: values.recipient.province,
+      recipientWardCode: values.recipient.commune,
+      recipientDetailAddress: values.recipient.address,
 
       weight: values.weight,
       serviceType: selectedServiceType || undefined,
@@ -138,10 +134,10 @@ const CreateOrder: React.FC = () => {
         values.paymentMethod === "bankTransfer"
           ? "BankTransfer"
           : values.paymentMethod === "vnpay"
-          ? "VNPay"
-          : values.paymentMethod === "zalopay"
-          ? "ZaloPay"
-          : "Cash",
+            ? "VNPay"
+            : values.paymentMethod === "zalopay"
+              ? "ZaloPay"
+              : "Cash",
 
       notes: values.note || "",
       discountAmount: 0,
@@ -161,8 +157,8 @@ const CreateOrder: React.FC = () => {
           <div className="scrollable-content">
             <div className="page-header" style={{ marginBottom: 32 }}></div>
 
-            <Form form={form} 
-              layout="vertical" 
+            <Form form={form}
+              layout="vertical"
               onFinish={onFinish}
               onValuesChange={(
                 changedValues: any,
@@ -206,7 +202,7 @@ const CreateOrder: React.FC = () => {
                     </Form.Item>
                   </Col>
                   <Col span={12}>
-                    <AddressForm form={form} prefix="sender"/>
+                    <AddressForm form={form} prefix="sender" />
                   </Col>
                 </Row>
               </Card>
@@ -232,7 +228,7 @@ const CreateOrder: React.FC = () => {
                     </Form.Item>
                   </Col>
                   <Col span={12}>
-                    <AddressForm form={form} prefix="recipient"/>
+                    <AddressForm form={form} prefix="recipient" />
                   </Col>
                 </Row>
               </Card>
@@ -300,7 +296,7 @@ const CreateOrder: React.FC = () => {
                       <InputNumber
                         style={{ width: "100%" }}
                         placeholder="Ví dụ: 20000"
-                        defaultValue={ 0 }
+                        defaultValue={0}
                       />
                     </Form.Item>
                   </Col>
@@ -323,7 +319,7 @@ const CreateOrder: React.FC = () => {
                       <InputNumber
                         style={{ width: "100%" }}
                         placeholder="Ví dụ: 20000"
-                        defaultValue={ 0 }
+                        defaultValue={0}
                       />
                     </Form.Item>
                   </Col>
@@ -363,16 +359,16 @@ const CreateOrder: React.FC = () => {
                 </Row>
               </Card>
               <Card className="custom-card" >
-                    <div className="card-title">Ghi chú</div>
-                    <Collapse ghost>
-                      <Form.Item name="note">
-                        <Input.TextArea
-                          placeholder="Nhập ghi chú"
-                          autoSize={{ minRows: 3, maxRows: 5 }}
-                        />
-                      </Form.Item>
-                    </Collapse>
-                  </Card>
+                <div className="card-title">Ghi chú</div>
+                <Collapse ghost>
+                  <Form.Item name="note">
+                    <Input.TextArea
+                      placeholder="Nhập ghi chú"
+                      autoSize={{ minRows: 3, maxRows: 5 }}
+                    />
+                  </Form.Item>
+                </Collapse>
+              </Card>
             </Form>
           </div>
         </Col>
@@ -399,7 +395,7 @@ const CreateOrder: React.FC = () => {
                   style={{ background: "#1C3D90", borderColor: "#1C3D90", padding: "0px 25px" }}
                 />
               }
-              style={{ marginBottom: 12}}
+              style={{ marginBottom: 12 }}
             />
 
             <Button

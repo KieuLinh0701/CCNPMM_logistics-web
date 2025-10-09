@@ -1,0 +1,125 @@
+import React from "react";
+import { Modal, Input, Radio, List, Button } from "antd";
+import { Promotion } from "../../../../../types/promotion";
+
+interface Props {
+  open: boolean;
+  onCancel: () => void;
+  promotions: Promotion[];
+  selectedPromo: Promotion | null;
+  setSelectedPromo: (value: Promotion | null) => void;
+  onSearch: (value: string) => void;
+  onLoadMore: () => void;
+  nextCursor: number | null;
+}
+
+const SelectedPromoModal: React.FC<Props> = ({
+  open,
+  onCancel,
+  promotions,
+  selectedPromo,
+  setSelectedPromo,
+  onSearch,
+  onLoadMore,
+  nextCursor,
+}) => {
+  return (
+    <Modal 
+      title="Chọn khuyến mãi" 
+      open={open} 
+      onCancel={onCancel} 
+      footer={null}
+      width={600}
+    >
+      <Input.Search
+        placeholder="Tìm khuyến mãi..."
+        allowClear
+        onSearch={onSearch}
+        style={{ marginBottom: 16 }}
+      />
+
+      <div style={{ maxHeight: 400, overflow: 'auto', marginBottom: 16 }}>
+        <Radio.Group
+          style={{ width: "100%" }}
+          value={selectedPromo?.id || null}
+          onChange={(e) => {
+            const selectedId = e.target.value;
+            const promo = promotions.find((p) => p.id === selectedId) || null;
+            setSelectedPromo(promo);
+          }}
+        >
+          <List
+            dataSource={promotions}
+            renderItem={(promo) => (
+              <List.Item
+                style={{
+                  padding: "12px 16px",
+                  borderBottom: "1px solid #f0f0f0",
+                  cursor: "pointer",
+                  backgroundColor: selectedPromo?.id === promo.id ? "#f0f7ff" : "transparent",
+                  borderRadius: 6,
+                  marginBottom: 4
+                }}
+                onClick={() => {
+                  const newSelection = selectedPromo?.id === promo.id ? null : promo;
+                  setSelectedPromo(newSelection);
+                }}
+              >
+                <Radio value={promo.id} style={{ width: "100%" }}>
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <strong style={{ fontSize: 14 }}>{promo.code}</strong>
+                    <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
+                      {promo.description}
+                    </div>
+                  </div>
+                </Radio>
+              </List.Item>
+            )}
+          />
+        </Radio.Group>
+      </div>
+
+      {nextCursor && (
+        <div style={{ textAlign: "center", marginBottom: 16 }}>
+          <Button
+            onClick={onLoadMore}
+            style={{
+              background: "#1C3D90",
+              color: "#fff",
+              borderColor: "#1C3D90",
+            }}
+          >
+            Xem thêm
+          </Button>
+        </div>
+      )}
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          gap: 8,
+          marginTop: 16,
+          borderTop: "1px solid #f0f0f0",
+          paddingTop: 16
+        }}
+      >
+        <Button 
+          style={{ borderColor: "#1C3D90", color: "#1C3D90" }} 
+          onClick={onCancel}
+        >
+          Hủy
+        </Button>
+        <Button
+          type="primary"
+          style={{ background: "#1C3D90", borderColor: "#1C3D90" }}
+          onClick={onCancel}
+        >
+          Xác nhận
+        </Button>
+      </div>
+    </Modal>
+  );
+};
+
+export default SelectedPromoModal;

@@ -19,10 +19,12 @@ export interface OfficeResponse {
   success: boolean;
   message?: string; 
   office?: Office;  
+  offices: Office[];
 }
 
 export interface OfficeState {
   office: Office | null;
   loading: boolean;
   error: string | null;
+  offices: Office[];
 }

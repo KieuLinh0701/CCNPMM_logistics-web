@@ -16,10 +16,11 @@ interface Commune {
 
 interface AddressFormProps {
   form: any;
-  prefix: string; // 🆕 thêm prefix để tách riêng các field
+  prefix: string; // 
   initialCity?: number;
   initialWard?: number;
   initialDetail?: string;
+  disableCity?: boolean;
 }
 
 const AddressForm: React.FC<AddressFormProps> = ({
@@ -28,6 +29,7 @@ const AddressForm: React.FC<AddressFormProps> = ({
   initialCity,
   initialWard,
   initialDetail,
+  disableCity,
 }) => {
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [communes, setCommunes] = useState<Commune[]>([]);
@@ -67,37 +69,23 @@ const AddressForm: React.FC<AddressFormProps> = ({
   useEffect(() => {
     const provinceCode = selectedProvince || initialCity;
     if (provinceCode) {
-      axios
-        .get<ProvinceDetail>(
-          `https://provinces.open-api.vn/api/v2/p/${provinceCode}?depth=2`
-        )
+      axios.get<ProvinceDetail>(`https://provinces.open-api.vn/api/v2/p/${provinceCode}?depth=2`)
         .then((res) => {
-          const wards: Commune[] = (res.data.wards || []).map((w) => ({
-            code: w.code,
-            name: w.name,
-          }));
+          const wards: Commune[] = (res.data.wards || []).map(w => ({ code: w.code, name: w.name }));
           setCommunes(wards);
 
-          // Nếu có initialWard và chưa chọn province, set default
-          if (initialWard && !selectedProvince) {
+          // ✅ Nếu có initialWard, set commune sau khi wards load xong
+          if (initialWard) {
             form.setFieldsValue({
               [prefix]: {
-                province: provinceCode,
+                ...form.getFieldValue(prefix),
                 commune: initialWard,
-              },
+              }
             });
           }
 
-          // Nếu đã chọn province mới mà commune cũ không thuộc, reset commune
-          const currentCommune = form.getFieldValue([prefix, "commune"]);
-          if (currentCommune && !wards.some((w) => w.code === currentCommune)) {
-            form.setFieldsValue({ [prefix]: { commune: undefined } });
-          }
         })
-        .catch((err) => console.error(err));
-    } else {
-      setCommunes([]);
-      form.setFieldsValue({ [prefix]: { commune: undefined } });
+        .catch(err => console.error(err));
     }
   }, [selectedProvince, initialCity, initialWard, form, prefix]);
 
@@ -112,6 +100,7 @@ const AddressForm: React.FC<AddressFormProps> = ({
           showSearch
           placeholder="Chọn tỉnh/thành phố"
           optionFilterProp="label"
+          disabled={disableCity}
           filterOption={(input, option) =>
             (option?.label as string)
               .toLowerCase()

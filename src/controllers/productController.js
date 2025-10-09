@@ -5,17 +5,17 @@ const productController = {
   async getTypesEnum(req, res) {
     try {
 
-        const userId = req.user.id;
+      const userId = req.user.id;
 
-        const result = await productService.getTypesEnum(userId);
+      const result = await productService.getTypesEnum(userId);
 
-        return res.status(200).json(result);
+      return res.status(200).json(result);
 
     } catch (error) {
-        console.error('Get Types Enum error:', error);
-        return res.status(500).json({
-            success: false,
-            message: 'Lỗi server'
+      console.error('Get Types Enum error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi server'
       });
     }
   },
@@ -24,17 +24,17 @@ const productController = {
   async getStatusesEnum(req, res) {
     try {
 
-        const userId = req.user.id;
+      const userId = req.user.id;
 
-        const result = await productService.getStatusesEnum(userId);
+      const result = await productService.getStatusesEnum(userId);
 
-        return res.status(200).json(result);
+      return res.status(200).json(result);
 
     } catch (error) {
-        console.error('Get Statuses Enum error:', error);
-        return res.status(500).json({
-            success: false,
-            message: 'Lỗi server'
+      console.error('Get Statuses Enum error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi server'
       });
     }
   },
@@ -54,6 +54,7 @@ const productController = {
         sort: req.query.sort || undefined,
         startDate: req.query.startDate || undefined,
         endDate: req.query.endDate || undefined,
+        stockFilter: req.query.stockFilter || undefined,
       };
 
       const result = await productService.getProductsByUser(userId, page, limit, filters);
@@ -74,9 +75,9 @@ const productController = {
     try {
       const userId = req.user.id;
 
-      const { name, weight, type, status } = req.body;
+      const { name, weight, type, status, price, stock } = req.body;
 
-      const result = await productService.addProduct(userId, name, weight, type, status);
+      const result = await productService.addProduct(userId, name, weight, type, status, price, stock);
 
       return res.status(200).json(result);
     } catch (error) {
@@ -95,9 +96,9 @@ const productController = {
 
       const { id } = req.params;
 
-      const { name, weight, type, status } = req.body;
+      const { name, weight, type, status, price } = req.body;
 
-      const result = await productService.updateProduct(id, userId, name, weight, type, status);
+      const result = await productService.updateProduct(id, userId, name, weight, type, status, price);
 
       return res.status(200).json(result);
     } catch (error) {
@@ -113,7 +114,7 @@ const productController = {
   async importProducts(req, res) {
     try {
       const userId = req.user.id;
-      
+
       const { products } = req.body;
 
       if (!Array.isArray(products) || products.length === 0) {
@@ -134,6 +135,30 @@ const productController = {
       return res.status(500).json({
         success: false,
         message: "Lỗi server khi import sản phẩm",
+      });
+    }
+  },
+
+  // Get Active Products By User
+  async getActiveProductsByUser(req, res) {
+    try {
+      const userId = req.user.id;
+      const limit = parseInt(req.query.limit) || 10;
+
+      const filters = {
+        searchText: req.query.search || undefined,
+        lastId: req.query.lastId ? parseInt(req.query.lastId) : undefined, 
+      };
+
+      const result = await productService.getActiveProductsByUser(userId, limit, filters);
+
+      return res.status(200).json(result);
+
+    } catch (error) {
+      console.error('Get Active Products By User error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi server'
       });
     }
   },
