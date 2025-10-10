@@ -8,6 +8,7 @@ import { getProductsByUser } from '../store/productSlice';
 import { ImportProductsResponse, product, ProductResponse } from '../types/product';
 import { PromotionResponse } from '../types/promotion';
 import { cancelOrder, getPayersEnum, getPaymentStatusesEnum } from '../store/orderSlice';
+import { ImportVehiclesResponse, Vehicle, VehicleResponse } from '../types/vehicle';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8088/api';
 
@@ -192,7 +193,7 @@ export const employeeAPI = {
 
     try {
       const response = await api.put<EmployeeResponse>(
-        `/employees/update/${id}`,
+        `/employees/${id}`,
         payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -273,7 +274,7 @@ export const productAPI = {
 
     try {
       const response = await api.put<ProductResponse>(
-        `/products/update/${id}`,
+        `/products/${id}`,
         payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -434,6 +435,81 @@ export const promotionAPI = {
   getActivePromotions: async (query: string): Promise<PromotionResponse> => {
     const res = await api.get<PromotionResponse>(`/promotions/get-active?${query}`);
     return res.data;
+  },
+}
+
+export const vehicleAPI = {
+  // Get Statuses Enum
+  getStatusesEnum: async (): Promise<VehicleResponse> => {
+    const response = await api.get<VehicleResponse>('/vehicles/statuses');
+    return response.data;
+  },
+
+  // Get Types Enum
+  getTypesEnum: async (): Promise<VehicleResponse> => {
+    const response = await api.get<VehicleResponse>('/vehicles/types');
+    return response.data;
+  },
+
+  getVehiclesByOffice: async (officeId: number, query: string): Promise<VehicleResponse> => {
+    const res = await api.get<VehicleResponse>(`/vehicles/by-office/${officeId}?${query}`);
+    return res.data;
+  },
+
+  addVehicle: async (officeId: number, vehicle: Partial<Vehicle>): Promise<VehicleResponse> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("Không tìm thấy token xác thực");
+
+    const { id, ...payload } = vehicle;
+
+    try {
+      const response = await api.post<VehicleResponse>(
+        `/vehicles/add/${officeId}`,
+        payload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi thêm phương tiện');
+    }
+  },
+
+  // Update Vehicle
+  updateVehicle: async (vehicle: Partial<Vehicle>): Promise<VehicleResponse> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("Không tìm thấy token xác thực");
+
+    const { id, ...payload } = vehicle;
+
+    try {
+      const response = await api.put<VehicleResponse>(
+        `/vehicles/${id}`,
+        payload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi cập nhật thông tin phương tiện');
+    }
+  },
+
+  // Import Vehicles
+  importVehicles: async (officeId: number, vehicles: Partial<Vehicle>[]): Promise<ImportVehiclesResponse> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("Không tìm thấy token xác thực");
+
+    try {
+      const response = await api.post<ImportVehiclesResponse>(
+        `/vehicles/import/${officeId}`,
+        { vehicles },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      console.log("API Response:", response.data);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response.data.message || 'Lỗi khi import phương tiện');
+    }
   },
 }
 

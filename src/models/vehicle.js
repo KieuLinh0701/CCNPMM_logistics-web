@@ -44,7 +44,7 @@ export default (sequelize) => {
         },
       },
       status: {
-        type: DataTypes.ENUM('Available', 'InUse', 'Maintenance'),
+        type: DataTypes.ENUM('Available', 'InUse', 'Maintenance', 'Archived'),
         allowNull: false,
         defaultValue: 'Available',
         comment: 'Trạng thái xe',

@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { Modal, message, Tag, Row, Col } from "antd";
+import { Modal, Tag, Row, Col } from "antd";
 import dayjs from "dayjs";
 import {
   getStatusesEnum,
-  cancelOrder,
-  getOrdersByUser,
   getPayersEnum,
   getPaymentMethodsEnum,
   getPaymentStatusesEnum,

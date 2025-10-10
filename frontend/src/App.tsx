@@ -31,6 +31,7 @@ import OrderSuccess from './pages/user/order/success_fail/OrderSuccess';
 import OrderEdit from './pages/user/order/edit/OrderEdit';
 import OrderListManager from './pages/manager/order/OrderList';
 import Products from './pages/user/product/Products';
+import Vehicles from './pages/manager/vehicle/Vehicles';
 
 const App: React.FC = () => {
   const user = JSON.parse(localStorage.getItem('user') || 'null');
@@ -65,6 +66,7 @@ const App: React.FC = () => {
               <Route path="employees/list" element={<EmployeePage />} />
               <Route path="orders/list" element={<OrderListManager />} />
               <Route path="orders/create" element={<CreateOrder />} />
+              <Route path="vehicles" element={<Vehicles />} />
             </Route>
 
             <Route path="/user" element={<PrivateRoute roles={["user"]}><UserLayout /></PrivateRoute>}>

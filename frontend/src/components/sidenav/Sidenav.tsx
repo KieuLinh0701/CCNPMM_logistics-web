@@ -160,31 +160,10 @@ const Sidenav: React.FC<Props> = ({ color }) => {
         ],
       },
       {
-        key: "vehicles",
+        key: "/manager/vehicles",
         label: "Quản lý phương tiện",
+        path: "/manager/vehicles",
         icon: <CarOutlined />,
-        children: [
-          {
-            key: "/manager/vehicles/list",
-            label: "Danh sách phương tiện",
-            path: "/manager/vehicles/list",
-          },
-          {
-            key: "/manager/vehicles/maintenance",
-            label: "Lịch bảo dưỡng",
-            path: "/manager/vehicles/maintenance",
-          },
-          {
-            key: "/manager/vehicles/history",
-            label: "Lịch sử bảo dưỡng",
-            path: "/manager/vehicles/history",
-          },
-          {
-            key: "/manager/vehicles/finance",
-            label: "Dòng tiền phương tiện",
-            path: "/manager/vehicles/finance",
-          },
-        ],
       },
     ],
     user: [

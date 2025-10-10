@@ -9,6 +9,7 @@ import orderController from "../controllers/orderController.js";
 import productController from "../controllers/productController.js";
 import promotionController from "../controllers/promotionController.js";
 import payment from "./payment.js";
+import vehicleController from "../controllers/vehicleController.js";
 
 let router = express.Router();
 
@@ -34,7 +35,7 @@ let initApiRoutes = (app) => {
     router.get('/employees/by-office/:id', verifyToken, employeeController.getEmployeesByOffice);
     router.post('/employees/add', verifyToken, employeeController.addEmployee);
     router.get("/employees/check-before-add", verifyToken, employeeController.checkBeforeAddEmployee);
-    router.put("/employees/update/:id", verifyToken, employeeController.updateEmployee);
+    router.put("/employees/:id", verifyToken, employeeController.updateEmployee);
     router.post('/employees/import', verifyToken, employeeController.importEmployees);
 
     // Service Type routes
@@ -59,12 +60,20 @@ let initApiRoutes = (app) => {
     router.get('/products/types', verifyToken, productController.getTypesEnum);
     router.get('/products/statuses', verifyToken, productController.getStatusesEnum);
     router.post('/products/add', verifyToken, productController.addProduct);
-    router.put("/products/update/:id", verifyToken, productController.updateProduct);
+    router.put("/products/:id", verifyToken, productController.updateProduct);
     router.post('/products/import', verifyToken, productController.importProducts);
     router.get("/products/get-active", verifyToken, productController.getActiveProductsByUser);
 
     // Promotion Routes
     router.get("/promotions/get-active", promotionController.getActivePromotions);
+
+    // Vehicle Routes
+    router.get('/vehicles/types', verifyToken, vehicleController.getTypesEnum);
+    router.get('/vehicles/statuses', verifyToken, vehicleController.getStatusesEnum);
+    router.get('/vehicles/by-office/:officeId', verifyToken, vehicleController.getVehiclesByOffice);
+    router.post('/vehicles/add/:officeId', verifyToken, vehicleController.addVehicle);
+    router.put('/vehicles/:id', verifyToken, vehicleController.updateVehicle);
+    router.post('/vehicles/import/:id', verifyToken, vehicleController.importVehicles);
 
     // VNPAY
     router.use("/payment", payment);
