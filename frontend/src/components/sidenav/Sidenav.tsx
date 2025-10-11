@@ -214,66 +214,7 @@ const Sidenav: React.FC<Props> = ({ color }) => {
       },
     ],
     driver: [
-      {
-        key: "/shipper/dashboard",
-        label: "Tổng quan",
-        path: "/shipper/dashboard",
-        icon: <DashboardOutlined />,
-      },
-      {
-        key: "/shipper/orders",
-        label: "Đơn hàng cần giao",
-        path: "/shipper/orders",
-        icon: <BoxPlotOutlined />,
-      },
-      {
-        key: "/shipper/orders-unassigned",
-        label: "Danh sách đơn hàng",
-        path: "/shipper/orders-unassigned",
-        icon: <InboxOutlined />,
-      },
-      {
-        key: "/shipper/route",
-        label: "Lộ trình giao hàng",
-        path: "/shipper/route",
-        icon: <EnvironmentOutlined />,
-      },
-      {
-        key: "/shipper/pickup",
-        label: "Nhận/Trả hàng",
-        path: "/shipper/pickup",
-        icon: <InboxOutlined />,
-      },
-      {
-        key: "/shipper/cod",
-        label: "Quản lý COD",
-        path: "/shipper/cod",
-        icon: <DollarOutlined />,
-      },
-      {
-        key: "/shipper/history",
-        label: "Lịch sử giao hàng",
-        path: "/shipper/history",
-        icon: <ClockCircleOutlined />,
-      },
-      {
-        key: "/shipper/report",
-        label: "Báo cáo sự cố",
-        path: "/shipper/report",
-        icon: <ExclamationCircleOutlined />,
-      },
-      {
-        key: "/shipper/notifications",
-        label: "Thông báo",
-        path: "/shipper/notifications",
-        icon: <BellOutlined />,
-      },
-      {
-        key: "/shipper/profile",
-        label: "Hồ sơ cá nhân",
-        path: "/shipper/profile",
-        icon: <ProfileOutlined />,
-      },
+
     ],
     shipper: [
       {

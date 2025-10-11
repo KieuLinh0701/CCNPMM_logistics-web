@@ -5,9 +5,9 @@ import initWebRoutes from './route/web.js';
 import initApiRoutes from './route/api.js';
 import connectDB from './config/configdb.js';
 import dotenv from 'dotenv';
-import db from './models/index.js';
-
 dotenv.config();
+// import db from './models/index.js';
+
 
 let app = express();
 
@@ -21,14 +21,16 @@ initWebRoutes(app);
 initApiRoutes(app);
 
 // Connect database
-(async () => {
-    try {
-        await connectDB();  // authenticate
-        await db.sequelize.sync({ alter: true }); // tạo/ cập nhật bảng
-    } catch (error) {
-        console.error("Database connection or sync failed:", error);
-    }
-})();
+connectDB();
+
+// (async () => {
+//     try {
+//         await connectDB();  // authenticate
+//         await db.sequelize.sync({ alter: true }); // tạo/ cập nhật bảng
+//     } catch (error) {
+//         console.error("Database connection or sync failed:", error);
+//     }
+// })();
 
 let port = process.env.PORT || 8088;
 

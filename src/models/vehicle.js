@@ -10,6 +10,14 @@ export default (sequelize) => {
         onDelete: 'SET NULL',
         onUpdate: 'CASCADE',
       });
+
+      // 1 Vehicle thuộc về 1 Office
+      Vehicle.belongsTo(models.Office, {
+        foreignKey: 'officeId',
+        as: 'office',
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+      });
     }
   }
 
@@ -36,7 +44,7 @@ export default (sequelize) => {
         },
       },
       status: {
-        type: DataTypes.ENUM('Available', 'InUse', 'Maintenance'),
+        type: DataTypes.ENUM('Available', 'InUse', 'Maintenance', 'Archived'),
         allowNull: false,
         defaultValue: 'Available',
         comment: 'Trạng thái xe',
@@ -45,6 +53,11 @@ export default (sequelize) => {
         type: DataTypes.STRING(255),
         allowNull: true,
         comment: 'Ghi chú thêm (nếu có)',
+      },
+      officeId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        comment: 'Xe thuộc về chi nhánh nào',
       },
     },
     {

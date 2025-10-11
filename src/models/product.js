@@ -6,7 +6,7 @@ export default (sequelize) => {
       // Liên kết nhiều-một với User (người bán)
       Product.belongsTo(models.User, {
         foreignKey: 'userId',
-        as: 'user', 
+        as: 'user',
         onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
       });
@@ -33,9 +33,14 @@ export default (sequelize) => {
         comment: 'Tên sản phẩm'
       },
       weight: {
-        type: DataTypes.DECIMAL(10,2),
+        type: DataTypes.DECIMAL(10, 2),
         allowNull: false,
         comment: 'Trọng lượng sản phẩm (kg)'
+      },
+      price: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        comment: 'Giá sản phẩm'
       },
       type: {
         type: DataTypes.ENUM('Fresh', 'Letter', 'Goods'),
@@ -43,11 +48,23 @@ export default (sequelize) => {
         comment: 'Loại hàng: Fresh, Letter, Goods'
       },
       status: {
-        type: DataTypes.ENUM('Active','Inactive'),
+        type: DataTypes.ENUM('Active', 'Inactive'),
         allowNull: false,
         defaultValue: 'Active',
         comment: 'Trạng thái sản phẩm'
       },
+
+      stock: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+        comment: 'Số lượng hàng trong kho'
+      },
+
+      soldQuantity: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+        comment: 'Số lượng đã bán thành công'
+      }
     },
     {
       sequelize,

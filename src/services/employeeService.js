@@ -617,7 +617,7 @@ const employeeService = {
       const user = await db.User.findByPk(userId);
       if (!user) return { success: false, message: "Không tìm thấy người dùng" };
 
-      if (!['manager', 'driver', 'shipper'].includes(user.role)) {
+      if (!['manager', 'shipper'].includes(user.role)) {
         return { success: false, message: "Người dùng không có quyền làm nhân viên" };
       }
 

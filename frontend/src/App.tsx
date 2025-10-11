@@ -106,7 +106,7 @@ const App: React.FC = () => {
               <Route path="profile" element={<Profile />} />
             </Route>
 
-            <Route path="/shipper" element={<PrivateRoute roles={["driver", "shipper"]}><ShipperLayout /></PrivateRoute>}>
+            <Route path="/shipper" element={<PrivateRoute roles={["shipper"]}><ShipperLayout /></PrivateRoute>}>
               <Route path="dashboard" element={<ShipperDashboard />} />
               <Route path="orders" element={<ShipperOrders />} />
               <Route path="orders-unassigned" element={<UnassignedOrders />} />

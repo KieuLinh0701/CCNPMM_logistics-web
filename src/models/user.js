@@ -57,7 +57,7 @@ export default (sequelize) => {
         allowNull: true,
       },
       role: {
-        type: DataTypes.ENUM('admin', 'manager', 'staff', 'driver', 'shipper', 'user'),
+        type: DataTypes.ENUM('admin', 'manager', 'driver', 'shipper', 'user'),
         defaultValue: 'user',
       },
       isVerified: {
@@ -70,11 +70,6 @@ export default (sequelize) => {
       },
       lastLoginAt: {
         type: DataTypes.DATE,
-      },
-      images: {
-        type: DataTypes.STRING,
-        allowNull: true,
-        comment: 'Lưu ảnh ở C:/uploads',
       },
     },
     {

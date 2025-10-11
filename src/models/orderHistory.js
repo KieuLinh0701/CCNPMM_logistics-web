@@ -51,7 +51,7 @@ export default (sequelize) => {
         type: DataTypes.INTEGER,
         allowNull: true, 
       },
-      status: {
+      action: {
         type: DataTypes.ENUM(
           'ReadyForPickup',
           'PickedUp',
