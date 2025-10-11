@@ -118,7 +118,12 @@ useEffect(() => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case 'pending': return 'default';
+      case 'confirmed': return 'blue';
+      case 'picked_up': return 'orange';
+      case 'in_transit': return 'processing';
       case 'delivered': return 'success';
+      case 'cancelled': return 'error';
       case 'failed': return 'error';
       case 'returned': return 'warning';
       default: return 'default';
@@ -127,9 +132,14 @@ useEffect(() => {
 
   const getStatusText = (status: string) => {
     switch (status) {
+      case 'pending': return 'Chờ xử lý';
+      case 'confirmed': return 'Đã xác nhận';
+      case 'picked_up': return 'Đã lấy hàng';
+      case 'in_transit': return 'Đang giao';
       case 'delivered': return 'Đã giao';
-      case 'failed': return 'Thất bại';
-      case 'returned': return 'Hoàn hàng';
+      case 'cancelled': return 'Đã hủy';
+      case 'failed': return 'Giao thất bại';
+      case 'returned': return 'Đã hoàn';
       default: return status;
     }
   };

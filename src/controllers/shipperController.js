@@ -344,7 +344,7 @@ const shipperController = {
       console.log('Date range:', { today, tomorrow });
       console.log('Office ID:', employee.officeId);
 
-      const result = await orderService.getShipperRoute(employee.officeId, today, tomorrow);
+      const result = await orderService.getShipperRoute(employee.officeId, today, tomorrow, userId);
       console.log('Route result:', result);
 
       return res.json({

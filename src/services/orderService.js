@@ -413,29 +413,39 @@ const orderService = {
         where.createdAt = { [db.Sequelize.Op.between]: [dateFrom, dateTo] };
       }
 
-      // Left join ShipmentOrder; pick orders with no ShipmentOrder rows
-      const include = [
-        { model: db.User, as: 'user', attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber'] },
-        { model: db.Office, as: 'fromOffice', attributes: ['id', 'name', 'address'] },
-        { model: db.Office, as: 'toOffice', attributes: ['id', 'name', 'address'] },
-        { model: db.ServiceType, as: 'serviceType', attributes: ['id', 'name', 'deliveryTime'] },
-        { model: db.ShipmentOrder, as: 'shipmentOrders', required: false, attributes: ['shipmentId', 'orderId'] }
-      ];
+      // Sử dụng subquery để tìm orders không có trong ShipmentOrder
+      const unassignedWhere = {
+        ...where,
+        [db.Sequelize.Op.not]: {
+          id: {
+            [db.Sequelize.Op.in]: db.Sequelize.literal(
+              '(SELECT DISTINCT orderId FROM ShipmentOrders WHERE orderId IS NOT NULL)'
+            )
+          }
+        }
+      };
+
+      console.log('Unassigned where clause:', unassignedWhere);
 
       const { rows, count } = await db.Order.findAndCountAll({
-        where,
-        include,
+        where: unassignedWhere,
+        include: [
+          { model: db.User, as: 'user', attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber'] },
+          { model: db.Office, as: 'fromOffice', attributes: ['id', 'name', 'address'] },
+          { model: db.Office, as: 'toOffice', attributes: ['id', 'name', 'address'] },
+          { model: db.ServiceType, as: 'serviceType', attributes: ['id', 'name', 'deliveryTime'] }
+        ],
         limit: parseInt(limit),
         offset,
         order: [['createdAt', 'DESC']],
         distinct: true,
       });
 
-      // Filter out those that already have any shipmentOrders
-      const unassigned = rows.filter(o => !o.shipmentOrders || o.shipmentOrders.length === 0);
+      console.log('Unassigned orders found:', rows.length);
+      console.log('Total count:', count);
 
       return {
-        orders: unassigned,
+        orders: rows,
         pagination: { page: parseInt(page), limit: parseInt(limit), total: count }
       };
     } catch (error) {
@@ -589,25 +599,41 @@ const orderService = {
   },
 
   // Lấy lộ trình giao hàng
-  async getShipperRoute(officeId, dateFrom, dateTo) {
+  async getShipperRoute(officeId, dateFrom, dateTo, shipperUserId = null) {
     try {
       console.log('=== ORDER SERVICE: getShipperRoute ===');
       console.log('Office ID:', officeId);
       console.log('Date From:', dateFrom);
       console.log('Date To:', dateTo);
+      console.log('Shipper User ID:', shipperUserId);
       
       const where = {
         toOfficeId: officeId,
-        status: { [db.Sequelize.Op.in]: ['confirmed', 'in_transit'] }
-        // Temporarily remove date filter to debug
-        // createdAt: {
-        //   [db.Sequelize.Op.between]: [dateFrom, dateTo]
-        // }
+        status: { [db.Sequelize.Op.in]: ['confirmed', 'picked_up', 'in_transit'] }
       };
-      console.log('Where clause:', where);
+
+      // Nếu có shipperUserId: chỉ lấy đơn đã gán cho shipper hiện tại
+      let whereWithAssigned = { ...where };
+      if (shipperUserId !== undefined && shipperUserId !== null) {
+        const userIdNum = Number(shipperUserId);
+        if (!Number.isNaN(userIdNum)) {
+          const assignedExists = db.Sequelize.where(
+            db.Sequelize.literal(
+              `EXISTS (SELECT 1 FROM ShipmentOrders so JOIN Shipments sh ON sh.id = so.shipmentId AND sh.userId = ${userIdNum} WHERE so.orderId = \`Order\`.id)`
+            ),
+            true
+          );
+          whereWithAssigned = {
+            ...whereWithAssigned,
+            [db.Sequelize.Op.and]: [assignedExists],
+          };
+        }
+      }
+
+      console.log('Where clause:', whereWithAssigned);
 
       const orders = await db.Order.findAll({
-        where,
+        where: whereWithAssigned,
         order: [['createdAt', 'ASC']],
         include: [
           { model: db.User, as: 'user', attributes: ['id', 'firstName', 'lastName'] },
@@ -648,7 +674,7 @@ const orderService = {
           serviceType: order.serviceType?.name || 'Tiêu chuẩn',
           estimatedTime: this.calculateEstimatedTime(index),
           status: order.status === 'delivered' ? 'completed' : 
-                  order.status === 'in_transit' ? 'in_progress' : 'pending',
+                  (order.status === 'in_transit' || order.status === 'picked_up') ? 'in_progress' : 'pending',
           coordinates: this.generateRealCoordinates(order.recipientWardCode, order.recipientCityCode, index),
           distance: 2.5 + (index * 0.5),
           travelTime: 15 + (index * 5)

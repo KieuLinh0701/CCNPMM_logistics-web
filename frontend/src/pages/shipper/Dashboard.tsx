@@ -83,20 +83,32 @@ const ShipperDashboard: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case 'pending': return 'default';
+      case 'confirmed': return 'blue';
+      case 'picked_up': return 'orange';
+      case 'in_transit': return 'processing';
+      case 'delivered': return 'success';
+      case 'cancelled': return 'error';
       case 'assigned': return 'blue';
       case 'in_progress': return 'orange';
-      case 'delivered': return 'green';
       case 'failed': return 'red';
+      case 'returned': return 'purple';
       default: return 'default';
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
+      case 'pending': return 'Chờ xử lý';
+      case 'confirmed': return 'Đã xác nhận';
+      case 'picked_up': return 'Đã lấy hàng';
+      case 'in_transit': return 'Đang giao';
+      case 'delivered': return 'Đã giao';
+      case 'cancelled': return 'Đã hủy';
       case 'assigned': return 'Được phân công';
       case 'in_progress': return 'Đang giao';
-      case 'delivered': return 'Đã giao';
       case 'failed': return 'Giao thất bại';
+      case 'returned': return 'Đã hoàn';
       default: return status;
     }
   };

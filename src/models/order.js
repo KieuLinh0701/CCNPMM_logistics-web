@@ -19,12 +19,12 @@ export default (sequelize) => {
         onUpdate: 'CASCADE',
       });
 
-      Order.belongsTo(models.User, {
-        foreignKey: 'createdBy',
-        as: 'creator',
-        onDelete: 'CASCADE',
-        onUpdate: 'CASCADE',
-      });
+      // Order.belongsTo(models.User, {
+      //   foreignKey: 'createdBy',
+      //   as: 'creator',
+      //   onDelete: 'CASCADE',
+      //   onUpdate: 'CASCADE',
+      // });
 
       // 1 Order có thể tham chiếu tới kho nguồn và kho đích
       Order.belongsTo(models.Office, {
@@ -95,19 +95,19 @@ export default (sequelize) => {
         comment: 'Trạng thái đơn hàng'
       },
 
-      // Người tạo đơn (user/manager tại office)
-      createdBy: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        comment: 'ID của người tạo đơn (staff/manager)'
-      },
+      // // Người tạo đơn (user/manager tại office)
+      // createdBy: {
+      //   type: DataTypes.INTEGER,
+      //   allowNull: false,
+      //   comment: 'ID của người tạo đơn (staff/manager)'
+      // },
 
-      // Loại người tạo
-      createdByType: {
-        type: DataTypes.ENUM('user', 'manager'),
-        allowNull: false,
-        comment: 'Loại người tạo đơn'
-      },
+      // // Loại người tạo
+      // createdByType: {
+      //   type: DataTypes.ENUM('user', 'manager'),
+      //   allowNull: false,
+      //   comment: 'Loại người tạo đơn'
+      // },
 
       // Người gửi giá trị này chỉ khác null khi order không được tạo bởi user
       senderName: {
