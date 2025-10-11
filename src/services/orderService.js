@@ -175,6 +175,7 @@ const orderService = {
 
       console.log("Sender Phone raw:", orderData.senderPhone);
       console.log("Recipient Phone raw:", orderData.recipientPhone);
+
       // 1. Validate sender/recipient info
       const phoneRegex = /^\d{10}$/;
       if (!phoneRegex.test(orderData.senderPhone))
@@ -201,6 +202,13 @@ const orderService = {
         for (const p of orderData.orderProducts) {
           if (!p.product?.id || p.quantity < 1 || p.price < 0)
             throw new Error("Thông tin sản phẩm không hợp lệ");
+
+          // Kiểm tra tồn kho trước khi tạo đơn
+          const product = await db.Product.findByPk(p.product.id, { transaction: t });
+          if (!product) throw new Error(`Sản phẩm với ID ${p.product.id} không tồn tại`);
+          if (product.stock < p.quantity)
+            throw new Error(`Sản phẩm "${product.name}" không đủ tồn kho. Chỉ còn ${product.stock} sản phẩm`);
+
           totalOrderValue += p.price * p.quantity;
         }
         if (orderData.orderValue < totalOrderValue)
@@ -308,7 +316,7 @@ const orderService = {
         { transaction: t }
       );
 
-      // 12. Lưu OrderProduct nếu có
+      // 12. Lưu OrderProduct nếu có và cập nhật số lượng sản phẩm
       if (orderData.orderProducts?.length > 0) {
         const orderProducts = orderData.orderProducts.map((p) => ({
           orderId: order.id,
@@ -317,6 +325,15 @@ const orderService = {
           price: p.price,
         }));
         await db.OrderProduct.bulkCreate(orderProducts, { transaction: t });
+
+        // 12.1. CẬP NHẬT soldQuantity VÀ stock CHO TỪNG SẢN PHẨM
+        for (const p of orderData.orderProducts) {
+          const product = await db.Product.findByPk(p.product.id, { transaction: t });
+          if (product) {
+            await product.increment('soldQuantity', { by: p.quantity, transaction: t });
+            await product.decrement('stock', { by: p.quantity, transaction: t });
+          }
+        }
       }
 
       // 13. Update promotion usedCount
@@ -509,9 +526,17 @@ const orderService = {
         return { success: false, message: "Người dùng không tồn tại" };
       }
 
-      // 2. Tìm order theo id + userId
+      // 2. Tìm order theo id + userId (bao gồm cả sản phẩm và promotion)
       const order = await db.Order.findOne({
         where: { id: orderId, userId },
+        include: [
+          {
+            model: db.OrderProduct,
+            as: "orderProducts",
+            include: [{ model: db.Product, as: "product" }],
+          },
+          { model: db.Promotion, as: "promotion" },
+        ],
         transaction: t,
       });
 
@@ -525,7 +550,30 @@ const orderService = {
         return { success: false, message: "Không thể hủy đơn ở trạng thái hiện tại" };
       }
 
-      // 4. Nếu đã thanh toán bằng VNPay, refund trước
+      // 4. KHÔI PHỤC STOCK VÀ SOLDQUANTITY CỦA SẢN PHẨM
+      if (order.orderProducts?.length > 0) {
+        for (const orderProduct of order.orderProducts) {
+          const product = await db.Product.findByPk(orderProduct.productId, { transaction: t });
+          if (product) {
+            // Hoàn trả stock và giảm soldQuantity
+            await product.increment('stock', { by: orderProduct.quantity, transaction: t });
+            await product.decrement('soldQuantity', { by: orderProduct.quantity, transaction: t });
+            console.log(`🔄 Đã khôi phục sản phẩm ${product.name}: stock +${orderProduct.quantity}, soldQuantity -${orderProduct.quantity}`);
+          }
+        }
+      }
+
+      // 5. KHÔI PHỤC USEDCOUNT CỦA PROMOTION (nếu có)
+      if (order.promotionId) {
+        const promotion = await db.Promotion.findByPk(order.promotionId, { transaction: t });
+        if (promotion && promotion.usedCount > 0) {
+          promotion.usedCount -= 1;
+          await promotion.save({ transaction: t });
+          console.log(`🔄 Đã giảm usedCount của promotion ${promotion.code}: ${promotion.usedCount + 1} -> ${promotion.usedCount}`);
+        }
+      }
+
+      // 6. Nếu đã thanh toán bằng VNPay, refund trước
       if (order.paymentMethod === "VNPay" && order.paymentStatus === "Paid") {
         const refundResult = await paymentService.refundVNPay(order.id);
         if (!refundResult.success) {
@@ -536,7 +584,7 @@ const orderService = {
         order.paymentStatus = "Refunded";
       }
 
-      // 5. Cập nhật trạng thái -> cancelled
+      // 7. Cập nhật trạng thái -> cancelled
       order.status = "cancelled";
       await order.save({ transaction: t });
 
@@ -678,22 +726,41 @@ const orderService = {
       // 4. Chuẩn bị data update
       const updateData = this.prepareUpdateData(existingOrder, orderData);
 
-      // 5. Cập nhật order
-      await db.Order.update(updateData, {
-        where: { id: orderData.id },
-        transaction: t
-      });
-
-      // 6. Cập nhật order products nếu có
+      // 5. Cập nhật order products nếu có với xử lý stock và soldQuantity của product
       if (orderData.orderProducts && this.canUpdateProducts(existingOrder.status)) {
-        // Xóa products cũ
+
+        // 5.1. HOÀN TÁC SOLDQUANTITY VÀ STOCK CỦA SẢN PHẨM CŨ
+        if (existingOrder.orderProducts?.length > 0) {
+          for (const oldProduct of existingOrder.orderProducts) {
+            const product = await db.Product.findByPk(oldProduct.productId, { transaction: t });
+            if (product) {
+              // Hoàn trả stock và giảm soldQuantity
+              await product.increment('stock', { by: oldProduct.quantity, transaction: t });
+              await product.decrement('soldQuantity', { by: oldProduct.quantity, transaction: t });
+            }
+          }
+        }
+
+        // 5.2. Xóa products cũ
         await db.OrderProduct.destroy({
           where: { orderId: orderData.id },
           transaction: t
         });
 
-        // Thêm products mới
+        // 5.3. KIỂM TRA TỒN KHO CHO SẢN PHẨM MỚI
         if (orderData.orderProducts.length > 0) {
+          for (const p of orderData.orderProducts) {
+            if (!p.product?.id || p.quantity < 1 || p.price < 0)
+              throw new Error("Thông tin sản phẩm không hợp lệ");
+
+            // Kiểm tra tồn kho trước khi cập nhật
+            const product = await db.Product.findByPk(p.product.id, { transaction: t });
+            if (!product) throw new Error(`Sản phẩm với ID ${p.product.id} không tồn tại`);
+            if (product.stock < p.quantity)
+              throw new Error(`Sản phẩm "${product.name}" không đủ tồn kho. Chỉ còn ${product.stock} sản phẩm`);
+          }
+
+          // 5.4. Thêm products mới và CẬP NHẬT STOCK, SOLDQUANTITY
           const orderProducts = orderData.orderProducts.map((p) => ({
             orderId: orderData.id,
             productId: p.product.id,
@@ -701,8 +768,23 @@ const orderService = {
             price: p.price,
           }));
           await db.OrderProduct.bulkCreate(orderProducts, { transaction: t });
+
+          // 5.5. CẬP NHẬT SOLDQUANTITY VÀ STOCK CHO SẢN PHẨM MỚI
+          for (const p of orderData.orderProducts) {
+            const product = await db.Product.findByPk(p.product.id, { transaction: t });
+            if (product) {
+              await product.increment('soldQuantity', { by: p.quantity, transaction: t });
+              await product.decrement('stock', { by: p.quantity, transaction: t });
+            }
+          }
         }
       }
+
+      // 6. Cập nhật order
+      await db.Order.update(updateData, {
+        where: { id: orderData.id },
+        transaction: t
+      });
 
       // 7. Cập nhật promotion nếu có
       if (orderData.promotion?.id && orderData.promotion.id !== existingOrder.promotion.id) {
@@ -985,7 +1067,7 @@ const orderService = {
           { toOfficeId: officeId }
         ],
         [Op.and]: [
-          { status: { [Op.ne]: 'draft' } }  
+          { status: { [Op.ne]: 'draft' } }
         ]
       };
 

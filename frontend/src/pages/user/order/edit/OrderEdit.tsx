@@ -281,6 +281,8 @@ const OrderEdit: React.FC = () => {
 
         setOrderProducts(newOrderProducts);
 
+        setSelectedProductIds(selected.map(s => s.id));
+
         const totalValue = newOrderProducts.reduce(
             (sum, op) => sum + op.product.price * op.quantity,
             0
@@ -294,7 +296,6 @@ const OrderEdit: React.FC = () => {
         setWeight(totalWeight);
         setOrderWeight(totalWeight);
         setShowProductModal(false);
-        setSelectedProductIds(selected.map(s => s.id));
     };
 
     const handleSearch = (value: string) => {
@@ -555,6 +556,11 @@ const OrderEdit: React.FC = () => {
         initializeOrder();
     }, [dispatch, id]);
 
+    useEffect(() => {
+        const currentProductIds = orderProducts.map(op => op.product.id);
+        setSelectedProductIds(currentProductIds);
+    }, [orderProducts]);
+
     if (loading || !order) {
         return <div>Đang tải chi tiết đơn hàng...</div>;
     }
@@ -739,15 +745,17 @@ const OrderEdit: React.FC = () => {
                                                                         const updated = prev.filter(
                                                                             (op) => op.product.id !== record.product.id
                                                                         );
+
+                                                                        setSelectedProductIds((prevIds) =>
+                                                                            prevIds.filter(id => id !== record.product.id)
+                                                                        );
+
                                                                         const totalValue = updated.reduce(
-                                                                            (sum, op) =>
-                                                                                sum + op.product.price * op.quantity,
+                                                                            (sum, op) => sum + op.product.price * op.quantity,
                                                                             0
                                                                         );
                                                                         const totalWeight = updated.reduce(
-                                                                            (sum, op) =>
-                                                                                sum +
-                                                                                (op.product.weight || 0) * op.quantity,
+                                                                            (sum, op) => sum + (op.product.weight || 0) * op.quantity,
                                                                             0
                                                                         );
                                                                         setOrderValue(totalValue);

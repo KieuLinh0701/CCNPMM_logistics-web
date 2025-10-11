@@ -33,14 +33,7 @@ const SelectProductModal: React.FC<Props> = ({
 
   // Đồng bộ tick sẵn khi mở modal
   useEffect(() => {
-    if (open && initialSelectedProducts.length > 0) {
-      setSelectedProductIds((prevIds) => {
-        const initialIds = initialSelectedProducts.map((p) => p.id);
-        const merged = Array.from(new Set([...prevIds, ...initialIds]));
-        return merged;
-      });
-    }
-  }, [open, initialSelectedProducts]);
+  }, [open, selectedProductIds]);
 
   const handleConfirm = () => {
     const selectedProducts = products.filter((p) =>
@@ -73,8 +66,11 @@ const SelectProductModal: React.FC<Props> = ({
         loading={loading}
         pagination={false}
         rowSelection={{
+          type: 'checkbox',
           selectedRowKeys: selectedProductIds,
           onChange: (keys) => setSelectedProductIds(keys as number[]),
+          getCheckboxProps: (record) => ({
+          }),
         }}
         columns={[
           { title: "Tên sản phẩm", dataIndex: "name", key: "name", align: "center",},
