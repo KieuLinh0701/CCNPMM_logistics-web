@@ -14,6 +14,7 @@ import shippingRateController from "../controllers/shippingRateController.js";
 import vehicleController from "../controllers/vehicleController.js";
 import orderController from "../controllers/orderController.js";
 import shipperController from "../controllers/shipperController.js";
+import * as promotionController from "../controllers/promotionController.js";
 
 let router = express.Router();
 
@@ -63,6 +64,10 @@ let initApiRoutes = (app) => {
 
     // Order Routes
     router.get("/orders/calculate-shipping-fee", orderController.calculateShippingFee);
+    router.post("/orders", verifyToken, orderController.createOrder);
+    
+    // Promotion validation for orders
+    router.post("/orders/validate-promotion", promotionController.validatePromotionCode);
     
     // Public routes for guests
     // Order tracking
@@ -160,6 +165,15 @@ let initApiRoutes = (app) => {
     router.put('/admin/vehicles/:id', verifyToken, requireRole(['admin']), vehicleController.update);
     router.delete('/admin/vehicles/:id', verifyToken, requireRole(['admin']), vehicleController.remove);
     router.get('/admin/vehicles/stats', verifyToken, requireRole(['admin']), vehicleController.getStats);
+
+    // Admin - Promotions CRUD
+    router.get('/admin/promotions', verifyToken, requireRole(['admin']), promotionController.getAllPromotions);
+    router.get('/admin/promotions/:id', verifyToken, requireRole(['admin']), promotionController.getPromotionById);
+    router.post('/admin/promotions', verifyToken, requireRole(['admin']), promotionController.createPromotion);
+    router.put('/admin/promotions/:id', verifyToken, requireRole(['admin']), promotionController.updatePromotion);
+    router.delete('/admin/promotions/:id', verifyToken, requireRole(['admin']), promotionController.deletePromotion);
+    router.put('/admin/promotions/:id/status', verifyToken, requireRole(['admin']), promotionController.updatePromotionStatus);
+    router.get('/admin/promotions/stats', verifyToken, requireRole(['admin']), promotionController.getPromotionStats);
 
     // SHIPPER
     // Shipper Dashboard

@@ -2,9 +2,9 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    // Xóa các trường không còn sử dụng trong bảng Orders
-    await queryInterface.removeColumn('Orders', 'createdBy');
-    await queryInterface.removeColumn('Orders', 'createdByType');
+    // // Xóa các trường không còn sử dụng trong bảng Orders
+    // await queryInterface.removeColumn('Orders', 'createdBy');
+    // await queryInterface.removeColumn('Orders', 'createdByType');
     
     // Thay đổi kiểu dữ liệu của các trường địa chỉ từ INTEGER sang STRING
     await queryInterface.changeColumn('Orders', 'senderCityCode', {

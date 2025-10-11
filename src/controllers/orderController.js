@@ -96,6 +96,59 @@ const orderController = {
     }
   },
 
+  async createOrder(req, res) {
+    try {
+      const orderData = req.body;
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Chưa đăng nhập'
+        });
+      }
+
+      // Validate required fields
+      const requiredFields = [
+        'senderName', 'senderPhone', 'recipientName', 'recipientPhone',
+        'weight', 'serviceTypeId', 'shippingFee'
+      ];
+      
+      for (const field of requiredFields) {
+        if (!orderData[field]) {
+          return res.status(400).json({
+            success: false,
+            message: `Thiếu thông tin bắt buộc: ${field}`
+          });
+        }
+      }
+
+      // Add user ID to order data
+      orderData.userId = userId;
+
+      const result = await orderService.createOrder(orderData);
+
+      if (result.success) {
+        return res.status(201).json({
+          success: true,
+          message: 'Tạo đơn hàng thành công',
+          data: result.data
+        });
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: result.message || 'Tạo đơn hàng thất bại'
+        });
+      }
+    } catch (error) {
+      console.error('Create order error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi server'
+      });
+    }
+  }
+
 };
 
 export default orderController;

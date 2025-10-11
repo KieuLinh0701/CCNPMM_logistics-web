@@ -794,6 +794,72 @@ const orderService = {
       lat: baseLat + (index * 0.01),
       lng: baseLng + (index * 0.01)
     };
+  },
+
+  async createOrder(orderData) {
+    try {
+      console.log('=== ORDER SERVICE CREATE ORDER START ===');
+      console.log('Order data:', orderData);
+
+      const t = await db.sequelize.transaction();
+
+      try {
+        // Generate tracking number
+        const trackingNumber = 'DH' + Date.now().toString().slice(-8);
+
+        // Create order
+        const order = await db.Order.create({
+          trackingNumber,
+          senderName: orderData.senderName,
+          senderPhone: orderData.senderPhone,
+          recipientName: orderData.recipientName,
+          recipientPhone: orderData.recipientPhone,
+          cityCode: orderData.senderAddress?.codeCity,
+          wardCode: orderData.senderAddress?.codeWard,
+          detailAddress: orderData.senderAddress?.detailAddress,
+          weight: orderData.weight,
+          serviceTypeId: orderData.serviceTypeId,
+          userId: orderData.userId,
+          promotionId: orderData.promotionId,
+          discountAmount: orderData.discountAmount || 0,
+          shippingFee: orderData.shippingFee,
+          orderValue: orderData.orderValue || 0,
+          cod: orderData.cod || 0,
+          payer: orderData.payer || 'Customer',
+          paymentMethod: orderData.paymentMethod || 'Cash',
+          notes: orderData.notes || '',
+          status: 'pending'
+        }, { transaction: t });
+
+        // If promotion is applied, increment used count
+        if (orderData.promotionId) {
+          await db.Promotion.increment('usedCount', {
+            where: { id: orderData.promotionId },
+            transaction: t
+          });
+        }
+
+        // Create initial order history
+        await db.OrderHistory.create({
+          orderId: order.id,
+          status: 'pending',
+          description: 'Đơn hàng được tạo',
+          timestamp: new Date()
+        }, { transaction: t });
+
+        await t.commit();
+
+        console.log('Order created successfully:', order.id);
+        return { success: true, data: order };
+      } catch (error) {
+        await t.rollback();
+        throw error;
+      }
+    } catch (error) {
+      console.error('=== ORDER SERVICE CREATE ORDER ERROR ===');
+      console.error('Error details:', error);
+      return { success: false, message: 'Lỗi khi tạo đơn hàng' };
+    }
   }
 };
 

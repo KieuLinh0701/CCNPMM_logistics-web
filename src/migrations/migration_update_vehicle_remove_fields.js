@@ -2,9 +2,6 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    // Xóa trường officeId trong bảng Vehicles
-    await queryInterface.removeColumn('Vehicles', 'officeId');
-    
     // Cập nhật ENUM status để loại bỏ 'Archived'
     await queryInterface.changeColumn('Vehicles', 'status', {
       type: Sequelize.ENUM('Available', 'InUse', 'Maintenance'),

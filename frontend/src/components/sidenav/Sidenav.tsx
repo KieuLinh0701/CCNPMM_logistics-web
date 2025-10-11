@@ -22,6 +22,7 @@ import {
   ClockCircleOutlined,
   BellOutlined,
   InboxOutlined,
+  GiftOutlined,
 } from "@ant-design/icons";
 
 const { SubMenu } = Menu;
@@ -89,6 +90,12 @@ const Sidenav: React.FC<Props> = ({ color }) => {
         label: "Quản lý phí",
         path: "/admin/fees",
         icon: <DollarOutlined />,
+      },
+      {
+        key: "/admin/promotions",
+        label: "Khuyến mãi",
+        path: "/admin/promotions",
+        icon: <GiftOutlined />,
       },
       {
         key: "/admin/reports",
