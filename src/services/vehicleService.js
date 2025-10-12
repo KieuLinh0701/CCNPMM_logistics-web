@@ -25,6 +25,12 @@ const vehicleService = {
         order: [["createdAt", "DESC"]],
         include: [
           {
+            model: db.Office,
+            as: 'office',
+            attributes: ['id', 'name', 'address'],
+            required: false
+          },
+          {
             model: db.Shipment,
             as: 'shipments',
             attributes: ['id', 'status'],
@@ -48,6 +54,12 @@ const vehicleService = {
     try {
       const vehicle = await db.Vehicle.findByPk(vehicleId, {
         include: [
+          {
+            model: db.Office,
+            as: 'office',
+            attributes: ['id', 'name', 'address'],
+            required: false
+          },
           {
             model: db.Shipment,
             as: 'shipments',

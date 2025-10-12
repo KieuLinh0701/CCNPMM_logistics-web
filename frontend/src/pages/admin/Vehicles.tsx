@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Card, Descriptions, Drawer, Form, Input, Modal, Popconfirm, Select, Space, Table, Tag, message, Statistic, Row, Col } from 'antd';
-import { adminAPI, VehicleRow } from '../../services/api';
+import { adminAPI, VehicleRow, PostOfficeRow } from '../../services/api';
 
 type QueryState = { page: number; limit: number; search: string; type?: string; status?: string };
 
@@ -25,6 +25,7 @@ const AdminVehicles: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<VehicleRow | null>(null);
   const [stats, setStats] = useState({ total: 0, available: 0, inUse: 0, maintenance: 0 });
+  const [offices, setOffices] = useState<PostOfficeRow[]>([]);
   const [form] = Form.useForm();
 
   const fetchData = useCallback(async () => {
@@ -55,10 +56,20 @@ const AdminVehicles: React.FC = () => {
     }
   }, []);
 
+  const fetchOffices = useCallback(async () => {
+    try {
+      const res = await adminAPI.listPostOffices();
+      setOffices(res.data);
+    } catch (e: any) {
+      console.error('Failed to fetch offices:', e);
+    }
+  }, []);
+
   useEffect(() => { 
     fetchData(); 
     fetchStats();
-  }, [fetchData, fetchStats]);
+    fetchOffices();
+  }, [fetchData, fetchStats, fetchOffices]);
 
   const onViewDetails = (record: VehicleRow) => {
     setSelectedVehicle(record);
@@ -72,7 +83,8 @@ const AdminVehicles: React.FC = () => {
       type: record.type,
       capacity: record.capacity,
       status: record.status,
-      description: record.description
+      description: record.description,
+      officeId: record.officeId
     });
     setModalOpen(true);
   }, [form]);
@@ -151,6 +163,11 @@ const AdminVehicles: React.FC = () => {
       title: 'Tải trọng', 
       dataIndex: 'capacity', 
       render: (v: number | undefined) => v != null ? `${v} kg` : '-' 
+    },
+    { 
+      title: 'Bưu cục', 
+      dataIndex: ['office', 'name'],
+      render: (_: any, record: VehicleRow) => record?.office?.name || 'Chưa phân công'
     },
     { 
       title: 'Trạng thái', 
@@ -250,6 +267,7 @@ const AdminVehicles: React.FC = () => {
             <Descriptions.Item label="Biển số xe">{selectedVehicle.licensePlate}</Descriptions.Item>
             <Descriptions.Item label="Loại xe">{getTypeText(selectedVehicle.type)}</Descriptions.Item>
             <Descriptions.Item label="Tải trọng">{selectedVehicle.capacity} kg</Descriptions.Item>
+            <Descriptions.Item label="Bưu cục">{selectedVehicle.office?.name || 'Chưa phân công'}</Descriptions.Item>
             <Descriptions.Item label="Trạng thái">
               <Tag color={getStatusColor(selectedVehicle.status)}>{getStatusText(selectedVehicle.status)}</Tag>
             </Descriptions.Item>
@@ -283,6 +301,13 @@ const AdminVehicles: React.FC = () => {
           </Form.Item>
           <Form.Item name="capacity" label="Tải trọng (kg)" rules={[{ required: true, message: 'Vui lòng nhập tải trọng' }]}>
             <Input type="number" placeholder="Nhập tải trọng" min={0} />
+          </Form.Item>
+          <Form.Item name="officeId" label="Bưu cục">
+            <Select placeholder="Chọn bưu cục" allowClear>
+              {offices.map(office => (
+                <Select.Option key={office.id} value={office.id}>{office.name}</Select.Option>
+              ))}
+            </Select>
           </Form.Item>
           <Form.Item name="status" label="Trạng thái" rules={[{ required: true, message: 'Vui lòng chọn trạng thái' }]}>
             <Select placeholder="Chọn trạng thái">

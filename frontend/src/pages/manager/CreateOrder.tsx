@@ -25,6 +25,7 @@ import { getActiveServiceTypes } from "../../store/serviceTypeSlice";
 import { serviceType } from "../../types/serviceType";
 import { Order } from "../../types/order";
 import { calculateShippingFee as calculateShippingFeeThunk } from "../../store/orderSlice";
+import { adminAPI } from "../../services/api";
 import api from "../../services/api";
 
 const { Text } = Typography;
@@ -53,15 +54,32 @@ const CreateOrder: React.FC = () => {
 
   const [showPromoModal, setShowPromoModal] = useState(false);
   const [selectedPromo, setSelectedPromo] = useState<string | null>(null);
+  const [promoList, setPromoList] = useState<any[]>([]);
 
-  const promoList = [
-    { code: "PROMO10", desc: "Giảm 10% cho đơn hàng đầu tiên" },
-    { code: "FREESHIP", desc: "Miễn phí vận chuyển tối đa 30k" },
-    { code: "SALE20", desc: "Giảm 20% cho đơn từ 200k" },
-    { code: "SAVE50", desc: "Giảm 50k cho đơn từ 300k" },
-    { code: "NEWUSER", desc: "Ưu đãi dành cho khách mới" },
-    { code: "SPRING", desc: "Giảm 30% mùa xuân" },
-  ];
+  // Load active promotions from database
+  useEffect(() => {
+    const loadPromotions = async () => {
+      try {
+        const response = await adminAPI.getActivePromotions();
+        if (response.success) {
+          // API trả về { success: true, data: { promotions: [...], pagination: {...} } }
+          const promotions = response.data?.promotions || response.data || [];
+          if (Array.isArray(promotions)) {
+            setPromoList(promotions);
+          } else {
+            console.error('Invalid promotion data format:', response);
+            setPromoList([]);
+          }
+        } else {
+          setPromoList([]);
+        }
+      } catch (error) {
+        console.error('Error loading promotions:', error);
+        setPromoList([]);
+      }
+    };
+    loadPromotions();
+  }, []);
 
   useEffect(() => {
     dispatch(getActiveServiceTypes());
@@ -521,7 +539,7 @@ const CreateOrder: React.FC = () => {
             style={{ width: "100%" }}
           >
             <List
-              dataSource={promoList}
+              dataSource={Array.isArray(promoList) ? promoList : []}
               renderItem={(item) => (
                 <List.Item
                   style={{
@@ -533,7 +551,7 @@ const CreateOrder: React.FC = () => {
                   <Radio value={item.code}>
                     <div>
                       <Text strong>{item.code}</Text>
-                      <div style={{ fontSize: 13, color: "#555" }}>{item.desc}</div>
+                      <div style={{ fontSize: 13, color: "#555" }}>{item.description}</div>
                     </div>
                   </Radio>
                 </List.Item>

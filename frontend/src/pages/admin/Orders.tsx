@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Card, Descriptions, Drawer, Form, Input, Modal, Popconfirm, Select, Space, Table, Tag, message } from 'antd';
+import { PlusOutlined } from '@ant-design/icons';
 import { adminAPI, OrderRow } from '../../services/api';
+import { useNavigate } from 'react-router-dom';
 
 type QueryState = { page: number; limit: number; search: string; status?: string; postOfficeId?: string };
 
@@ -14,6 +16,7 @@ const statusOptions = [
 ];
 
 const AdminOrders: React.FC = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<OrderRow[]>([]);
   const [total, setTotal] = useState(0);
@@ -108,7 +111,7 @@ const AdminOrders: React.FC = () => {
   const columns = useMemo(() => [
     { title: 'Mã vận đơn', dataIndex: 'trackingNumber', render: (v: string) => v || '-' },
     { title: 'Người gửi', dataIndex: 'senderName', render: (v: string) => v || '-' },
-    { title: 'Người nhận', dataIndex: 'receiverName', render: (v: string) => v || '-' },
+    { title: 'Người nhận', dataIndex: 'recipientName', render: (v: string) => v || '-' },
     { 
       title: 'Bưu cục', 
       dataIndex: ['postOffice', 'name'],
@@ -146,6 +149,13 @@ const AdminOrders: React.FC = () => {
   return (
     <Card title="Quản lý đơn hàng" extra={
       <Space>
+        <Button 
+          type="primary" 
+          icon={<PlusOutlined />}
+          onClick={() => navigate('/admin/orders/create')}
+        >
+          Thêm đơn hàng
+        </Button>
         <Input.Search allowClear placeholder="Tìm kiếm" onSearch={(v) => setQuery({ ...query, page: 1, search: v })} />
         <Select
           placeholder="Lọc theo trạng thái"
@@ -181,9 +191,9 @@ const AdminOrders: React.FC = () => {
             <Descriptions.Item label="Người gửi">{selectedOrder.senderName}</Descriptions.Item>
             <Descriptions.Item label="SĐT người gửi">{selectedOrder.senderPhone}</Descriptions.Item>
             <Descriptions.Item label="Địa chỉ gửi">{selectedOrder.senderAddress}</Descriptions.Item>
-            <Descriptions.Item label="Người nhận">{selectedOrder.receiverName}</Descriptions.Item>
-            <Descriptions.Item label="SĐT người nhận">{selectedOrder.receiverPhone}</Descriptions.Item>
-            <Descriptions.Item label="Địa chỉ nhận">{selectedOrder.receiverAddress}</Descriptions.Item>
+            <Descriptions.Item label="Người nhận">{selectedOrder.recipientName}</Descriptions.Item>
+            <Descriptions.Item label="SĐT người nhận">{selectedOrder.recipientPhone}</Descriptions.Item>
+            <Descriptions.Item label="Địa chỉ nhận">{selectedOrder.recipientAddress}</Descriptions.Item>
             <Descriptions.Item label="Trọng lượng">{selectedOrder.weight} kg</Descriptions.Item>
             <Descriptions.Item label="Bưu cục">{selectedOrder.postOffice?.name}</Descriptions.Item>
             <Descriptions.Item label="Dịch vụ">{selectedOrder.serviceType?.name}</Descriptions.Item>

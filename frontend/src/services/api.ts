@@ -93,6 +93,12 @@ export type VehicleRow = {
   capacity: number;
   status: 'Available' | 'InUse' | 'Maintenance';
   description?: string;
+  officeId?: number;
+  office?: {
+    id: number;
+    name: string;
+    address: string;
+  };
   createdAt: string;
   updatedAt: string;
   shipments?: {
@@ -108,9 +114,9 @@ export type OrderRow = {
   senderName: string;
   senderPhone: string;
   senderAddress: string;
-  receiverName: string;
-  receiverPhone: string;
-  receiverAddress: string;
+  recipientName: string;
+  recipientPhone: string;
+  recipientAddress: string;
   weight: number;
   basePrice: number;
   codAmount: number;
@@ -291,11 +297,11 @@ export const adminAPI = {
     const response = await api.get<{ success: boolean; data: VehicleRow }>(`/admin/vehicles/${id}`);
     return response.data;
   },
-  createVehicle: async (payload: { licensePlate: string; type: 'Truck' | 'Van'; capacity: number; status?: 'Available' | 'InUse' | 'Maintenance'; description?: string }): Promise<{ success: boolean; data: VehicleRow }> => {
+  createVehicle: async (payload: { licensePlate: string; type: 'Truck' | 'Van'; capacity: number; status?: 'Available' | 'InUse' | 'Maintenance'; description?: string; officeId?: number }): Promise<{ success: boolean; data: VehicleRow }> => {
     const response = await api.post<{ success: boolean; data: VehicleRow }>(`/admin/vehicles`, payload);
     return response.data;
   },
-  updateVehicle: async (id: number, payload: Partial<{ licensePlate: string; type: 'Truck' | 'Van'; capacity: number; status: 'Available' | 'InUse' | 'Maintenance'; description: string }>): Promise<{ success: boolean; data: VehicleRow }> => {
+  updateVehicle: async (id: number, payload: Partial<{ licensePlate: string; type: 'Truck' | 'Van'; capacity: number; status: 'Available' | 'InUse' | 'Maintenance'; description: string; officeId: number }>): Promise<{ success: boolean; data: VehicleRow }> => {
     const response = await api.put<{ success: boolean; data: VehicleRow }>(`/admin/vehicles/${id}`, payload);
     return response.data;
   },
@@ -305,6 +311,11 @@ export const adminAPI = {
   },
   getVehicleStats: async (): Promise<{ success: boolean; data: { total: number; available: number; inUse: number; maintenance: number } }> => {
     const response = await api.get<{ success: boolean; data: { total: number; available: number; inUse: number; maintenance: number } }>('/admin/vehicles/stats');
+    return response.data;
+  },
+  // Promotion APIs
+  getActivePromotions: async (): Promise<{ success: boolean; data: { promotions: any[]; pagination: any } }> => {
+    const response = await api.get<{ success: boolean; data: { promotions: any[]; pagination: any } }>('/admin/promotions?status=active&limit=100');
     return response.data;
   },
 };

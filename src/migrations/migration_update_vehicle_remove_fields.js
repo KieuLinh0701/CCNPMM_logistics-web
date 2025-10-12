@@ -12,12 +12,12 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
-    // Khôi phục trường officeId
-    await queryInterface.addColumn('Vehicles', 'officeId', {
-      type: Sequelize.INTEGER,
-      allowNull: false,
-      comment: 'Xe thuộc về chi nhánh nào',
-    });
+    // // Khôi phục trường officeId
+    // await queryInterface.addColumn('Vehicles', 'officeId', {
+    //   type: Sequelize.INTEGER,
+    //   allowNull: false,
+    //   comment: 'Xe thuộc về chi nhánh nào',
+    // });
     
     // Khôi phục ENUM status (thêm lại 'Archived')
     await queryInterface.changeColumn('Vehicles', 'status', {
