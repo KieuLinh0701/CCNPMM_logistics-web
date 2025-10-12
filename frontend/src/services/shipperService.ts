@@ -15,6 +15,9 @@ export interface ShipperOrder {
   recipientPhone: string;
   recipientAddress: string;
   codAmount: number;
+  shippingFee: number;
+  discountAmount: number;
+  paymentMethod: string;
   status: 'pending' | 'confirmed' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled';
   priority: 'normal' | 'urgent';
   serviceType: string;
@@ -128,6 +131,10 @@ const shipperService = {
     const ordersRaw = data?.orders ?? data?.data ?? [];
     const orders = (Array.isArray(ordersRaw) ? ordersRaw : []).map((o: any) => ({
       ...o,
+      codAmount: o?.cod || 0,
+      shippingFee: o?.shippingFee || 0,
+      discountAmount: o?.discountAmount || 0,
+      paymentMethod: o?.paymentMethod || 'Cash',
       serviceType: typeof o?.serviceType === 'object' && o?.serviceType !== null
         ? (o.serviceType.name ?? '')
         : (o?.serviceType ?? ''),
@@ -156,6 +163,10 @@ const shipperService = {
     const ordersRaw = data?.orders ?? data?.data ?? [];
     const orders = (Array.isArray(ordersRaw) ? ordersRaw : []).map((o: any) => ({
       ...o,
+      codAmount: o?.cod || 0,
+      shippingFee: o?.shippingFee || 0,
+      discountAmount: o?.discountAmount || 0,
+      paymentMethod: o?.paymentMethod || 'Cash',
       serviceType: typeof o?.serviceType === 'object' && o?.serviceType !== null
         ? (o.serviceType.name ?? '')
         : (o?.serviceType ?? ''),
@@ -185,6 +196,10 @@ const shipperService = {
     const data = raw?.data ?? raw;
     const normalized = {
       ...data,
+      codAmount: data?.cod || 0,
+      shippingFee: data?.shippingFee || 0,
+      discountAmount: data?.discountAmount || 0,
+      paymentMethod: data?.paymentMethod || 'Cash',
       serviceType: typeof data?.serviceType === 'object' && data?.serviceType !== null
         ? (data.serviceType.name ?? '')
         : (data?.serviceType ?? ''),
@@ -203,6 +218,8 @@ const shipperService = {
     actualRecipient?: string;
     actualRecipientPhone?: string;
     codCollected?: number;
+    totalAmountCollected?: number;
+    shipperId?: number;
   }): Promise<void> {
     await api.put(`/shipper/orders/${id}/status`, data);
   },

@@ -72,14 +72,17 @@ const orderService = {
   },
 
   async updateOrderStatus(orderId, updateData = {}, officeId) {
+    const t = await db.sequelize.transaction();
     try {
-      const order = await db.Order.findByPk(orderId);
+      const order = await db.Order.findByPk(orderId, { transaction: t });
       if (!order) {
+        await t.rollback();
         return { success: false, message: "Không tìm thấy đơn hàng" };
       }
 
       // Optional access check: order must belong to shipper's office
       if (officeId && order.toOfficeId !== Number(officeId)) {
+        await t.rollback();
         return { success: false, message: 'Đơn không thuộc bưu cục của bạn' };
       }
 
@@ -92,12 +95,49 @@ const orderService = {
       // deliveredAt when delivered
       if (nextStatus === 'delivered') {
         order.deliveredAt = new Date();
+        
+        // Validate COD amount if provided
+        if (updateData.codCollected !== undefined) {
+          if (updateData.codCollected !== order.cod) {
+            await t.rollback();
+            return { 
+              success: false, 
+              message: `Số tiền COD phải bằng ${order.cod.toLocaleString()}đ` 
+            };
+          }
+        }
+        
+        // Validate total amount collected
+        if (updateData.totalAmountCollected !== undefined) {
+          const expectedAmount = order.cod + order.shippingFee - order.discountAmount;
+          if (updateData.totalAmountCollected !== expectedAmount) {
+            await t.rollback();
+            return { 
+              success: false, 
+              message: `Tổng số tiền phải bằng ${expectedAmount.toLocaleString()}đ (COD + Phí vận chuyển - Giảm giá)` 
+            };
+          }
+        }
+        
+        // Create ShippingCollection record for COD tracking
+        if (order.cod > 0 && updateData.codCollected) {
+          await db.ShippingCollection.create({
+            orderId: order.id,
+            shipperId: updateData.shipperId,
+            amountCollected: updateData.codCollected,
+            discrepancy: 0, // No discrepancy if amounts match
+            notes: updateData.notes || 'Shipper thu tiền COD khi giao hàng'
+          }, { transaction: t });
+        }
       }
 
       // Persist
-      await order.save();
+      await order.save({ transaction: t });
+      await t.commit();
       return { success: true, data: order };
     } catch (error) {
+      await t.rollback();
+      console.error('Update order status error:', error);
       return { success: false, message: "Lỗi server khi cập nhật trạng thái" };
     }
   },
@@ -877,6 +917,112 @@ const orderService = {
       console.error('=== ORDER SERVICE CREATE ORDER ERROR ===');
       console.error('Error details:', error);
       return { success: false, message: 'Lỗi khi tạo đơn hàng' };
+    }
+  },
+
+  // Submit COD payment to office
+  async submitCODPayment(submissionData) {
+    const t = await db.sequelize.transaction();
+    try {
+      console.log('=== ORDER SERVICE SUBMIT COD PAYMENT START ===');
+      console.log('Submission data:', submissionData);
+
+      const { orderId, officeId, shipperId, amountSubmitted, notes } = submissionData;
+
+      // Get order details
+      const order = await db.Order.findByPk(orderId, { transaction: t });
+      if (!order) {
+        await t.rollback();
+        return { success: false, message: 'Không tìm thấy đơn hàng' };
+      }
+
+      // Get expected amount (COD + shipping fee - discount)
+      const expectedAmount = order.cod + order.shippingFee - order.discountAmount;
+      
+      // Calculate discrepancy
+      const discrepancy = amountSubmitted - expectedAmount;
+
+      // Create payment submission record
+      const paymentSubmission = await db.PaymentSubmission.create({
+        orderId,
+        officeId,
+        shipperId,
+        amountSubmitted,
+        discrepancy,
+        status: 'Pending',
+        notes: notes || `Shipper nộp tiền COD cho đơn hàng ${order.trackingNumber}`
+      }, { transaction: t });
+
+      await t.commit();
+
+      console.log('COD payment submitted successfully:', paymentSubmission.id);
+      return { 
+        success: true, 
+        data: paymentSubmission,
+        expectedAmount,
+        discrepancy
+      };
+    } catch (error) {
+      await t.rollback();
+      console.error('=== ORDER SERVICE SUBMIT COD PAYMENT ERROR ===');
+      console.error('Error details:', error);
+      return { success: false, message: 'Lỗi khi nộp tiền COD' };
+    }
+  },
+
+  // Get COD reconciliation data for office
+  async getCODReconciliation(filters) {
+    try {
+      console.log('=== ORDER SERVICE GET COD RECONCILIATION START ===');
+      console.log('Filters:', filters);
+
+      const { officeId, page = 1, limit = 20, dateFrom, dateTo, status } = filters;
+      const offset = (page - 1) * limit;
+
+      const where = { officeId };
+      if (dateFrom && dateTo) {
+        where.createdAt = { [db.Sequelize.Op.between]: [dateFrom, dateTo] };
+      }
+      if (status) where.status = status;
+
+      const { rows, count } = await db.PaymentSubmission.findAndCountAll({
+        where,
+        limit: parseInt(limit),
+        offset,
+        order: [['createdAt', 'DESC']],
+        include: [
+          { model: db.Order, as: 'order', attributes: ['id', 'trackingNumber', 'cod', 'shippingFee', 'discountAmount'] },
+          { model: db.User, as: 'user', attributes: ['id', 'firstName', 'lastName'] },
+          { model: db.Office, as: 'office', attributes: ['id', 'name'] }
+        ]
+      });
+
+      // Calculate summary
+      const summary = {
+        totalSubmitted: rows.reduce((sum, record) => sum + record.amountSubmitted, 0),
+        totalExpected: rows.reduce((sum, record) => {
+          const order = record.order;
+          return sum + (order.cod + order.shippingFee - order.discountAmount);
+        }, 0),
+        totalDiscrepancy: rows.reduce((sum, record) => sum + record.discrepancy, 0),
+        pendingCount: rows.filter(r => r.status === 'Pending').length,
+        confirmedCount: rows.filter(r => r.status === 'Confirmed').length,
+        adjustedCount: rows.filter(r => r.status === 'Adjusted').length,
+        rejectedCount: rows.filter(r => r.status === 'Rejected').length
+      };
+
+      return {
+        success: true,
+        data: {
+          records: rows,
+          pagination: { page: parseInt(page), limit: parseInt(limit), total: count },
+          summary
+        }
+      };
+    } catch (error) {
+      console.error('=== ORDER SERVICE GET COD RECONCILIATION ERROR ===');
+      console.error('Error details:', error);
+      return { success: false, message: 'Lỗi khi lấy dữ liệu đối soát COD' };
     }
   }
 };

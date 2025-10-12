@@ -35,8 +35,11 @@ interface OrderInfo {
   recipientPhone: string;
   recipientAddress: string;
   codAmount: number;
+  shippingFee: number;
+  discountAmount: number;
   status: string;
   serviceType: string;
+  paymentMethod: string;
 }
 
 const ShipperDeliveryUpdate: React.FC = () => {
@@ -77,7 +80,9 @@ useEffect(() => {
         proofImages: selectedImages,
         actualRecipient: values.actualRecipient,
         actualRecipientPhone: values.actualRecipientPhone,
-        codCollected: values.codCollected
+        codCollected: values.codCollected,
+        totalAmountCollected: values.totalAmountCollected,
+        shipperId: JSON.parse(localStorage.getItem('user') || '{}').id
       });
       
       message.success('Cập nhật trạng thái giao hàng thành công');
@@ -181,6 +186,35 @@ useEffect(() => {
             </Text>
           </div>
         )}
+        
+        <div style={{ marginTop: '16px' }}>
+          <Text strong>Phí vận chuyển: </Text>
+          <Text>{order.shippingFee.toLocaleString()}đ</Text>
+        </div>
+        
+        {order.discountAmount > 0 && (
+          <div style={{ marginTop: '16px' }}>
+            <Text strong>Giảm giá: </Text>
+            <Text style={{ color: '#52c41a' }}>
+              -{order.discountAmount.toLocaleString()}đ
+            </Text>
+          </div>
+        )}
+        
+        <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#f0f2f5', borderRadius: '6px' }}>
+          <Text strong>Tổng số tiền khách cần trả: </Text>
+          <Text style={{ color: '#f50', fontSize: '16px', fontWeight: 'bold' }}>
+            {(order.codAmount + order.shippingFee - order.discountAmount).toLocaleString()}đ
+          </Text>
+          <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+            (COD: {order.codAmount.toLocaleString()}đ + Phí vận chuyển: {order.shippingFee.toLocaleString()}đ - Giảm giá: {order.discountAmount.toLocaleString()}đ)
+          </div>
+        </div>
+        
+        <div style={{ marginTop: '16px' }}>
+          <Text strong>Phương thức thanh toán: </Text>
+          <Text>{order.paymentMethod === 'Cash' ? 'Tiền mặt' : order.paymentMethod}</Text>
+        </div>
       </Card>
 
       {/* Steps */}
@@ -245,15 +279,48 @@ useEffect(() => {
             <Form.Item
               name="codCollected"
               label="Số tiền COD đã thu"
-              rules={[{ required: true, message: 'Vui lòng nhập số tiền COD đã thu' }]}
+              rules={[
+                { required: true, message: 'Vui lòng nhập số tiền COD đã thu' },
+                {
+                  validator: (_, value) => {
+                    if (value && value !== order.codAmount) {
+                      return Promise.reject(new Error(`Số tiền COD phải bằng ${order.codAmount.toLocaleString()}đ`));
+                    }
+                    return Promise.resolve();
+                  }
+                }
+              ]}
             >
               <Input
                 type="number"
-                placeholder="Nhập số tiền COD đã thu"
+                placeholder={`Nhập số tiền COD đã thu (${order.codAmount.toLocaleString()}đ)`}
                 suffix="đ"
               />
             </Form.Item>
           )}
+          
+          <Form.Item
+            name="totalAmountCollected"
+            label="Tổng số tiền đã thu từ khách"
+            rules={[
+              { required: true, message: 'Vui lòng nhập tổng số tiền đã thu' },
+              {
+                validator: (_, value) => {
+                  const expectedAmount = order.codAmount + order.shippingFee - order.discountAmount;
+                  if (value && value !== expectedAmount) {
+                    return Promise.reject(new Error(`Tổng số tiền phải bằng ${expectedAmount.toLocaleString()}đ (COD + Phí vận chuyển - Giảm giá)`));
+                  }
+                  return Promise.resolve();
+                }
+              }
+            ]}
+          >
+            <Input
+              type="number"
+              placeholder={`Nhập tổng số tiền đã thu (${(order.codAmount + order.shippingFee - order.discountAmount).toLocaleString()}đ)`}
+              suffix="đ"
+            />
+          </Form.Item>
 
           <Form.Item
             name="notes"
