@@ -38,7 +38,7 @@ interface DeliveryRecord {
   recipientPhone: string;
   recipientAddress: string;
   codAmount: number;
-  status: 'pending' | 'confirmed' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled' | 'returned';
   createdAt: string;
   deliveredAt?: string;
   notes?: string;
@@ -258,10 +258,10 @@ useEffect(() => {
         <Col span={6}>
           <Card>
             <Statistic
-              title="Đang giao"
-              value={stats.inProgress}
+              title="Thất bại"
+              value={stats.failed}
               prefix={<ClockCircleOutlined />}
-              valueStyle={{ color: '#1890ff' }}
+              valueStyle={{ color: '#ff4d4f' }}
             />
           </Card>
         </Col>
@@ -291,7 +291,7 @@ useEffect(() => {
             >
               <Option value="delivered">Đã giao</Option>
               <Option value="cancelled">Đã hủy</Option>
-              <Option value="in_transit">Đang giao</Option>
+              <Option value="returned">Đã hoàn</Option>
             </Select>
           </Col>
           <Col xs={24} sm={12} md={6}>

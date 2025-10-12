@@ -224,16 +224,23 @@ const shipperService = {
     };
     stats: ShipperStats;
   }> {
+    console.log('[shipperService.getDeliveryHistory] params', params);
     const response = await api.get('/shipper/history', { params });
+    console.log('[shipperService.getDeliveryHistory] raw response', response);
     const raw = (response.data as any);
-    const data = raw?.data ?? raw;
-    const orders = Array.isArray(data?.orders)
-      ? data.orders
-      : Array.isArray(data?.data)
-      ? data.data
+    console.log('[shipperService.getDeliveryHistory] parsed data', raw);
+    
+    // API trả về { success: true, data: Array(10), pagination: {...}, stats: {...} }
+    // Cần lấy raw.data cho orders, raw.pagination cho pagination, raw.stats cho stats
+    const orders = Array.isArray(raw?.data)
+      ? raw.data
+      : Array.isArray(raw?.orders)
+      ? raw.orders
       : [];
-    const pagination = data?.pagination ?? data?.meta ?? { page: params.page ?? 1, limit: params.limit ?? 10, total: orders.length };
-    const statsRaw = data?.stats ?? {};
+    console.log('[shipperService.getDeliveryHistory] orders', orders);
+    
+    const pagination = raw?.pagination ?? raw?.meta ?? { page: params.page ?? 1, limit: params.limit ?? 10, total: orders.length };
+    const statsRaw = raw?.stats ?? {};
     const stats = {
       totalAssigned: Number((statsRaw as any).totalAssigned) || 0,
       inProgress: Number((statsRaw as any).inProgress) || 0,
@@ -241,6 +248,8 @@ const shipperService = {
       failed: Number((statsRaw as any).failed) || 0,
       codCollected: Number((statsRaw as any).codCollected) || 0
     } as ShipperStats;
+    
+    console.log('[shipperService.getDeliveryHistory] final result', { orders: orders.length, pagination, stats });
     return { orders, pagination, stats };
   },
 
