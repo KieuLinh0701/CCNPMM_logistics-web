@@ -8,7 +8,33 @@ export const translateOrderStatus = (status: string): string => {
     case 'in_transit': return 'Đang vận chuyển';
     case 'delivered': return 'Đã giao hàng';
     case 'cancelled': return 'Đã hủy';
+    case 'returned': return 'Đã hoàn';
     default: return status;
+  }
+};
+
+export const translateOrderPaymentStatus = (status: string): string => {
+  switch (status) {
+    case 'Paid': return 'Đã thanh toán';
+    case 'Unpaid': return 'Chưa thanh toán';
+    case 'Refunded': return 'Đã hoàn tiền';
+    default: return status;
+  }
+};
+
+export const translateOrderPaymentMethod = (method: string): string => {
+  switch (method) {
+    case 'Cash': return 'Tiền mặt';
+    case 'BankTransfer': return 'Chuyển khoản ngân hàng';
+    default: return method;
+  }
+};
+
+export const translateOrderPayer = (payer: string): string => {
+  switch (payer) {
+    case 'Shop': return 'Người gửi';
+    case 'Customer': return 'Người nhận';
+    default: return payer;
   }
 };
 

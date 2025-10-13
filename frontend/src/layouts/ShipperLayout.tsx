@@ -39,7 +39,7 @@ const ShipperLayout: React.FC = () => {
       {/* ✅ Layout chính */}
       <Layout style={{ padding: GAP, marginTop: HEADER_HEIGHT }}>
         <Sider
-          width={220}
+          width={240}
           collapsible
           collapsed={collapsed}
           collapsedWidth={60}

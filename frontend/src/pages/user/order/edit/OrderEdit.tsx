@@ -5,7 +5,7 @@ import axios from "axios";
 import { Button, Col, Form, InputNumber, message, Modal, Row, Tooltip } from "antd";
 import { AppDispatch, RootState } from "../../../../store/store";
 import { City, Ward } from "../../../../types/location";
-import { getOrderById, updateOrder } from "../../../../store/orderSlice";
+import { getOrderByTrackingNumber, getPayersEnum, getPaymentMethodsEnum, updateOrder } from "../../../../store/orderSlice";
 
 import Header from "./components/Header";
 import Actions from "./components/Actions";
@@ -34,8 +34,8 @@ import { Promotion, PromotionResponse } from "../../../../types/promotion";
 import { useAppSelector } from "../../../../hooks/redux";
 
 const OrderEdit: React.FC = () => {
-    // Lấy id trên url
-    const { id } = useParams<{ id: string }>();
+    // Lấy trackingNumber trên url
+    const { trackingNumber } = useParams<{ trackingNumber: string }>();
     const navigate = useNavigate();
     const dispatch = useDispatch<AppDispatch>();
 
@@ -71,7 +71,7 @@ const OrderEdit: React.FC = () => {
     const [selectedPromo, setSelectedPromo] = useState<Promotion | null>(null);
     const [showPromoModal, setShowPromoModal] = useState<boolean>(false);
     const { promotions, nextCursor: promotionNextCursor } = useSelector((state: RootState) => state.promotion);
-    const { shippingFee, loading: orderLoading, error: orderError } =
+    const { shippingFee, loading: orderLoading, error: orderError, payers = [], paymentMethods = [] } =
         useSelector((state: RootState) => state.order);
     const [senderProvince, setSenderProvince] = useState(order?.senderCityCode || null);
     const [recipientProvince, setRecipientProvince] = useState(order?.recipientCityCode || null);
@@ -151,7 +151,7 @@ const OrderEdit: React.FC = () => {
         if (!order) return;
 
         if (user) {
-            navigate(`/${user.role}/orders/detail/${order.id}`, { replace: true });
+            navigate(`/${user.role}/orders/detail/${order.trackingNumber}`, { replace: true });
         }
     };
 
@@ -188,7 +188,7 @@ const OrderEdit: React.FC = () => {
                         <p>Bạn có chắc chắn muốn lưu các thay đổi này?</p>
                     </div>
                 ),
-                okText: "Lưu thay đổi",
+                okText: "Lưu",
                 cancelText: "Hủy",
                 centered: true,
                 icon: null,
@@ -348,6 +348,8 @@ const OrderEdit: React.FC = () => {
 
     useEffect(() => {
         dispatch(getActiveServiceTypes());
+        dispatch(getPayersEnum());
+        dispatch(getPaymentMethodsEnum());
     }, [dispatch]);
 
     // Khi các giá trị này thay đổi thì tính shipping fee
@@ -510,9 +512,9 @@ const OrderEdit: React.FC = () => {
 
     useEffect(() => {
         const initializeOrder = async () => {
-            if (!id) return;
+            if (!trackingNumber) return;
             try {
-                const resp = await dispatch(getOrderById(Number(id))).unwrap();
+                const resp = await dispatch(getOrderByTrackingNumber(trackingNumber)).unwrap();
                 const orderData = resp.order;
 
                 if (orderData) {
@@ -554,7 +556,7 @@ const OrderEdit: React.FC = () => {
             }
         };
         initializeOrder();
-    }, [dispatch, id]);
+    }, [dispatch, trackingNumber]);
 
     useEffect(() => {
         const currentProductIds = orderProducts.map(op => op.product.id);
@@ -674,7 +676,9 @@ const OrderEdit: React.FC = () => {
                                 <PaymentCard
                                     form={paymentCard}
                                     payer={order.payer}
+                                    payers={payers}
                                     paymentMethod={order.paymentMethod}
+                                    paymentMethods={paymentMethods}
                                     onChangePayment={(changedValues) => {
                                         setOrder((prev) => prev ? { ...prev, ...changedValues } : prev);
                                     }}

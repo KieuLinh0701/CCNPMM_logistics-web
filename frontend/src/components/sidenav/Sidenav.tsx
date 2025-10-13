@@ -6,9 +6,6 @@ import {
   TableOutlined,
   CreditCardOutlined,
   GlobalOutlined,
-  UserOutlined,
-  LoginOutlined,
-  UserAddOutlined,
   ShoppingOutlined,
   CarOutlined,
   DatabaseOutlined,
@@ -16,6 +13,7 @@ import {
   TeamOutlined,
   DollarOutlined,
   DropboxOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
 
 const { SubMenu } = Menu;
@@ -103,9 +101,9 @@ const Sidenav: React.FC<Props> = ({ color }) => {
         ],
       },
       {
-        key: "/manager/support",
+        key: "/manager/supports",
         label: "Hỗ trợ & Khiếu nại",
-        path: "/manager/support",
+        path: "/manager/supports",
         icon: <GlobalOutlined />,
       },
       {
@@ -184,9 +182,9 @@ const Sidenav: React.FC<Props> = ({ color }) => {
             path: "/user/orders",
           },
           {
-            key: "/user/orders/support",
+            key: "/user/orders/request",
             label: "Hỗ trợ & Khiếu nại",
-            path: "/user/orders/support",
+            path: "/user/orders/requests",
           },
         ],
       },
@@ -195,18 +193,6 @@ const Sidenav: React.FC<Props> = ({ color }) => {
         label: "Quản lý sản phẩm",
         path: "/user/products",
         icon: <DropboxOutlined />,
-      },
-      {
-        key: "/user/office",
-        label: "Thông tin bưu cục",
-        path: "/user/office",
-        icon: <HomeOutlined />,
-      },
-      {
-        key: "/user/warehouse",
-        label: "Đơn nhập/xuất kho",
-        path: "/user/warehouse",
-        icon: <DatabaseOutlined />,
       },
       {
         key: "finance",
@@ -227,6 +213,28 @@ const Sidenav: React.FC<Props> = ({ color }) => {
             key: "/user/finance/history",
             label: "Lịch sử đối soát",
             path: "/user/finance/history",
+          },
+        ],
+      },
+      {
+        key: "lookup",
+        label: "Tra cứu thông tin",
+        icon: <SearchOutlined />, 
+        children: [
+          {
+            key: "/user/lookup/shipping-fee",
+            label: "Tra cứu cước vận chuyển",
+            path: "/user/lookup/shipping-fee",
+          },
+          {
+            key: "/user/lookup/post-office",
+            label: "Tra cứu bưu cục",
+            path: "/user/lookup/post-office",
+          },
+          {
+            key: "/user/lookup/shipping-rates",
+            label: "Bảng giá",
+            path: "/user/lookup/shipping-rates",
           },
         ],
       },

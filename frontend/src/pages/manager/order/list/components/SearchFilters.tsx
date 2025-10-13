@@ -2,9 +2,10 @@ import React from "react";
 import { Row, Col, Input, Button, Select, DatePicker } from "antd";
 import { CloseCircleOutlined, CloseOutlined, FilterOutlined, SearchOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
-import { Ward } from "../../../../types/location";
+import { translateOrderPayer, translateOrderPaymentMethod, translateOrderPaymentStatus, translateOrderStatus } from "../../../../../utils/orderUtils";
+import { Ward } from "../../../../../types/location";
 
-type FilterKeys = "status" | "payer" | "paymentStatus" | "paymentMethod" | "cod" | "senderWard" | "recipientWard";
+type FilterKeys = "status" | "payer" | "paymentStatus" | "paymentMethod" | "cod" | "senderWard" | "recipientWard" | "sort";
 
 interface Props {
   searchText: string;
@@ -22,6 +23,8 @@ interface Props {
   wards: Ward[]
   onReset: () => void;
 }
+
+const { Option } = Select;
 
 const SearchFilters: React.FC<Props> = ({
   searchText,
@@ -116,9 +119,15 @@ const SearchFilters: React.FC<Props> = ({
                 value={filters.status}
                 onChange={(val) => setFilters("status", val)}
                 style={{ flex: 1, minWidth: 180, height: 36 }}
+                dropdownStyle={{
+                  maxHeight: 'none',
+                  overflowY: 'hidden',
+                  padding: 0
+                }}
+                listHeight={statuses.length * 40 + 50}
               >
                 <Select.Option value="All">Tất cả trạng thái</Select.Option>
-                {statuses.map((s) => <Select.Option key={s} value={s}>{s}</Select.Option>)}
+                {statuses.map((s) => <Select.Option key={s} value={s}>{translateOrderStatus(s)}</Select.Option>)}
               </Select>
 
               <Select
@@ -127,7 +136,7 @@ const SearchFilters: React.FC<Props> = ({
                 style={{ flex: 1, minWidth: 180, height: 36 }}
               >
                 <Select.Option value="All">Tất cả người thanh toán</Select.Option>
-                {payers.map((p) => <Select.Option key={p} value={p}>{p}</Select.Option>)}
+                {payers.map((p) => <Select.Option key={p} value={p}>{translateOrderPayer(p)}</Select.Option>)}
               </Select>
 
               <Select
@@ -136,7 +145,7 @@ const SearchFilters: React.FC<Props> = ({
                 style={{ flex: 1, minWidth: 180, height: 36 }}
               >
                 <Select.Option value="All">Tất cả trạng thái thanh toán</Select.Option>
-                {paymentStatuses.map((p) => <Select.Option key={p} value={p}>{p}</Select.Option>)}
+                {paymentStatuses.map((p) => <Select.Option key={p} value={p}>{translateOrderPaymentStatus(p)}</Select.Option>)}
               </Select>
 
               <Select
@@ -145,7 +154,29 @@ const SearchFilters: React.FC<Props> = ({
                 style={{ flex: 1, minWidth: 180, height: 36 }}
               >
                 <Select.Option value="All">Tất cả phương thức thanh toán</Select.Option>
-                {paymentMethods.map((p) => <Select.Option key={p} value={p}>{p}</Select.Option>)}
+                {paymentMethods.map((p) => <Select.Option key={p} value={p}>{translateOrderPaymentMethod(p)}</Select.Option>)}
+              </Select>
+
+              <Select
+                value={filters.sort}
+                onChange={(val) => setFilters("sort", val)}
+                style={{ width: 200, height: 36 }}
+                dropdownStyle={{
+                  maxHeight: 'none',
+                  overflowY: 'hidden'
+                }}
+                listHeight={400}
+              >
+                <Option value="newest">Mới nhất</Option>
+                <Option value="oldest">Cũ nhất</Option>
+                <Option value="codHigh">COD cao nhất</Option>
+                <Option value="codLow">COD thấp nhất</Option>
+                <Option value="orderValueHigh">Giá trị đơn cao nhất</Option>
+                <Option value="orderValueLow">Giá trị đơn thấp nhất</Option>
+                <Option value="feeHigh">Phí vận chuyển cao nhất</Option>
+                <Option value="feeLow">Phí vận chuyển thấp nhất</Option>
+                <Option value="weightHigh">Khối lượng cao nhất</Option>
+                <Option value="weightLow">Khối lượng thấp nhất</Option>
               </Select>
 
               <Select

@@ -9,7 +9,7 @@ interface Props {
 
 const OrderInfo: React.FC<Props> = ({ order }) => (
   <div style={styles.paymentAndDetailsContainer}>
-    <div style={styles.orderInfo}> {/* Áp dụng khung cho cả h3 và nội dung */}
+    <div style={styles.orderInfo}> 
       <h3>Thông tin đơn hàng</h3>
       <div style={{ display: 'flex', flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: '200px', paddingRight: '40px' }}>

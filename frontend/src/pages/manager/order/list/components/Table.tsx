@@ -1,0 +1,221 @@
+import React from "react";
+import { Table, Button, Space, Tag, message, Tooltip } from "antd";
+import { EyeOutlined, EditOutlined, CloseCircleOutlined, CopyOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
+import { ColumnsType } from "antd/es/table";
+import { translateOrderPayer, translateOrderPaymentMethod, translateOrderPaymentStatus, translateOrderStatus } from "../../../../../utils/orderUtils";
+import dayjs from "dayjs";
+import { Order } from "../../../../../types/order";
+
+interface Props {
+  orders: Order[];
+  provinceList: { code: number; name: string }[];
+  wardList: { code: number; name: string }[];
+  role?: string;
+  officeId?: number;
+  onDetail: (trackingNumber: string) => void;
+  onEdit: (trackingNumber: string) => void;
+  onApprove: (order: Order) => void;
+}
+
+const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, role, officeId, onDetail, onEdit, onApprove }) => {
+  const navigate = useNavigate();
+
+  const statusTag = (status: string) => {
+    switch (status) {
+      case "draft": return <Tag color="default">{translateOrderStatus(status)}</Tag>;
+      case "pending": return <Tag color="orange">{translateOrderStatus(status)}</Tag>;
+      case "confirmed": return <Tag color="blue">{translateOrderStatus(status)}</Tag>;
+      case "picked_up": return <Tag color="purple">{translateOrderStatus(status)}</Tag>;
+      case "in_transit": return <Tag color="cyan">{translateOrderStatus(status)}</Tag>;
+      case "delivered": return <Tag color="green">{translateOrderStatus(status)}</Tag>;
+      case "cancelled": return <Tag color="red">{translateOrderStatus(status)}</Tag>;
+      case "returned": return <Tag color="gold">{translateOrderStatus(status)}</Tag>;
+      case "Paid": return <Tag color="green">{translateOrderPaymentStatus(status)}</Tag>;
+      case "Unpaid": return <Tag color="red">{translateOrderPaymentStatus(status)}</Tag>;
+      case "Refunded": return <Tag color="orange">{translateOrderPaymentStatus(status)}</Tag>;
+      default: return <Tag>{status}</Tag>;
+    }
+  };
+
+  const tableData = orders.map((o) => ({ ...o, key: String(o.id) }));
+
+  const columns: ColumnsType<any> = [
+    {
+      title: "Mã đơn",
+      dataIndex: "trackingNumber",
+      key: "trackingNumber",
+      align: "center",
+      render: (text, record) => (
+        <Space size="small">
+          <Button
+            type="link"
+            onClick={() => navigate(`/${role}/orders/detail/${record.trackingNumber}`)}
+            style={{ padding: 0 }}
+          >
+            {record.trackingNumber}
+          </Button>
+          <Tooltip title="Copy mã đơn hàng">
+            <Button
+              type="text"
+              size="small"
+              icon={<CopyOutlined />}
+              onClick={() => {
+                navigator.clipboard.writeText(text);
+                message.success('Đã copy mã đơn hàng!');
+              }}
+              style={{ color: '#1890ff' }}
+            />
+          </Tooltip>
+        </Space>
+      ),
+    },
+    { title: "Tên người gửi", dataIndex: "senderName", key: "senderName", align: "center" },
+    { title: "SĐT người gửi", dataIndex: "senderPhone", key: "senderPhone", align: "center" },
+    {
+      title: "Địa chỉ người gửi",
+      key: "senderAddress",
+      align: "center",
+      render: (_, record) => {
+        const cityName = provinceList.find((p) => p.code === Number(record.senderCityCode))?.name || "";
+        const wardName = wardList.find((w) => w.code === Number(record.senderWardCode))?.name || "";
+        const address = `${record.senderDetailAddress || ""}, ${wardName}, ${cityName}`;
+
+        return (
+          <div style={{
+            maxWidth: "300px",
+            wordBreak: "break-word",
+            whiteSpace: "normal"
+          }}>
+            {address}
+          </div>
+        );
+      },
+    },
+    { title: "Tên người nhận", dataIndex: "recipientName", key: "recipientName", align: "center" },
+    { title: "SĐT người nhận", dataIndex: "recipientPhone", key: "recipientPhone", align: "center" },
+    {
+      title: "Địa chỉ người nhận",
+      key: "recipientAddress",
+      align: "center",
+      render: (_, record) => {
+        const cityName = provinceList.find((p) => p.code === Number(record.recipientCityCode))?.name || "";
+        const wardName = wardList.find((w) => w.code === Number(record.recipientWardCode))?.name || "";
+        const address = `${record.recipientDetailAddress || ""}, ${wardName}, ${cityName}`;
+
+        return (
+          <div style={{
+            maxWidth: "300px",
+            wordBreak: "break-word",
+            whiteSpace: "normal"
+          }}>
+            {address}
+          </div>
+        );
+      },
+    },
+    { title: "Gía trị đơn (VNĐ)", dataIndex: "orderValue", key: "orderValue", align: "center" },
+    { title: "Phí vận chuyển (VNĐ)", dataIndex: "shippingFee", key: "shippingFee", align: "center" },
+    { title: "COD (VNĐ)", dataIndex: "cod", key: "cod", align: "center" },
+    { title: "Khối lượng (Kg)", dataIndex: "weight", key: "weight", align: "center" },
+    {
+      title: "Người thanh toán",
+      dataIndex: "payer",
+      key: "payer",
+      align: "center",
+      render: (payer) => (
+        translateOrderPayer(payer)
+      )
+    },
+    {
+      title: "Phương thức thanh toán",
+      dataIndex: "paymentMethod",
+      key: "paymentMethod",
+      align: "center",
+      render: (method) => (
+        translateOrderPaymentMethod(method)
+      )
+    },
+    { title: "Trạng thái thanh toán", dataIndex: "paymentStatus", key: "paymentStatus", align: "center", render: (p) => statusTag(p) },
+    { title: "Trạng thái", dataIndex: "status", key: "status", align: "center", render: (s) => statusTag(s) },
+    {
+      title: "Điểm gửi",
+      dataIndex: "fromOffice",
+      key: "fromOffice",
+      align: "center",
+      render: (fromOffice) => {
+        if (!fromOffice) return "---";
+        return fromOffice.id === officeId
+          ? "Bưu cục hiện tại"
+          : fromOffice.name
+      }
+    },
+    {
+      title: "Điểm nhận",
+      dataIndex: "toOffice",
+      key: "toOffice",
+      align: "center",
+      render: (toOffice) => {
+        if (!toOffice) return "---";
+        return toOffice.id === officeId
+          ? "Bưu cục hiện tại"
+          : toOffice.name
+      }
+    },
+    { title: "Trạng thái", dataIndex: "status", key: "status", align: "center", render: (s) => statusTag(s) },
+    { title: "Ngày tạo", dataIndex: "createdAt", key: "createdAt", align: "center", render: (date) => dayjs(date).format('DD/MM/YYYY HH:mm:ss') },
+    {
+      title: 'Hành động',
+      key: 'action',
+      align: 'center',
+      width: 250,
+      render: (_, record: Order) => {
+        const canApprove = ["pending"].includes(record.status);
+
+        // Kiểm tra điều kiện thanh toán
+        const hasPaymentIssue = record.paymentMethod !== 'Cash' && record.paymentStatus === 'Unpaid';
+
+        // Nếu có vấn đề thanh toán thì disable nút
+        const isApproveDisabled = !canApprove || hasPaymentIssue;
+
+        return (
+          <Space>
+            {/* Nút Xem */}
+            <Button
+              type="link"
+              icon={<EyeOutlined />}
+              size="small"
+              onClick={() => onDetail(record.trackingNumber)}
+            >
+              Xem
+            </Button>
+
+            {/* Nút Sửa thông tin */}
+            <Button
+              type="link"
+              icon={<EditOutlined />}
+              size="small"
+              onClick={() => onEdit(record.trackingNumber)}
+            >
+              Sửa
+            </Button>
+
+            <Button
+              type="link"
+              icon={<CheckCircleOutlined />}
+              size="small"
+              disabled={isApproveDisabled}
+              onClick={() => onApprove(record)}
+            >
+              Xác nhận
+            </Button>
+          </Space>
+        );
+      },
+    }
+  ];
+
+  return <Table columns={columns} dataSource={tableData} rowKey="key" scroll={{ x: "max-content" }} />;
+};
+
+export default OrderTable;

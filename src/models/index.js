@@ -33,6 +33,7 @@ import Product from './product.js';
 import OrderProduct from './orderProduct.js';
 import PaymentSubmission from './paymentSubmission.js';
 import ShippingCollection from './shippingCollection.js';
+import ShippingRequest from './shippingRequest.js';
 
 // Initialize models
 const db = {
@@ -55,6 +56,7 @@ const db = {
   OrderProduct: OrderProduct(sequelize),
   PaymentSubmission: PaymentSubmission(sequelize),
   ShippingCollection: ShippingCollection(sequelize),
+  ShippingRequest: ShippingRequest(sequelize),
 };
 
 // Call associate for each model if exists

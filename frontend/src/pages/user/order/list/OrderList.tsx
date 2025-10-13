@@ -35,6 +35,7 @@ const OrderList = () => {
 
   const [searchText, setSearchText] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
+  const [filterSort, setFilterSort] = useState("newest");
   const [filterPayer, setFilterPayer] = useState("All");
   const [filterPaymentStatus, setFilterPaymentStatus] = useState("All");
   const [filterPayment, setFilterPayment] = useState("All");
@@ -55,6 +56,7 @@ const OrderList = () => {
       paymentMethod: filterPayment !== "All" ? filterPayment : undefined,
       paymentStatus: filterPaymentStatus !== "All" ? filterPaymentStatus : undefined,
       cod: filterCOD !== "All" ? filterCOD : undefined,
+      sort: filterSort !== "newest" ? filterSort : undefined,
     };
     if (dateRange) {
       payload.startDate = dateRange[0].startOf("day").toISOString();
@@ -68,7 +70,7 @@ const OrderList = () => {
     Modal.confirm({
       title: "Xác nhận hủy đơn hàng",
       content: "Bạn có chắc chắn muốn hủy đơn hàng này không?",
-      okText: "Hủy đơn",
+      okText: "Hủy",
       cancelText: "Không",
       centered: true,
       icon: null,
@@ -188,7 +190,7 @@ const OrderList = () => {
     fetchOrders();
   }, [dispatch]);
 
-  useEffect(() => { setCurrentPage(1); fetchOrders(1); }, [searchText, filterStatus, filterPayment, filterPayer, filterPaymentStatus, filterCOD, dateRange]);
+  useEffect(() => { setCurrentPage(1); fetchOrders(1); }, [searchText, filterStatus, filterPayment, filterPayer, filterPaymentStatus, filterCOD, dateRange, filterSort ]);
 
   return (
     <div style={{ padding: 24, background: "#F9FAFB", borderRadius: 12 }}>
@@ -199,22 +201,24 @@ const OrderList = () => {
         setDateRange={setDateRange}
         showAdvancedFilters={showAdvancedFilters}
         setShowAdvancedFilters={setShowAdvancedFilters}
-        filters={{ status: filterStatus, payer: filterPayer, paymentStatus: filterPaymentStatus, paymentMethod: filterPayment, cod: filterCOD }}
+        filters={{ status: filterStatus, payer: filterPayer, paymentStatus: filterPaymentStatus, paymentMethod: filterPayment, cod: filterCOD, sort: filterSort }}
         setFilters={(key, val) => {
           if (key === "status") setFilterStatus(val);
           if (key === "payer") setFilterPayer(val);
           if (key === "paymentStatus") setFilterPaymentStatus(val);
           if (key === "paymentMethod") setFilterPayment(val);
           if (key === "cod") setFilterCOD(val);
+          if (key === "sort") setFilterSort(val);
         }}
         statuses={statuses}
         payers={payers}
         paymentStatuses={paymentStatuses}
         paymentMethods={paymentMethods}
         onReset={() => {
-          setSearchText(""); setFilterStatus("All"); setFilterPayment("All");
+          setSearchText(""); setFilterStatus("All"); 
+          setFilterPayment("All"); setFilterSort("newest");
           setFilterPayer("All"); setFilterPaymentStatus("All"); setFilterCOD("All");
-          setDateRange(null); setCurrentPage(1); setShowAdvancedFilters(false);
+          setDateRange(null); setCurrentPage(1); 
         }}
       />
 

@@ -416,7 +416,7 @@ const CreateOrder: React.FC = () => {
         }
 
         // Thay thế entry lịch sử bằng trang Order Success
-        navigate(`/user/orders/success/${order.id}`, { replace: true });
+        navigate(`/user/orders/success/${order.trackingNumber}`, { replace: true });
 
         // Nếu có id và paymentMethod là VNPay, không phải nháp
         if (payload.paymentMethod === "VNPay" && !isDraft) {

@@ -6,7 +6,7 @@ import { message, Modal } from "antd";
 import { AppDispatch } from "../../../../store/store";
 import { Order } from "../../../../types/order";
 import { City, Ward } from "../../../../types/location";
-import { cancelOrder, createVNPayURL, getOrderById, updateOrderStatusToPending } from "../../../../store/orderSlice";
+import { cancelOrder, createVNPayURL, getOrderByTrackingNumber, updateOrderStatusToPending } from "../../../../store/orderSlice";
 
 import Header from "./components/Header";
 import OrderSenderRecipient from "./components/SenderRecipientInfo";
@@ -19,7 +19,7 @@ import { userInfo } from "os";
 import { useAppSelector } from "../../../../hooks/redux";
 
 const OrderDetail: React.FC = () => {
-    const { id } = useParams<{ id: string }>();
+    const { trackingNumber } = useParams<{ trackingNumber: string }>();
     const navigate = useNavigate();
     const dispatch = useDispatch<AppDispatch>();
 
@@ -33,9 +33,9 @@ const OrderDetail: React.FC = () => {
 
     useEffect(() => {
         const fetchOrder = async () => {
-            if (!id) return;
+            if (!trackingNumber) return;
             try {
-                const resp = await dispatch(getOrderById(Number(id))).unwrap();
+                const resp = await dispatch(getOrderByTrackingNumber(trackingNumber)).unwrap();
                 setOrder(resp.order ?? null);
             } catch (error) {
                 console.error("Lỗi lấy chi tiết đơn hàng:", error);
@@ -44,7 +44,7 @@ const OrderDetail: React.FC = () => {
             }
         };
         fetchOrder();
-    }, [dispatch, id]);
+    }, [dispatch, trackingNumber]);
 
     // --- Fetch tất cả provinces + wards ---
     useEffect(() => {
@@ -60,7 +60,7 @@ const OrderDetail: React.FC = () => {
     }, []);
 
     const handleEdit = () => {
-        if (order?.id && user) navigate(`/${user.role}/orders/edit/${order.id}`);
+        if (order?.id && user) navigate(`/${user.role}/orders/edit/${order.trackingNumber}`);
     };
 
     const handlePayment = async () => {
@@ -77,7 +77,7 @@ const OrderDetail: React.FC = () => {
         Modal.confirm({
             title: "Xác nhận hủy đơn hàng",
             content: "Bạn có chắc chắn muốn hủy đơn hàng này không?",
-            okText: "Hủy đơn",
+            okText: "Hủy",
             cancelText: "Không",
             centered: true,
             icon: null,

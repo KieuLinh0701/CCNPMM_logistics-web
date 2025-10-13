@@ -8,7 +8,7 @@ import OrderInfo from './components/OrderInfo';
 import OrderCustomerInfo from './components/CustomerInfo';
 import OrderPaymentInfo from './components/PaymentInfo';
 import { AppDispatch } from '../../../../store/store';
-import { cancelOrder, checkVNPayPayment, createVNPayURL, getOrderById } from '../../../../store/orderSlice';
+import { cancelOrder, checkVNPayPayment, createVNPayURL, getOrderByTrackingNumber } from '../../../../store/orderSlice';
 import { Order } from '../../../../types/order';
 import { City, Ward } from '../../../../types/location';
 import OrderHeader from './components/Header';
@@ -17,7 +17,7 @@ import { styles } from '../style/Order.styles';
 import { useAppSelector } from '../../../../hooks/redux';
 
 const OrderSuccess: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { trackingNumber } = useParams<{ trackingNumber: string }>();
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
 
@@ -33,9 +33,9 @@ const OrderSuccess: React.FC = () => {
 
   useEffect(() => {
     const fetchOrder = async () => {
-      if (!id) return;
+      if (!trackingNumber) return;
       try {
-        const response = await dispatch(getOrderById(Number(id))).unwrap();
+        const response = await dispatch(getOrderByTrackingNumber(trackingNumber)).unwrap();
         setOrder(response.order ?? null);
       } catch (error) {
         console.error('Lỗi lấy đơn hàng:', error);
@@ -44,11 +44,11 @@ const OrderSuccess: React.FC = () => {
       }
     };
     fetchOrder();
-  }, [dispatch, id]);
+  }, [dispatch, trackingNumber]);
 
   const handleViewDetails = () => {
-    if (order?.id && user) {
-      navigate(`/${user.role}/orders/detail/${order.id}`);
+    if (order?.trackingNumber && user) {
+      navigate(`/${user.role}/orders/detail/${order.trackingNumber}`);
     }
   };
 
@@ -71,7 +71,7 @@ const OrderSuccess: React.FC = () => {
     Modal.confirm({
       title: "Xác nhận hủy đơn hàng",
       content: "Bạn có chắc chắn muốn hủy đơn hàng này không?",
-      okText: "Hủy đơn",
+      okText: "Hủy",
       cancelText: "Không",
       centered: true,
       icon: null,
@@ -148,26 +148,26 @@ const OrderSuccess: React.FC = () => {
         .then((res) => {
           if (user) {
             if (res && res.success) {
-              window.location.replace(`/${user.role}/orders/success/${id}`);
+              window.location.replace(`/${user.role}/orders/success/${trackingNumber}`);
             } else {
-              window.location.replace(`/${user.role}/orders/failed/${id}`);
+              window.location.replace(`/${user.role}/orders/failed/${trackingNumber}`);
             }
           }
         })
         .catch(() => {
           if (user) {
-            window.location.replace(`/${user.role}/orders/failed/${id}`);
+            window.location.replace(`/${user.role}/orders/failed/${trackingNumber}`);
           }
         });
     }
-  }, [id, location, dispatch, navigate]);
+  }, [trackingNumber, location, dispatch, navigate]);
 
   if (loading || !order) {
     return <div>Đang tải...</div>;
   }
 
   return (
-    <div style={styles.container}>
+    <div style={styles.containerSuccess}>
       <div>
         <OrderHeader order={order} styles={styles} />
 

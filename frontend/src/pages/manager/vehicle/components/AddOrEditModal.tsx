@@ -43,10 +43,10 @@ const AddOrEditModal: React.FC<AddOrEditModalProps> = ({
             fontWeight: 'bold',
             fontSize: '18px',
             display: 'flex',
-            justifyContent: 'center',
+            justifyContent: 'left',
           }}
         >
-          {mode === 'edit' ? 'Chỉnh sửa phương tiện' : 'Thêm phương tiện mới'}
+          {mode === 'edit' ? `Chỉnh sửa phương tiện #${vehicle.id}` : 'Thêm phương tiện mới'}
         </span>
       }
       open={open}
@@ -71,10 +71,6 @@ const AddOrEditModal: React.FC<AddOrEditModalProps> = ({
       width={600}
     >
       <Form form={form} layout="vertical">
-        <Form.Item label="ID" name="id" style={{ marginBottom: 12 }}>
-          <Input value={vehicle.id} disabled />
-        </Form.Item>
-
         <Form.Item
           label="Biển số xe"
           name="licensePlate"

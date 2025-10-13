@@ -394,6 +394,7 @@ const orderService = {
         paymentStatus,
         paymentMethod,
         cod,
+        sort,
         startDate,
         endDate,
       } = filters || {};
@@ -435,10 +436,49 @@ const orderService = {
         };
       }
 
+      let orderCondition = [["createdAt", "DESC"]];
+
+      if (sort) {
+        switch (sort) {
+          case "newest":
+            orderCondition = [["createdAt", "DESC"]];
+            break;
+          case "oldest":
+            orderCondition = [["createdAt", "ASC"]];
+            break;
+          case "codHigh":
+            orderCondition = [["cod", "DESC"]];
+            break;
+          case "codLow":
+            orderCondition = [["cod", "ASC"]];
+            break;
+          case "orderValueHigh":
+            orderCondition = [["orderValue", "DESC"]];
+            break;
+          case "orderValueLow":
+            orderCondition = [["orderValue", "ASC"]];
+            break;
+          case "feeHigh":
+            orderCondition = [["shippingFee", "DESC"]];
+            break;
+          case "feeLow":
+            orderCondition = [["shippingFee", "ASC"]];
+            break;
+          case "weightHigh":
+            orderCondition = [["weight", "DESC"]];
+            break;
+          case "weightLow":
+            orderCondition = [["weight", "ASC"]];
+            break;
+          default:
+            orderCondition = [["createdAt", "DESC"]];
+        }
+      }
+
       // 3. Query phân trang
       const ordersResult = await db.Order.findAndCountAll({
         where: whereCondition,
-        order: [["createdAt", "DESC"]],
+        order: orderCondition,
         limit,
         offset: (page - 1) * limit,
         include: [
@@ -610,18 +650,28 @@ const orderService = {
     }
   },
 
-  // Get Order by ID
-  async getOrderById(userId, orderId) {
+  // Get Order by Tracking Number
+  async getOrderByTrackingNumber(userId, trackingNumber) {
     try {
+      const { Op } = db.Sequelize;
+
       // 1. Kiểm tra user tồn tại
       const user = await db.User.findByPk(userId);
       if (!user) {
         return { success: false, message: "Người dùng không tồn tại" };
       }
 
-      // 2. Tìm order theo id + userId, include các quan hệ
+      // 2. Clean trackingNumber
+      const cleanTrackingNumber = trackingNumber.trim().toUpperCase();
+
+      // 3. Tìm order (không phân biệt hoa thường + trim)
       const order = await db.Order.findOne({
-        where: { id: orderId, userId },
+        where: {
+          trackingNumber: {
+            [Op.like]: `%${cleanTrackingNumber}%`
+          },
+          userId
+        },
         include: [
           {
             model: db.OrderProduct,
@@ -637,7 +687,10 @@ const orderService = {
       });
 
       if (!order) {
-        return { success: false, message: "Đơn hàng không tồn tại" };
+        return {
+          success: false,
+          message: "Không tìm thấy đơn hàng với mã vận đơn này hoặc đơn hàng không thuộc về bạn"
+        };
       }
 
       return {
@@ -646,7 +699,7 @@ const orderService = {
         order,
       };
     } catch (error) {
-      console.error("Get Order by ID error:", error);
+      console.error("Get Order by Tracking Number error:", error);
       return { success: false, message: "Lỗi server khi lấy đơn hàng" };
     }
   },
@@ -1055,35 +1108,44 @@ const orderService = {
         paymentStatus,
         paymentMethod,
         cod,
+        sort,
         startDate,
         endDate,
         senderWard,
         recipientWard,
       } = filters || {};
 
+      // Tạo điều kiện cơ bản
       const whereCondition = {
-        [Op.or]: [
-          { fromOfficeId: officeId },
-          { toOfficeId: officeId }
-        ],
         [Op.and]: [
+          {
+            [Op.or]: [
+              { fromOfficeId: officeId },
+              { toOfficeId: officeId }
+            ]
+          },
           { status: { [Op.ne]: 'draft' } }
         ]
       };
 
+      // Xử lý searchText - THÊM vào điều kiện Op.or thay vì ghi đè
       if (searchText) {
-        whereCondition[Op.or] = [
-          ...(whereCondition[Op.or] || []),
+        const searchConditions = [
           { trackingNumber: { [Op.like]: `%${searchText}%` } },
           { recipientName: { [Op.like]: `%${searchText}%` } },
           { recipientPhone: { [Op.like]: `%${searchText}%` } },
           { senderName: { [Op.like]: `%${searchText}%` } },
           { senderPhone: { [Op.like]: `%${searchText}%` } },
         ];
+
+        // Thêm điều kiện search vào mảng Op.and
+        whereCondition[Op.and].push({
+          [Op.or]: searchConditions
+        });
       }
 
       if (payer && payer !== "All") {
-        whereCondition.payer = payer;
+        whereCondition[Op.and].push({ payer: payer });
       }
 
       if (status && status !== "All") {
@@ -1091,37 +1153,80 @@ const orderService = {
       }
 
       if (paymentStatus && paymentStatus !== "All") {
-        whereCondition.paymentStatus = paymentStatus;
+        whereCondition[Op.and].push({ paymentStatus: paymentStatus });
       }
 
       if (paymentMethod && paymentMethod !== "All") {
-        whereCondition.paymentMethod = paymentMethod;
+        whereCondition[Op.and].push({ paymentMethod: paymentMethod });
       }
 
       if (cod && cod !== "All") {
-        whereCondition.cod = cod === "Yes" ? { [Op.gt]: 0 } : 0;
+        whereCondition[Op.and].push(
+          cod === "Yes" ? { cod: { [Op.gt]: 0 } } : { cod: 0 }
+        );
       }
 
       // Lọc theo phường/xã người gửi
       if (senderWard && senderWard !== "All") {
-        whereCondition.senderWardCode = senderWard;
+        whereCondition[Op.and].push({ senderWardCode: senderWard });
       }
 
       // Lọc theo phường/xã người nhận
       if (recipientWard && recipientWard !== "All") {
-        whereCondition.recipientWardCode = recipientWard;
+        whereCondition[Op.and].push({ recipientWardCode: recipientWard });
       }
 
       if (startDate && endDate) {
-        whereCondition.createdAt = {
-          [Op.between]: [new Date(startDate), new Date(endDate)],
-        };
+        whereCondition[Op.and].push({
+          createdAt: {
+            [Op.between]: [new Date(startDate), new Date(endDate)],
+          },
+        });
+      }
+
+      let orderCondition = [["createdAt", "DESC"]];
+
+      if (sort) {
+        switch (sort) {
+          case "newest":
+            orderCondition = [["createdAt", "DESC"]];
+            break;
+          case "oldest":
+            orderCondition = [["createdAt", "ASC"]];
+            break;
+          case "codHigh":
+            orderCondition = [["cod", "DESC"]];
+            break;
+          case "codLow":
+            orderCondition = [["cod", "ASC"]];
+            break;
+          case "orderValueHigh":
+            orderCondition = [["orderValue", "DESC"]];
+            break;
+          case "orderValueLow":
+            orderCondition = [["orderValue", "ASC"]];
+            break;
+          case "feeHigh":
+            orderCondition = [["shippingFee", "DESC"]];
+            break;
+          case "feeLow":
+            orderCondition = [["shippingFee", "ASC"]];
+            break;
+          case "weightHigh":
+            orderCondition = [["weight", "DESC"]];
+            break;
+          case "weightLow":
+            orderCondition = [["weight", "ASC"]];
+            break;
+          default:
+            orderCondition = [["createdAt", "DESC"]];
+        }
       }
 
       // 4. Query phân trang với các associations
       const ordersResult = await db.Order.findAndCountAll({
         where: whereCondition,
-        order: [["createdAt", "DESC"]],
+        order: orderCondition,
         limit,
         offset: (page - 1) * limit,
         include: [
@@ -1164,6 +1269,139 @@ const orderService = {
     } catch (error) {
       console.error("Get Orders by Office error:", error);
       return { success: false, message: "Lỗi server khi lấy đơn hàng" };
+    }
+  },
+
+  // Confirm Order and Assign To Office
+  async confirmOrderAndAssignToOffice(userId, orderId, officeId) {
+    const t = await db.sequelize.transaction();
+
+    try {
+      // 1. Kiểm tra user tồn tại và có role manager
+      const user = await db.User.findByPk(userId);
+      if (!user) {
+        return { success: false, message: "Người dùng không tồn tại" };
+      }
+
+      if (user.role !== 'manager') {
+        return { success: false, message: "Chỉ manager mới có quyền duyệt đơn hàng" };
+      }
+
+      // 2. Kiểm tra order tồn tại - THÊM toOffice VÀO INCLUDE
+      const order = await db.Order.findOne({
+        where: { id: orderId },
+        include: [
+          {
+            model: db.Office,
+            as: 'fromOffice',
+            attributes: ['id', 'name', 'codeCity']
+          },
+          {
+            model: db.Office,
+            as: 'toOffice',
+            attributes: ['id', 'name', 'codeCity']
+          }
+        ],
+        transaction: t
+      });
+
+      if (!order) {
+        return { success: false, message: "Đơn hàng không tồn tại" };
+      }
+
+      // 3. Kiểm tra user có thuộc office của fromOffice không
+      if (order.fromOfficeId) {
+        const employee = await db.Employee.findOne({
+          where: {
+            userId: userId,
+            officeId: order.fromOfficeId,
+            status: 'Active'
+          },
+          transaction: t
+        });
+
+        if (!employee) {
+          return {
+            success: false,
+            message: "Bạn không có quyền duyệt đơn hàng từ bưu cục này"
+          };
+        }
+      }
+
+      // 4. Kiểm tra officeId có tồn tại không
+      const toOffice = await db.Office.findByPk(officeId, { transaction: t });
+      if (!toOffice) {
+        return { success: false, message: "Bưu cục nhận không tồn tại" };
+      }
+
+      // 5. Kiểm tra officeId có tỉnh trùng với recipientCityCode không
+      if (toOffice.codeCity !== order.recipientCityCode) {
+        return {
+          success: false,
+          message: "Bưu cục nhận không thuộc tỉnh/thành của người nhận"
+        };
+      }
+
+      // 6. Kiểm tra trạng thái hiện tại có thể chuyển thành confirmed không
+      const allowedStatuses = ["pending"];
+      if (!allowedStatuses.includes(order.status)) {
+        return {
+          success: false,
+          message: `Không thể duyệt đơn hàng ở trạng thái: ${order.status}`
+        };
+      }
+
+      // 7. KIỂM TRA ĐIỀU KIỆN THANH TOÁN
+      // Nếu payment method khác Cash và chưa thanh toán thì không cho duyệt
+      if (order.paymentMethod !== 'Cash' && order.paymentStatus === 'Unpaid') {
+        return {
+          success: false,
+          message: `Không thể duyệt đơn hàng. Phương thức thanh toán ${order.paymentMethod} cần được thanh toán trước khi duyệt`
+        };
+      }
+
+      // 8. Cập nhật order: status thành confirmed và gán toOfficeId
+      order.status = 'confirmed';
+      order.toOfficeId = officeId;
+      await order.save({ transaction: t });
+
+      // 9. RELOAD ORDER ĐỂ CẬP NHẬT TOOFFICE
+      await order.reload({
+        include: [
+          {
+            model: db.Office,
+            as: 'fromOffice',
+            attributes: ['id', 'name', 'codeCity']
+          },
+          {
+            model: db.Office,
+            as: 'toOffice',
+            attributes: ['id', 'name', 'codeCity']
+          }
+        ],
+        transaction: t
+      });
+
+      await t.commit();
+
+      console.log("order after reload:", order);
+      console.log("toOffice data:", order.toOffice);
+
+      return {
+        success: true,
+        message: "Duyệt đơn hàng và gán bưu cục nhận thành công",
+        order
+      };
+
+    } catch (error) {
+      if (!t.finished) {
+        await t.rollback();
+      }
+      console.error("Approve Order and Assign To Office error:", error);
+      return {
+        success: false,
+        message: error.message || "Lỗi server khi duyệt đơn hàng"
+      };
     }
   },
 };

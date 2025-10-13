@@ -5,8 +5,8 @@ import { Promotion } from "./promotion";
 import { serviceType } from "./serviceType";
 
 export interface Order {
-  id?: number;
-  trackingNumber?: string;
+  id: number;
+  trackingNumber: string;
 
   senderName: string;
   senderPhone: string;
@@ -38,7 +38,7 @@ export interface Order {
   discountAmount: number;
   shippingFee: number;
 
-  status: 'draft' | 'pending' | 'confirmed' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled';
+  status: 'draft' | 'pending' | 'confirmed' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled' | 'returned';
 
   deliveredAt?: Date;
 

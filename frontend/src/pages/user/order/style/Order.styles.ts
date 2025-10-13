@@ -13,6 +13,17 @@ export const styles: { [key: string]: CSSProperties } = {
     color: '#333',
   },
 
+  containerSuccess: {
+    maxWidth: '1100px',
+    margin: '0px auto',
+    padding: '24px',
+    backgroundColor: '#fff',
+    borderRadius: '10px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+    color: '#333',
+  },
+
   containerEdit: {
     margin: '0 auto',
     backgroundColor: '#fff',

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { Modal, Tag, Row, Col } from "antd";
+import { Modal, Tag, Row, Col, message } from "antd";
 import dayjs from "dayjs";
 import {
   getStatusesEnum,
@@ -9,13 +9,18 @@ import {
   getPaymentMethodsEnum,
   getPaymentStatusesEnum,
   getOrdersByOffice,
-} from "../../../store/orderSlice";
-import { useAppDispatch, useAppSelector } from "../../../hooks/redux";
+  confirmOrderAndAssignToOffice,
+} from "../../../../store/orderSlice";
+import { useAppDispatch, useAppSelector } from "../../../../hooks/redux";
 import SearchFilters from "./components/SearchFilters";
 import OrderTable from "./components/Table";
 import OrderActions from "./components/Actions";
-import { City, Ward } from "../../../types/location";
-import { getByUserId } from "../../../store/officeSlice";
+import { City, Ward } from "../../../../types/location";
+import { getByUserId, getOfficesByArea } from "../../../../store/officeSlice";
+import { Order } from "../../../../types/order";
+import OfficeSelectionModal from "./components/OfficeSelectionModal";
+import { RootState } from "../../../../store/store";
+import { useSelector } from "react-redux";
 
 const OrderListManager = () => {
   const navigate = useNavigate();
@@ -32,6 +37,7 @@ const OrderListManager = () => {
   const [pageSize, setPageSize] = useState(10);
 
   const [searchText, setSearchText] = useState("");
+  const [filterSort, setFilterSort] = useState("newest");
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterPayer, setFilterPayer] = useState("All");
   const [filterPaymentStatus, setFilterPaymentStatus] = useState("All");
@@ -41,7 +47,12 @@ const OrderListManager = () => {
   const [filterRecipientWard, setFilterRecipientWard] = useState("All");
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  const [importModalOpen, setImportModalOpen] = useState(false);
+
+  const { offices = [] } = useAppSelector(state => state.office);
+
+  const [isOfficeSelectionModalVisible, setIsOfficeSelectionModalVisible] = useState(false);
+
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   // --- Fetch Orders ---
   const fetchOrders = (page = currentPage, search?: string) => {
@@ -57,6 +68,7 @@ const OrderListManager = () => {
       paymentMethod: filterPayment !== "All" ? filterPayment : undefined,
       paymentStatus: filterPaymentStatus !== "All" ? filterPaymentStatus : undefined,
       cod: filterCOD !== "All" ? filterCOD : undefined,
+      sort: filterSort !== "newest" ? filterSort : undefined,
       senderWard: filterSenderWard !== "All" ? filterSenderWard : undefined,
       recipientWard: filterRecipientWard !== "All" ? filterRecipientWard : undefined,
     };
@@ -66,6 +78,63 @@ const OrderListManager = () => {
     }
 
     dispatch(getOrdersByOffice(payload));
+  };
+
+  const handleViewOrderDetail = (trackingNumber: string) => {
+  };
+
+  const handleEditOrder = (trackingNumber: string) => {
+  };
+
+  // Hàm xử lý khi nhấn nút "Duyệt"
+  const handleApprove = async (order: Order) => {
+    setSelectedOrder(order);
+
+    // Lấy danh sách offices theo city của người nhận
+    if (order.recipientCityCode) {
+      try {
+        await dispatch(getOfficesByArea({ codeCity: order.recipientCityCode })).unwrap();
+        setIsOfficeSelectionModalVisible(true);
+      } catch (error) {
+        console.error('Lỗi khi lấy danh sách bưu cục:', error);
+        message.error('Không thể tải danh sách bưu cục');
+      }
+    } else {
+      setIsOfficeSelectionModalVisible(true);
+    }
+  };
+
+  // Hàm xác nhận
+  const handleConfirm = async (officeId: number) => {
+    if (selectedOrder) {
+      try {
+        console.log('Đang xử lý order id:', selectedOrder.id);
+        console.log('Đã chọn office:', officeId);
+
+        const result = await dispatch(confirmOrderAndAssignToOffice({
+          orderId: selectedOrder.id,
+          officeId
+        })).unwrap();
+
+        if (result.success) {
+          message.success(result.message || 'Xác nhận đơn hàng thành công');
+        } else {
+          message.error(result.message || 'Xác nhận đơn hàng thất bại');
+        }
+
+      } catch (error: any) {
+        message.error(error.message || 'Lỗi khi xác nhận đơn hàng');
+      }
+    }
+
+    setIsOfficeSelectionModalVisible(false);
+    setSelectedOrder(null);
+  };
+
+  // Hàm hủy
+  const handleCancel = () => {
+    setIsOfficeSelectionModalVisible(false);
+    setSelectedOrder(null);
   };
 
   useEffect(() => {
@@ -113,7 +182,7 @@ const OrderListManager = () => {
     }
   }, [office?.codeCity]);
 
-  useEffect(() => { setCurrentPage(1); fetchOrders(1); }, [searchText, filterStatus, filterPayment, filterPayer, filterPaymentStatus, filterCOD, dateRange, filterSenderWard, filterRecipientWard]);
+  useEffect(() => { setCurrentPage(1); fetchOrders(1); }, [searchText, filterStatus, filterPayment, filterPayer, filterPaymentStatus, filterCOD, dateRange, filterSenderWard, filterRecipientWard, filterSort]);
 
   return (
     <div style={{ padding: 24, background: "#F9FAFB", borderRadius: 12 }}>
@@ -124,13 +193,14 @@ const OrderListManager = () => {
         setDateRange={setDateRange}
         showAdvancedFilters={showAdvancedFilters}
         setShowAdvancedFilters={setShowAdvancedFilters}
-        filters={{ status: filterStatus, payer: filterPayer, paymentStatus: filterPaymentStatus, paymentMethod: filterPayment, cod: filterCOD, senderWard: filterSenderWard, recipientWard: filterRecipientWard }}
+        filters={{ status: filterStatus, payer: filterPayer, paymentStatus: filterPaymentStatus, paymentMethod: filterPayment, cod: filterCOD, senderWard: filterSenderWard, recipientWard: filterRecipientWard, sort: filterSort }}
         setFilters={(key, val) => {
           if (key === "status") setFilterStatus(val);
           if (key === "payer") setFilterPayer(val);
           if (key === "paymentStatus") setFilterPaymentStatus(val);
           if (key === "paymentMethod") setFilterPayment(val);
           if (key === "cod") setFilterCOD(val);
+          if (key === "sort") setFilterSort(val);
           if (key === "senderWard") setFilterSenderWard(val);
           if (key === "recipientWard") setFilterRecipientWard(val);
         }}
@@ -140,9 +210,11 @@ const OrderListManager = () => {
         paymentMethods={paymentMethods}
         wards={wards}
         onReset={() => {
-          setSearchText(""); setFilterStatus("All"); setFilterPayment("All"); setFilterSenderWard("All");
-          setFilterRecipientWard("All"); setFilterPayer("All"); setFilterPaymentStatus("All"); setFilterCOD("All");
-          setDateRange(null); setCurrentPage(1); setShowAdvancedFilters(false);
+          setSearchText(""); setFilterStatus("All"); setFilterPayment("All");
+          setFilterSenderWard("All"); setFilterSort("newest");
+          setFilterRecipientWard("All"); setFilterPayer("All");
+          setFilterPaymentStatus("All"); setFilterCOD("All");
+          setDateRange(null); setCurrentPage(1);
         }}
       />
 
@@ -156,11 +228,24 @@ const OrderListManager = () => {
 
       <Tag color="blue" style={{ fontSize: 14, padding: "4px 8px" }}>Kết quả trả về: {total} đơn hàng</Tag>
 
-      <OrderTable orders={orders} provinceList={provinceList} wardList={wardList} role={user?.role} officeId={office?.id} />
-
-      <Modal title="Kết quả Import đơn hàng" open={importModalOpen} onCancel={() => setImportModalOpen(false)} footer={null} width={800} centered>
-        <p>Demo import, chưa gửi server</p>
-      </Modal>
+      <OrderTable
+        orders={orders}
+        provinceList={provinceList}
+        wardList={wardList}
+        role={user?.role}
+        officeId={office?.id}
+        onDetail={handleViewOrderDetail}
+        onEdit={handleEditOrder}
+        onApprove={handleApprove}
+      />
+      {selectedOrder && <OfficeSelectionModal
+        open={isOfficeSelectionModalVisible}
+        offices={offices}
+        trackingNumber={selectedOrder.trackingNumber}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+      />
+      }
     </div>
   );
 };

@@ -9,6 +9,7 @@ import { ImportProductsResponse, product, ProductResponse } from '../types/produ
 import { PromotionResponse } from '../types/promotion';
 import { cancelOrder, getPayersEnum, getPaymentStatusesEnum } from '../store/orderSlice';
 import { ImportVehiclesResponse, Vehicle, VehicleResponse } from '../types/vehicle';
+import { ShippingRequest, ShippingRequestResponse } from '../types/shippingRequest';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8088/api';
 
@@ -370,8 +371,8 @@ export const orderAPI = {
     return res.data;
   },
 
-  getOrderById: async (orderId: number): Promise<OrderResponse> => {
-    const res = await api.get<OrderResponse>(`/orders/${orderId}`);
+  getOrderByTrackingNumber: async (trackingNumber: string): Promise<OrderResponse> => {
+    const res = await api.get<OrderResponse>(`/orders/${trackingNumber}`);
     return res.data;
   },
 
@@ -427,6 +428,22 @@ export const orderAPI = {
   getOrdersByOffice: async (officeId: number, query: string): Promise<OrderResponse> => {
     const res = await api.get<OrderResponse>(`/orders/by-office/${officeId}?${query}`);
     return res.data;
+  },
+
+  confirmOrderAndAssignToOffice: async (orderId: number, officeId: number): Promise<OrderResponse> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("Không tìm thấy token xác thực");
+
+    try {
+      const response = await api.put<OrderResponse>(
+        `/orders/confirm`,
+        { orderId, officeId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi xác nhận đơn hàng');
+    }
   },
 }
 
@@ -510,6 +527,72 @@ export const vehicleAPI = {
     } catch (error: any) {
       throw new Error(error.response.data.message || 'Lỗi khi import phương tiện');
     }
+  },
+}
+
+export const requestAPI = {
+  // Get Statuses Enum
+  getStatusesEnum: async (): Promise<ShippingRequestResponse> => {
+    const response = await api.get<ShippingRequestResponse>('/requests/get-statuses');
+    return response.data;
+  },
+
+  // Get Types Enum
+  getTypesEnum: async (): Promise<ShippingRequestResponse> => {
+    const response = await api.get<ShippingRequestResponse>('/requests/get-types');
+    return response.data;
+  },
+
+  getRequestsByUser: async (query: string): Promise<ShippingRequestResponse> => {
+    const res = await api.get<ShippingRequestResponse>(`/requests?${query}`);
+    return res.data;
+  },
+
+  addRequest: async (request: Partial<ShippingRequest>): Promise<ShippingRequestResponse> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("Không tìm thấy token xác thực");
+
+    const { id, ...payload } = request;
+
+    try {
+      const response = await api.post<ShippingRequestResponse>(
+        `/requests`,
+        payload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi thêm yêu cầu');
+    }
+  },
+
+  // Update Request
+  updateRequest: async (request: Partial<ShippingRequest>): Promise<ShippingRequestResponse> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("Không tìm thấy token xác thực");
+
+    const { id, ...payload } = request;
+
+    try {
+      const response = await api.put<ShippingRequestResponse>(
+        `/requests/${id}`,
+        payload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi cập nhật thông tin yêu cầu');
+    }
+  },
+
+  cancelRequest: async (requestId: number): Promise<ShippingRequestResponse> => {
+    const res = await api.put<ShippingRequestResponse>(`/requests/cancel`, { requestId });
+    return res.data;
+  },
+
+  getRequestsByOffice: async (officeId: number, query: string): Promise<ShippingRequestResponse> => {
+    const res = await api.get<ShippingRequestResponse>(`/requests/by-office/${officeId}?${query}`);
+    return res.data;
   },
 }
 

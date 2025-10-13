@@ -1,10 +1,11 @@
 import React from "react";
 import dayjs from 'dayjs';
-import { Table, Button, Space, Tag } from "antd";
-import { EyeOutlined, EditOutlined, CloseCircleOutlined } from "@ant-design/icons";
+import { Table, Button, Space, Tag, Tooltip, message } from "antd";
+import { EyeOutlined, EditOutlined, CloseCircleOutlined, CopyOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { ColumnsType } from "antd/es/table";
 import { Order } from "../../../../../types/order";
+import { translateOrderPayer, translateOrderPaymentMethod, translateOrderPaymentStatus, translateOrderStatus } from "../../../../../utils/orderUtils";
 
 interface Props {
   orders: Order[];
@@ -19,16 +20,17 @@ const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, onCancel,
 
   const statusTag = (status: string) => {
     switch (status) {
-      case "draft": return <Tag color="default">{status}</Tag>;
-      case "pending": return <Tag color="orange">{status}</Tag>;
-      case "confirmed": return <Tag color="blue">{status}</Tag>;
-      case "picked_up": return <Tag color="purple">{status}</Tag>;
-      case "in_transit": return <Tag color="cyan">{status}</Tag>;
-      case "delivered": return <Tag color="green">{status}</Tag>;
-      case "cancelled": return <Tag color="red">{status}</Tag>;
-      case "Paid": return <Tag color="green">{status}</Tag>;
-      case "Unpaid": return <Tag color="red">{status}</Tag>;
-      case "Refunded": return <Tag color="orange">{status}</Tag>;
+      case "draft": return <Tag color="default">{translateOrderStatus(status)}</Tag>;
+      case "pending": return <Tag color="orange">{translateOrderStatus(status)}</Tag>;
+      case "confirmed": return <Tag color="blue">{translateOrderStatus(status)}</Tag>;
+      case "picked_up": return <Tag color="purple">{translateOrderStatus(status)}</Tag>;
+      case "in_transit": return <Tag color="cyan">{translateOrderStatus(status)}</Tag>;
+      case "delivered": return <Tag color="green">{translateOrderStatus(status)}</Tag>;
+      case "cancelled": return <Tag color="red">{translateOrderStatus(status)}</Tag>;
+      case "returned": return <Tag color="gold">{translateOrderStatus(status)}</Tag>;
+      case "Paid": return <Tag color="green">{translateOrderPaymentStatus(status)}</Tag>;
+      case "Unpaid": return <Tag color="red">{translateOrderPaymentStatus(status)}</Tag>;
+      case "Refunded": return <Tag color="orange">{translateOrderPaymentStatus(status)}</Tag>;
       default: return <Tag>{status}</Tag>;
     }
   };
@@ -41,7 +43,29 @@ const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, onCancel,
       dataIndex: "trackingNumber",
       key: "trackingNumber",
       align: "center",
-      render: (_, record) => <Button type="link" onClick={() => navigate(`/${role}/orders/detail/${record.id}`)}>{record.trackingNumber}</Button>,
+      render: (text, record) => (
+        <Space size="small">
+          <Button
+            type="link"
+            onClick={() => navigate(`/${role}/orders/detail/${record.trackingNumber}`)}
+            style={{ padding: 0 }}
+          >
+            {record.trackingNumber}
+          </Button>
+          <Tooltip title="Copy mã đơn hàng">
+            <Button
+              type="text"
+              size="small"
+              icon={<CopyOutlined />}
+              onClick={() => {
+                navigator.clipboard.writeText(text);
+                message.success('Đã copy mã đơn hàng!');
+              }}
+              style={{ color: '#1890ff' }}
+            />
+          </Tooltip>
+        </Space>
+      ),
     },
     { title: "Tên người nhận", dataIndex: "recipientName", key: "recipientName", align: "center" },
     { title: "SĐT người nhận", dataIndex: "recipientPhone", key: "recipientPhone", align: "center" },
@@ -49,17 +73,45 @@ const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, onCancel,
       title: "Địa chỉ người nhận",
       key: "recipientAddress",
       align: "center",
+      width: 300, 
       render: (_, record) => {
         const cityName = provinceList.find((p) => p.code === Number(record.recipientCityCode))?.name || "";
         const wardName = wardList.find((w) => w.code === Number(record.recipientWardCode))?.name || "";
-        return `${record.recipientDetailAddress || ""}, ${wardName}, ${cityName}`;
+        const address = `${record.recipientDetailAddress || ""}, ${wardName}, ${cityName}`;
+
+        return (
+          <div style={{
+            maxWidth: "300px",
+            wordBreak: "break-word",
+            whiteSpace: "normal"
+          }}>
+            {address}
+          </div>
+        );
       },
     },
-    { title: "Gía trị đơn", dataIndex: "orderValue", key: "orderValue", align: "center" },
-    { title: "Phí vận chuyển", dataIndex: "shippingFee", key: "shippingFee", align: "center" },
-    { title: "COD", dataIndex: "cod", key: "cod", align: "center" },
-    { title: "Người thanh toán", dataIndex: "payer", key: "payer", align: "center" },
-    { title: "Phương thức thanh toán", dataIndex: "paymentMethod", key: "paymentMethod", align: "center" },
+    { title: "Gía trị đơn (VNĐ)", dataIndex: "orderValue", key: "orderValue", align: "center" },
+    { title: "Phí vận chuyển (VNĐ)", dataIndex: "shippingFee", key: "shippingFee", align: "center" },
+    { title: "COD (VNĐ)", dataIndex: "cod", key: "cod", align: "center" },
+    { title: "Khối lượng (Kg)", dataIndex: "weight", key: "weight", align: "center" },
+    {
+      title: "Người thanh toán",
+      dataIndex: "payer",
+      key: "payer",
+      align: "center",
+      render: (payer) => (
+        translateOrderPayer(payer)
+      )
+    },
+    {
+      title: "Phương thức thanh toán",
+      dataIndex: "paymentMethod",
+      key: "paymentMethod",
+      align: "center",
+      render: (method) => (
+        translateOrderPaymentMethod(method)
+      )
+    },
     { title: "Trạng thái thanh toán", dataIndex: "paymentStatus", key: "paymentStatus", align: "center", render: (p) => statusTag(p) },
     { title: "Trạng thái", dataIndex: "status", key: "status", align: "center", render: (s) => statusTag(s) },
     {
@@ -71,7 +123,7 @@ const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, onCancel,
         return fromOffice?.name || "---";
       }
     },
-    { title: "Ngày tạo", dataIndex: "createdAt", key: "createdAt", align: "center", render: (date) => dayjs(date).format('DD/MM/YYYY HH:mm') },
+    { title: "Ngày tạo", dataIndex: "createdAt", key: "createdAt", align: "center", render: (date) => dayjs(date).format('DD/MM/YYYY HH:mm:ss') },
     {
       title: "Hành động",
       key: "action",
@@ -82,8 +134,8 @@ const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, onCancel,
 
         return (
           <Space>
-            <Button type="link" icon={<EyeOutlined />} onClick={() => navigate(`/${role}/orders/detail/${record.id}`)}>Xem</Button>
-            <Button type="link" icon={<EditOutlined />} disabled={!canEdit} onClick={() => canEdit && navigate(`/${role}/orders/edit/${record.id}`)}>Sửa</Button>
+            <Button type="link" icon={<EyeOutlined />} onClick={() => navigate(`/${role}/orders/detail/${record.trackingNumber}`)}>Xem</Button>
+            <Button type="link" icon={<EditOutlined />} disabled={!canEdit} onClick={() => canEdit && navigate(`/${role}/orders/edit/${record.trackingNumber}`)}>Sửa</Button>
             <Button type="link" icon={<CloseCircleOutlined />} disabled={!canCancel} onClick={() => canCancel && record.id && onCancel(record.id)}>Hủy</Button>
           </Space>
         );
@@ -91,7 +143,17 @@ const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, onCancel,
     },
   ];
 
-  return <Table columns={columns} dataSource={tableData} rowKey="key" scroll={{ x: "max-content" }} />;
+  return <Table
+    columns={columns}
+    dataSource={tableData}
+    rowKey="key"
+    scroll={{ x: "max-content" }}
+    style={{
+      borderRadius: 12,
+      overflow: 'hidden',
+      background: '#fff',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+    }} />;
 };
 
 export default OrderTable;

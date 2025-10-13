@@ -47,7 +47,7 @@ const paymentService = {
         vnp_TxnRef: order.id,
         vnp_OrderInfo: `Thanh toán đơn hàng ${order.trackingNumber}`,
         vnp_OrderType: "other",
-        vnp_ReturnUrl: `${process.env.CLIENT_URL}/user/orders/success/${order.id}`,
+        vnp_ReturnUrl: `${process.env.CLIENT_URL}/user/orders/success/${order.trackingNumber}`,
         vnp_Locale: VnpLocale.VN,
         vnp_CreateDate: dateFormat(new Date()),
         vnp_ExpireDate: dateFormat(expire),

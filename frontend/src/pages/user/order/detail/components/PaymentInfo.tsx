@@ -1,6 +1,7 @@
 import React from "react";
 import { styles } from "../../style/Order.styles";
 import { Order } from "../../../../../types/order";
+import { translateOrderPayer, translateOrderPaymentMethod, translateOrderPaymentStatus } from "../../../../../utils/orderUtils";
 
 interface Props {
   order: Order;
@@ -12,21 +13,9 @@ const PaymentInfo: React.FC<Props> = ({ order, totalServiceFee }) => (
     <div style={styles.feeSection}>
       <div style={styles.paymentSummary}>
         <h3>Thông tin thanh toán</h3>
-        <div style={styles.feeRow}><span>Phương thức:</span><span>{order.paymentMethod}</span></div>
-        <div style={styles.feeRow}><span>Người thanh toán:</span><span>{order.payer === "Customer" ? "Người nhận" : "Người gửi"}</span></div>
-        <div style={styles.feeRow}><span>Trạng thái:</span>
-          {(() => {
-            switch (order.paymentStatus) {
-              case "Paid":
-                return <span style={{ color: "green" }}>Đã thanh toán</span>;
-              case "Refunded":
-                return <span style={{ color: "orange" }}>Đã hoàn tiền</span>;
-              case "Unpaid":
-              default:
-                return <span style={{ color: "red" }}>Chưa thanh toán</span>;
-            }
-          })()}
-        </div>
+        <div style={styles.feeRow}><span>Phương thức:</span><span>{translateOrderPaymentMethod(order.paymentMethod)}</span></div>
+        <div style={styles.feeRow}><span>Người thanh toán:</span><span>{translateOrderPayer(order.payer)}</span></div>
+        <div style={styles.feeRow}><span>Trạng thái:</span><span style={{ color: "#8B6914", fontWeight: "bold" }}>{translateOrderPaymentStatus(order.paymentStatus)}</span></div>
       </div>
 
       <div style={styles.serviceFee}>

@@ -42,14 +42,14 @@ export const getProductsByUser = createAsyncThunk<
     type?: string;
     status?: string;
     sort?: string;
-    stockFilter?: string;
+    stock?: string;
     startDate?: string;
     endDate?: string;
   },
   { rejectValue: string }
 >(
   'products',
-  async ({ page, limit, searchText, type, status, sort, startDate, endDate, stockFilter }, thunkAPI) => {
+  async ({ page, limit, searchText, type, status, sort, startDate, endDate, stock }, thunkAPI) => {
     try {
       // Build query param
       const params = new URLSearchParams({
@@ -62,7 +62,7 @@ export const getProductsByUser = createAsyncThunk<
       if (sort) params.append("sort", sort);
       if (startDate) params.append("startDate", startDate);
       if (endDate) params.append("endDate", endDate);
-      if (stockFilter) params.append("stockFilter", stockFilter);
+      if (stock) params.append("stock", stock);
 
       const data = await productAPI.getProductsByUser(params.toString());
       return data;

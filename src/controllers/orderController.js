@@ -96,6 +96,7 @@ const orderController = {
         paymentStatus: req.query.paymentStatus || undefined,
         paymentMethod: req.query.paymentMethod || undefined,
         cod: req.query.cod || undefined,
+        sort: req.query.sort || undefined,
         startDate: req.query.startDate || undefined,
         endDate: req.query.endDate || undefined,
       };
@@ -157,7 +158,7 @@ const orderController = {
   // Cancel Order
   async cancelOrder(req, res) {
     try {
-      const userId = req.user.id; 
+      const userId = req.user.id;
       const { orderId } = req.body;
 
       const result = await orderService.cancelOrder(userId, orderId);
@@ -173,16 +174,17 @@ const orderController = {
   },
 
   // Get Order By Id
-  async getOrderById(req, res) {
+  async getOrderByTrackingNumber(req, res) {
     try {
-      const userId = req.user.id; 
-      const { id } = req.params;
+      const userId = req.user.id;
 
-      const result = await orderService.getOrderById(userId, id);
+      const { trackingNumber } = req.params;
+
+      const result = await orderService.getOrderByTrackingNumber(userId, trackingNumber);
 
       return res.status(200).json(result);
     } catch (error) {
-      console.error("Get Order By Id error:", error);
+      console.error("Get Order By Tracking Number error:", error);
       return res.status(500).json({
         success: false,
         message: "Lỗi server khi lấy thông tin đơn hàng",
@@ -194,7 +196,7 @@ const orderController = {
     try {
       const userId = req.user.id;
       const order = req.body;
-      
+
       console.log("order", order);
 
       const result = await orderService.updateOrder(userId, order);
@@ -243,6 +245,8 @@ const orderController = {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 10;
 
+      console.log("search", req.query.search);
+
       const filters = {
         searchText: req.query.search || undefined,
         payer: req.query.payer || undefined,
@@ -250,13 +254,12 @@ const orderController = {
         paymentStatus: req.query.paymentStatus || undefined,
         paymentMethod: req.query.paymentMethod || undefined,
         cod: req.query.cod || undefined,
+        sort: req.query.sort || undefined,
         startDate: req.query.startDate || undefined,
         endDate: req.query.endDate || undefined,
         senderWard: parseInt(req.query.senderWard) || undefined,
         recipientWard: parseInt(req.query.recipientWard) || undefined,
       };
-
-      console.log("userId: ", userId, "officeId: ", officeId, "filters: ", filters);
 
       const result = await orderService.getOrdersByOffice(userId, officeId, page, limit, filters);
 
@@ -270,6 +273,28 @@ const orderController = {
       return res.status(500).json({
         success: false,
         message: "Lỗi server khi tạo đơn hàng",
+      });
+    }
+  }, 
+
+  async confirmOrderAndAssignToOffice(req, res) {
+    try {
+      const userId = req.user.id;
+
+      const { orderId, officeId } = req.body;
+
+      const result = await orderService.confirmOrderAndAssignToOffice(userId, orderId, officeId);
+
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+
+      return res.status(201).json(result);
+    } catch (error) {
+      console.error("Confirm Order And Assign To Office:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Lỗi server khi cập nhật trạng thái đơn hàng thành xác nhận và xác nhận bưu cục nhận",
       });
     }
   },

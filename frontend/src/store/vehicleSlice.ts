@@ -74,7 +74,7 @@ export const getVehiclesByOffice = createAsyncThunk<
       const data = await vehicleAPI.getVehiclesByOffice(officeId, params.toString());
       return data;
     } catch (err: any) {
-      return thunkAPI.rejectWithValue(err.response?.data?.message || 'Lỗi khi lấy danh sách sản phẩm của cửa hàng');
+      return thunkAPI.rejectWithValue(err.response?.data?.message || 'Lỗi khi lấy danh sách phương tiện của cửa hàng');
     }
   }
 );

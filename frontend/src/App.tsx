@@ -16,7 +16,6 @@ import ManagerDashboard from './pages/manager/Dashboard';
 import ManagerLayout from './layouts/ManagerLayout';
 import { PrivateRoute } from './components/PrivateRoute';
 import ForgotPasswordForm from './pages/ForgotPasswordForm';
-import { PublicRoute } from './components/PublicRoute';
 import Profile from './pages/Profile';
 import Office from './pages/manager/Office';
 import Warehouse from './pages/manager/Warehouse';
@@ -29,9 +28,12 @@ import CreateOrderUser from './pages/user/CreateOrder';
 import OrderDetail from './pages/user/order/detail/OrderDetail';
 import OrderSuccess from './pages/user/order/success_fail/OrderSuccess';
 import OrderEdit from './pages/user/order/edit/OrderEdit';
-import OrderListManager from './pages/manager/order/OrderList';
+import OrderListManager from './pages/manager/order/list/OrderList';
 import Products from './pages/user/product/Products';
 import Vehicles from './pages/manager/vehicle/Vehicles';
+import ShippingRequests from './pages/user/order/request/ShippingRequests';
+import { AuthRoute } from './components/AuthRoute';
+import SupportManager from './pages/manager/order/request/SupportManager';
 
 const App: React.FC = () => {
   const user = JSON.parse(localStorage.getItem('user') || 'null');
@@ -49,9 +51,9 @@ const App: React.FC = () => {
             <Route path="/tracking/shipping-fee" element={<ShippingFee />} />
 
             {/* Login/Register */}
-            <Route path="/login" element={<PublicRoute><LoginForm /></PublicRoute>} />
-            <Route path="/register" element={<PublicRoute><RegisterForm /></PublicRoute>} />
-            <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordForm /></PublicRoute>} />
+            <Route path="/login" element={<AuthRoute type="public"><LoginForm /></AuthRoute>} />
+            <Route path="/register" element={<AuthRoute type="public"><RegisterForm /></AuthRoute>} />
+            <Route path="/forgot-password" element={<AuthRoute type="public"><ForgotPasswordForm /></AuthRoute>} />
 
             <Route path="/admin" element={<PrivateRoute roles={["admin"]}><AdminLayout /></PrivateRoute>}>
               <Route path="dashboard" element={<AdminDashboard />} />
@@ -67,6 +69,7 @@ const App: React.FC = () => {
               <Route path="orders/list" element={<OrderListManager />} />
               <Route path="orders/create" element={<CreateOrder />} />
               <Route path="vehicles" element={<Vehicles />} />
+              <Route path="supports" element={<SupportManager />} />
             </Route>
 
             <Route path="/user" element={<PrivateRoute roles={["user"]}><UserLayout /></PrivateRoute>}>
@@ -74,11 +77,12 @@ const App: React.FC = () => {
               <Route path="profile" element={<Profile />} />
               <Route path="products" element={<Products />} />
               <Route path="orders" element={<OrderList />} />
+              <Route path="orders/requests" element={<ShippingRequests />} />
               <Route path="orders/create" element={<CreateOrderUser />} />
-              <Route path="orders/edit/:id" element={<OrderEdit />} />
-              <Route path="orders/success/:id" element={<OrderSuccess />} />
-              <Route path="orders/failed/:id" element={<OrderSuccess />} />
-              <Route path="orders/detail/:id" element={<OrderDetail />} />
+              <Route path="orders/edit/:trackingNumber" element={<OrderEdit />} />
+              <Route path="orders/success/:trackingNumber" element={<OrderSuccess />} />
+              <Route path="orders/failed/:trackingNumber" element={<OrderSuccess />} />
+              <Route path="orders/detail/:trackingNumber" element={<OrderDetail />} />
             </Route>
 
           </Routes>

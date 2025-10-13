@@ -25,7 +25,7 @@ export default (sequelize) => {
     {
       orderId: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true,
         comment: 'Liên kết tới đơn hàng',
       },
 
@@ -43,12 +43,12 @@ export default (sequelize) => {
 
       requestContent: {
         type: DataTypes.TEXT,
-        allowNull: false,
+        allowNull: true,
         comment: 'Nội dung yêu cầu chi tiết',
       },
 
       status: {
-        type: DataTypes.ENUM('Pending', 'Processing', 'Resolved', 'Rejected'),
+        type: DataTypes.ENUM('Pending', 'Processing', 'Resolved', 'Rejected', 'Cancelled'),
         allowNull: false,
         defaultValue: 'Pending',
         comment: 'Trạng thái xử lý yêu cầu',

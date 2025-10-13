@@ -552,10 +552,10 @@ const EmployeeForm = () => {
               fontWeight: "bold",
               fontSize: "18px",
               display: "flex",
-              justifyContent: "center",
+              justifyContent: "left",
             }}
           >
-            {modalMode === "edit" ? "Chỉnh sửa thông tin nhân viên" : "Thêm nhân viên mới"}
+            {modalMode === "edit" ? `Chỉnh sửa thông tin nhân viên #${newEmployee.id}` : "Thêm nhân viên mới"}
           </span>
         }
         open={isModalOpen}
@@ -589,12 +589,6 @@ const EmployeeForm = () => {
         <Form form={form} layout="vertical">
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item label="Mã NV" name="id" style={{ marginBottom: 12 }}>
-                <Input value={newEmployee.id} disabled />
-              </Form.Item>
-            </Col>
-
-            <Col span={12}>
               <Form.Item
                 label="Họ"
                 name="lastName"
@@ -613,9 +607,7 @@ const EmployeeForm = () => {
                 />
               </Form.Item>
             </Col>
-          </Row>
 
-          <Row gutter={16}>
             <Col span={12}>
               <Form.Item
                 label="Tên"
@@ -630,6 +622,28 @@ const EmployeeForm = () => {
                     setNewEmployee({
                       ...newEmployee,
                       user: { ...newEmployee.user, firstName: e.target.value },
+                    })
+                  }
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                label="Số điện thoại"
+                name="phoneNumber"
+                rules={[{ required: true, message: "Nhập số điện thoại!" }]}
+                style={{ marginBottom: 12 }}
+              >
+                <Input
+                  placeholder="Nhập số điện thoại..."
+                  value={newEmployee.user?.phoneNumber || ""}
+                  onChange={(e) =>
+                    setNewEmployee({
+                      ...newEmployee,
+                      user: { ...newEmployee.user, phoneNumber: e.target.value },
                     })
                   }
                 />
@@ -664,26 +678,6 @@ const EmployeeForm = () => {
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
-                label="Số điện thoại"
-                name="phoneNumber"
-                rules={[{ required: true, message: "Nhập số điện thoại!" }]}
-                style={{ marginBottom: 12 }}
-              >
-                <Input
-                  placeholder="Nhập số điện thoại..."
-                  value={newEmployee.user?.phoneNumber || ""}
-                  onChange={(e) =>
-                    setNewEmployee({
-                      ...newEmployee,
-                      user: { ...newEmployee.user, phoneNumber: e.target.value },
-                    })
-                  }
-                />
-              </Form.Item>
-            </Col>
-
-            <Col span={12}>
-              <Form.Item
                 label="Chức vụ"
                 name="role"
                 rules={[{ required: true, message: "Chọn chức vụ!" }]}
@@ -705,21 +699,6 @@ const EmployeeForm = () => {
                     </Select.Option>
                   ))}
                 </Select>
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item label="Ngày tuyển dụng" name="hireDate" style={{ marginBottom: 12 }}>
-                <DatePicker
-                  style={{ width: "100%" }}
-                  placeholder="Chọn ngày thuê..."
-                  value={newEmployee.hireDate ? dayjs(newEmployee.hireDate) : null}
-                  onChange={(date) =>
-                    setNewEmployee({ ...newEmployee, hireDate: date?.toDate() || null })
-                  }
-                />
               </Form.Item>
             </Col>
 
@@ -746,23 +725,35 @@ const EmployeeForm = () => {
 
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item label="Trạng thái" name="status" style={{ marginBottom: 12 }}>
-                <Select
-                  value={newEmployee.status || statuses?.[0]}
-                  onChange={(val) =>
-                    setNewEmployee({ ...newEmployee, status: val })
+              <Form.Item label="Ngày tuyển dụng" name="hireDate" style={{ marginBottom: 12 }}>
+                <DatePicker
+                  style={{ width: "100%" }}
+                  placeholder="Chọn ngày thuê..."
+                  value={newEmployee.hireDate ? dayjs(newEmployee.hireDate) : null}
+                  onChange={(date) =>
+                    setNewEmployee({ ...newEmployee, hireDate: date?.toDate() || null })
                   }
-                  placeholder="Chọn trạng thái..."
-                >
-                  {statuses?.map((item) => (
-                    <Select.Option key={item} value={item}>
-                      {item}
-                    </Select.Option>
-                  ))}
-                </Select>
+                />
               </Form.Item>
             </Col>
-            <Col span={12}></Col>
+
+            <Col span={12}>
+                <Form.Item label="Trạng thái" name="status" style={{ marginBottom: 12 }}>
+                  <Select
+                    value={newEmployee.status || statuses?.[0]}
+                    onChange={(val) =>
+                      setNewEmployee({ ...newEmployee, status: val })
+                    }
+                    placeholder="Chọn trạng thái..."
+                  >
+                    {statuses?.map((item) => (
+                      <Select.Option key={item} value={item}>
+                        {item}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
           </Row>
         </Form>
       </Modal>

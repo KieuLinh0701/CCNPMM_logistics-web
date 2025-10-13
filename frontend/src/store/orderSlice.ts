@@ -118,13 +118,14 @@ export const getOrdersByUser = createAsyncThunk<
     paymentStatus?: string;
     paymentMethod?: string;
     cod?: string;
+    sort?: string;
     startDate?: string;
     endDate?: string;
   },
   { rejectValue: string }
 >(
   'orders/by-user',
-  async ({ page, limit, searchText, payer, status, paymentStatus, paymentMethod, cod, startDate, endDate }, thunkAPI) => {
+  async ({ page, limit, searchText, payer, status, paymentStatus, paymentMethod, cod, sort, startDate, endDate }, thunkAPI) => {
     try {
       // Build query param
       const params = new URLSearchParams({
@@ -137,6 +138,7 @@ export const getOrdersByUser = createAsyncThunk<
       if (paymentStatus) params.append("paymentStatus", paymentStatus);
       if (paymentMethod) params.append("paymentMethod", paymentMethod);
       if (cod) params.append("cod", cod);
+      if (sort) params.append("sort", sort);
       if (startDate) params.append("startDate", startDate);
       if (endDate) params.append("endDate", endDate);
 
@@ -187,15 +189,15 @@ export const cancelOrder = createAsyncThunk(
 );
 
 // Lấy thông tin 1 đơn hàng theo orderId
-export const getOrderById = createAsyncThunk<
+export const getOrderByTrackingNumber = createAsyncThunk<
   OrderResponse,
-  number, // orderId
+  string,
   { rejectValue: string }
 >(
-  'orders/getById',
-  async (orderId, { rejectWithValue }) => {
+  'orders/by-tracking-number',
+  async (trackingNumber, { rejectWithValue }) => {
     try {
-      const data = await orderAPI.getOrderById(orderId);
+      const data = await orderAPI.getOrderByTrackingNumber(trackingNumber);
       return data;
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.message || 'Lấy thông tin đơn hàng thất bại');
@@ -204,8 +206,8 @@ export const getOrderById = createAsyncThunk<
 );
 
 export const createVNPayURL = createAsyncThunk<
-  OrderResponse,   // dùng chung type
-  number,          // orderId
+  OrderResponse,
+  number,
   { rejectValue: any }
 >(
   'payment/create-url',
@@ -255,6 +257,7 @@ export const getOrdersByOffice = createAsyncThunk<
     paymentStatus?: string;
     paymentMethod?: string;
     cod?: string;
+    sort?: string;
     startDate?: string;
     endDate?: string;
     senderWard?: number;
@@ -263,7 +266,7 @@ export const getOrdersByOffice = createAsyncThunk<
   { rejectValue: string }
 >(
   'orders/by-office',
-  async ({ officeId, page, limit, searchText, payer, status, paymentStatus, paymentMethod, cod, startDate, endDate, senderWard, recipientWard }, thunkAPI) => {
+  async ({ officeId, page, limit, searchText, payer, status, paymentStatus, paymentMethod, cod, startDate, endDate, senderWard, recipientWard, sort }, thunkAPI) => {
     try {
       // Build query param
       const params = new URLSearchParams({
@@ -276,6 +279,7 @@ export const getOrdersByOffice = createAsyncThunk<
       if (paymentStatus) params.append("paymentStatus", paymentStatus);
       if (paymentMethod) params.append("paymentMethod", paymentMethod);
       if (cod) params.append("cod", cod);
+      if (sort) params.append("sort", sort);
       if (startDate) params.append("startDate", startDate);
       if (endDate) params.append("endDate", endDate);
       if (senderWard) params.append("senderWard", senderWard.toString());
@@ -285,6 +289,23 @@ export const getOrdersByOffice = createAsyncThunk<
       return data;
     } catch (err: any) {
       return thunkAPI.rejectWithValue(err.response?.data?.message || 'Lỗi khi lấy danh sách đơn hàng của bưu cục');
+    }
+  }
+);
+
+export const confirmOrderAndAssignToOffice = createAsyncThunk(
+  'orders/confirm',
+  async (
+    { orderId, officeId }: { orderId: number; officeId: number },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await orderAPI.confirmOrderAndAssignToOffice(orderId, officeId);
+      return response;
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Xác nhận đơn hàng thất bại'
+      );
     }
   }
 );
@@ -436,17 +457,17 @@ const orderSlice = createSlice({
 
     // Get Order By Id
     builder
-      .addCase(getOrderById.pending, (state) => {
+      .addCase(getOrderByTrackingNumber.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(getOrderById.fulfilled, (state, action) => {
+      .addCase(getOrderByTrackingNumber.fulfilled, (state, action) => {
         state.loading = false;
         if (action.payload.success) {
           state.order = action.payload.order || null;
         }
       })
-      .addCase(getOrderById.rejected, (state, action) => {
+      .addCase(getOrderByTrackingNumber.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
@@ -528,6 +549,45 @@ const orderSlice = createSlice({
         }
       })
       .addCase(getOrdersByOffice.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+    builder
+      .addCase(confirmOrderAndAssignToOffice.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(confirmOrderAndAssignToOffice.fulfilled, (state, action) => {
+        state.loading = false;
+
+        // Cập nhật order trong danh sách orders
+        if (action.payload.success && action.payload.order) {
+          const updatedOrder = action.payload.order;
+
+          // Cập nhật trong mảng orders
+          const orderIndex = state.orders.findIndex(order => order.id === updatedOrder.id);
+          if (orderIndex !== -1) {
+            state.orders[orderIndex] = {
+              ...state.orders[orderIndex],
+              ...updatedOrder,
+              status: 'confirmed',
+              toOffice: updatedOrder.toOffice,
+            };
+          }
+
+          // Cập nhật order detail nếu đang xem chi tiết
+          if (state.order && state.order.id === updatedOrder.id) {
+            state.order = {
+              ...state.order,
+              ...updatedOrder,
+              status: 'confirmed',
+              toOffice: updatedOrder.toOffice
+            };
+          }
+        }
+      })
+      .addCase(confirmOrderAndAssignToOffice.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

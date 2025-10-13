@@ -53,13 +53,11 @@ export default (sequelize) => {
         defaultValue: 'Active',
         comment: 'Trạng thái sản phẩm'
       },
-
       stock: {
         type: DataTypes.INTEGER,
         defaultValue: 0,
         comment: 'Số lượng hàng trong kho'
       },
-
       soldQuantity: {
         type: DataTypes.INTEGER,
         defaultValue: 0,
@@ -73,6 +71,13 @@ export default (sequelize) => {
       timestamps: true,
       createdAt: 'createdAt',
       updatedAt: 'updatedAt',
+      indexes: [
+        {
+          unique: true,
+          fields: ['userId', 'name'],
+          name: 'unique_product_per_user'
+        }
+      ]
     }
   );
 

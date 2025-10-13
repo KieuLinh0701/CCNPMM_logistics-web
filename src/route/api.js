@@ -10,6 +10,7 @@ import productController from "../controllers/productController.js";
 import promotionController from "../controllers/promotionController.js";
 import payment from "./payment.js";
 import vehicleController from "../controllers/vehicleController.js";
+import requestController from "../controllers/requestController.js";
 
 let router = express.Router();
 
@@ -50,10 +51,11 @@ let initApiRoutes = (app) => {
     router.get('/orders/payers', verifyToken, orderController.getPayersEnum);
     router.get('/orders/payment-statuses', verifyToken, orderController.getPaymentStatuesEnum);
     router.put('/orders/cancel', verifyToken, orderController.cancelOrder);
-    router.get('/orders/:id', verifyToken, orderController.getOrderById);
+    router.get('/orders/:trackingNumber', verifyToken, orderController.getOrderByTrackingNumber);
     router.put('/orders/edit', verifyToken, orderController.updateOrder);
     router.put('/orders/to-pending', verifyToken, orderController.updateOrderStatusToPending);
     router.get('/orders/by-office/:officeId', verifyToken, orderController.getOrdersByOffice);
+    router.put('/orders/confirm', verifyToken, orderController.confirmOrderAndAssignToOffice);
 
     // Product Routes
     router.get("/products", verifyToken, productController.getProductsByUser);
@@ -74,6 +76,15 @@ let initApiRoutes = (app) => {
     router.post('/vehicles/add/:officeId', verifyToken, vehicleController.addVehicle);
     router.put('/vehicles/:id', verifyToken, vehicleController.updateVehicle);
     router.post('/vehicles/import/:id', verifyToken, vehicleController.importVehicles);
+
+    // Requests Routes
+    router.get('/requests', verifyToken, requestController.getRequestsByUser);
+    router.get('/requests/get-types', verifyToken, requestController.getTypesEnum);
+    router.get('/requests/get-statuses', verifyToken, requestController.getStatusesEnum);
+    router.put('/requests/cancel', verifyToken, requestController.cancelRequest);
+    router.post('/requests', verifyToken, requestController.addRequest);
+    router.put('/requests/:id', verifyToken, requestController.updateRequest);
+    router.get('/requests/by-office/:officeId', verifyToken, requestController.getRequestsByOffice);
 
     // VNPAY
     router.use("/payment", payment);

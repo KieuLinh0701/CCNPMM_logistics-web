@@ -78,7 +78,7 @@ const productService = {
       let whereCondition = { userId };
 
       // Lọc dữ liệu
-      const { searchText, type, status, startDate, endDate, sort, stockFilter } = filters || {};
+      const { searchText, type, status, startDate, endDate, sort, stock } = filters || {};
 
       if (searchText) {
         whereCondition.name = { [Op.like]: `%${searchText}%` };
@@ -108,8 +108,8 @@ const productService = {
         }
       }
 
-      if (stockFilter && stockFilter !== 'All') {
-        switch (stockFilter) {
+      if (stock && stock !== 'All') {
+        switch (stock) {
           case 'inStock':
             whereCondition.stock = { [Op.gt]: 0 };
             break;

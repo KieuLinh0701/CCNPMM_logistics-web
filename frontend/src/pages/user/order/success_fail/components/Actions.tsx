@@ -41,7 +41,7 @@ const Actions: React.FC<OrderActionsProps> = ({
           cursor: canEdit ? 'pointer' : 'not-allowed',
           border: canEdit ? 'none' : '1px solid #ccc',
         }}
-        onClick={canEdit ? () => navigate(`/${role}/orders/edit/${order.id}`) : undefined}
+        onClick={canEdit ? () => navigate(`/${role}/orders/edit/${order.trackingNumber}`) : undefined}
       >
         <EditOutlined style={{ marginRight: 6 }} />
         Chỉnh sửa

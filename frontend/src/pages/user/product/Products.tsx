@@ -172,7 +172,7 @@ const Products: React.FC = () => {
       type: filterType !== 'All' ? filterType : undefined,
       status: filterStatus !== 'All' ? filterStatus : undefined,
       sort: sort !== 'none' ? sort : undefined,
-      stockFilter: stockFilter != 'All' ? stockFilter : undefined,
+      stock: stockFilter != 'All' ? stockFilter : undefined,
     };
 
     if (dateRange) {

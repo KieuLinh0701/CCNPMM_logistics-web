@@ -2,12 +2,15 @@ import React from "react";
 import { Card, Col, Form, Row, Select } from "antd";
 import { styles } from "../../style/Order.styles";
 import { FormInstance } from "antd/lib";
+import { translateOrderPayer, translateOrderPaymentMethod } from "../../../../../utils/orderUtils";
 
 const { Option } = Select;
 
 interface Props {
   form: FormInstance;
   payer?: string;
+  payers: string[];
+  paymentMethods: string[];
   paymentMethod?: string;
   onChangePayment?: (changedValues: any) => void;
 }
@@ -15,7 +18,9 @@ interface Props {
 const PaymentCard: React.FC<Props> = ({
   form,
   payer,
+  payers,
   paymentMethod,
+  paymentMethods,
   onChangePayment
 }) => {
   return (
@@ -26,12 +31,12 @@ const PaymentCard: React.FC<Props> = ({
         form={form}
         layout="vertical"
         initialValues={{
-          payer: payer === "Shop" ? "Người gửi" : "Người nhận",
-          paymentMethod: paymentMethod || "cash",
+          payer: payer,
+          paymentMethod: paymentMethod || "Cash",
         }}
         onValuesChange={(changedValues, allValues) => {
-          console.log("📝 Form changed:", changedValues); 
-          
+          console.log("📝 Form changed:", changedValues);
+
           // Nếu payer thay đổi, reset paymentMethod về Cash
           if (changedValues.payer) {
             const newPayer = changedValues.payer;
@@ -40,7 +45,7 @@ const PaymentCard: React.FC<Props> = ({
             // Đổi từ Shop sang Customer hoặc Customer sang Shop
             if (newPayer === "Customer" || newPayer === "Shop") {
               form.setFieldsValue({ paymentMethod: defaultPaymentMethod });
-              
+
               // Gọi onChangePayment với cả 2 giá trị đã thay đổi
               setTimeout(() => {
                 const allCurrentValues = form.getFieldsValue();
@@ -50,7 +55,7 @@ const PaymentCard: React.FC<Props> = ({
                   ...allCurrentValues
                 });
               }, 0);
-              return; // Dừng lại không gọi onChangePayment lần nữa
+              return;
             }
           }
 
@@ -65,8 +70,11 @@ const PaymentCard: React.FC<Props> = ({
               rules={[{ required: true, message: "Chọn người trả phí" }]}
             >
               <Select>
-                <Option value="Customer">Người nhận</Option>
-                <Option value="Shop">Người gửi</Option>
+                {payers.map((payer) => (
+                  <Option key={payer} value={payer}>
+                    {translateOrderPayer(payer)}
+                  </Option>
+                ))}
               </Select>
             </Form.Item>
           </Col>
@@ -91,9 +99,11 @@ const PaymentCard: React.FC<Props> = ({
                         <Option value="Cash">Tiền mặt</Option>
                       ) : (
                         <>
-                          <Option value="Cash">Tiền mặt</Option>
-                          <Option value="VNPay">VNPay</Option>
-                          <Option value="ZaloPay">ZaloPay</Option>
+                          {paymentMethods.map((paymentMethod) => (
+                            <Option key={paymentMethod} value={paymentMethod}>
+                              {translateOrderPaymentMethod(paymentMethod)}
+                            </Option>
+                          ))}
                         </>
                       )}
                     </Select>
