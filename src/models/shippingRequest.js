@@ -1,9 +1,10 @@
+// models/ShippingRequest.js
 import { Model, DataTypes } from 'sequelize';
 
 export default (sequelize) => {
   class ShippingRequest extends Model {
     static associate(models) {
-      // 1 yêu cầu thuộc về 1 đơn hàng
+      // Quan hệ tới Order
       ShippingRequest.belongsTo(models.Order, {
         foreignKey: 'orderId',
         as: 'order',
@@ -11,10 +12,18 @@ export default (sequelize) => {
         onUpdate: 'CASCADE',
       });
 
-      // Nếu bạn có bảng Carrier/Office riêng cho đơn vị vận chuyển có thể liên kết thêm
+      // Quan hệ tới Office
       ShippingRequest.belongsTo(models.Office, {
         foreignKey: 'officeId',
         as: 'office',
+        onDelete: 'SET NULL',
+        onUpdate: 'CASCADE',
+      });
+
+      // Quan hệ tới User (người tạo nếu có tài khoản)
+      ShippingRequest.belongsTo(models.User, {
+        foreignKey: 'userId',
+        as: 'user',
         onDelete: 'SET NULL',
         onUpdate: 'CASCADE',
       });
@@ -26,13 +35,19 @@ export default (sequelize) => {
       orderId: {
         type: DataTypes.INTEGER,
         allowNull: true,
-        comment: 'Liên kết tới đơn hàng',
+        comment: 'Liên kết tới đơn hàng (nếu có)',
       },
 
       officeId: {
         type: DataTypes.INTEGER,
         allowNull: true,
         comment: 'Bưu cục/Đơn vị vận chuyển xử lý yêu cầu',
+      },
+
+      userId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: 'ID người tạo yêu cầu (nếu có tài khoản)',
       },
 
       requestType: {
@@ -58,6 +73,38 @@ export default (sequelize) => {
         type: DataTypes.TEXT,
         allowNull: true,
         comment: 'Phản hồi từ đơn vị vận chuyển (nếu có)',
+      },
+
+      // Thông tin liên hệ khi người dùng không có tài khoản
+      contactName: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+        comment: 'Tên người liên hệ nếu không có tài khoản',
+      },
+      contactEmail: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+        comment: 'Email người liên hệ nếu không có tài khoản',
+      },
+      contactPhoneNumber: {
+        type: DataTypes.STRING(20),
+        allowNull: true,
+        comment: 'Số điện thoại người liên hệ nếu không có tài khoản',
+      },
+      contactCityCode: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: 'Mã thành phố người liên hệ',
+      },
+      contactWardCode: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: 'Mã phường/quận người liên hệ',
+      },
+      contactDetailAddress: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'Địa chỉ chi tiết người liên hệ',
       },
     },
     {

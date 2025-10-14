@@ -14,11 +14,11 @@ const initialState: ShippingRequestState = {
   statuses: [],
 };
 
-export const getTypesEnum = createAsyncThunk(
+export const getRequestTypes = createAsyncThunk(
   'requests/get-types',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await requestAPI.getTypesEnum();
+      const response = await requestAPI.getRequestTypes();
       return response;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Lấy loại yêu cầu thất bại');
@@ -26,11 +26,11 @@ export const getTypesEnum = createAsyncThunk(
   }
 );
 
-export const getStatusesEnum = createAsyncThunk(
+export const getRequestStatuses = createAsyncThunk(
   'requests/get-statuses',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await requestAPI.getStatusesEnum();
+      const response = await requestAPI.getRequestStatuses();
       return response;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Lấy trạng thái yêu cầu thất bại');
@@ -38,7 +38,7 @@ export const getStatusesEnum = createAsyncThunk(
   }
 );
 
-export const getRequestsByUser = createAsyncThunk<
+export const listUserRequests = createAsyncThunk<
   ShippingRequestResponse,
   {
     page: number,
@@ -67,7 +67,7 @@ export const getRequestsByUser = createAsyncThunk<
       if (startDate) params.append("startDate", startDate);
       if (endDate) params.append("endDate", endDate);
 
-      const data = await requestAPI.getRequestsByUser(params.toString());
+      const data = await requestAPI.listUserRequests(params.toString());
       return data;
     } catch (err: any) {
       return thunkAPI.rejectWithValue(err.response?.data?.message || 'Lỗi khi lấy danh sách yêu cầu của cửa hàng');
@@ -76,7 +76,7 @@ export const getRequestsByUser = createAsyncThunk<
 );
 
 // Add Request
-export const addRequest = createAsyncThunk<
+export const createRequest = createAsyncThunk<
   ShippingRequestResponse,
   Partial<ShippingRequest>,
   { rejectValue: string }
@@ -84,7 +84,7 @@ export const addRequest = createAsyncThunk<
   'requests/add',
   async (request, thunkAPI) => {
     try {
-      const data = await requestAPI.addRequest(request);
+      const data = await requestAPI.createRequest(request);
       return data;
     } catch (err: any) {
       return thunkAPI.rejectWithValue(err.response?.data?.message || 'Lỗi khi thêm yêu cầu');
@@ -109,7 +109,7 @@ export const updateRequest = createAsyncThunk<
   }
 );
 
-export const getRequestsByOffice = createAsyncThunk<
+export const listOfficeRequests = createAsyncThunk<
   ShippingRequestResponse,
   {
     officeId: number;
@@ -139,7 +139,7 @@ export const getRequestsByOffice = createAsyncThunk<
       if (startDate) params.append("startDate", startDate);
       if (endDate) params.append("endDate", endDate);
 
-      const data = await requestAPI.getRequestsByOffice(officeId, params.toString());
+      const data = await requestAPI.listOfficeRequests(officeId, params.toString());
       return data;
     } catch (err: any) {
       return thunkAPI.rejectWithValue(err.response?.data?.message || 'Lỗi khi lấy danh sách yêu cầu của bưu cục');
@@ -173,44 +173,44 @@ const shippingRequestSlice = createSlice({
   extraReducers: (builder) => {
     // Get Statused 
     builder
-      .addCase(getStatusesEnum.pending, (state) => {
+      .addCase(getRequestStatuses.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(getStatusesEnum.fulfilled, (state, action) => {
+      .addCase(getRequestStatuses.fulfilled, (state, action) => {
         state.loading = false;
         if (action.payload.success && action.payload.statuses) {
           state.statuses = action.payload.statuses;
         }
       })
-      .addCase(getStatusesEnum.rejected, (state, action) => {
+      .addCase(getRequestStatuses.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
 
     // Get Types Enum
     builder
-      .addCase(getTypesEnum.pending, (state) => {
+      .addCase(getRequestTypes.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(getTypesEnum.fulfilled, (state, action) => {
+      .addCase(getRequestTypes.fulfilled, (state, action) => {
         state.loading = false;
         if (action.payload.success && action.payload.requestTypes) {
           state.requestTypes = action.payload.requestTypes;
         }
       })
-      .addCase(getTypesEnum.rejected, (state, action) => {
+      .addCase(getRequestTypes.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
 
     builder
-      .addCase(getRequestsByUser.pending, (state) => {
+      .addCase(listUserRequests.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(getRequestsByUser.fulfilled, (state, action) => {
+      .addCase(listUserRequests.fulfilled, (state, action) => {
         state.loading = false;
         if (action.payload.success) {
           state.requests = action.payload.requests || [];
@@ -219,24 +219,24 @@ const shippingRequestSlice = createSlice({
           state.limit = action.payload.limit || 10;
         }
       })
-      .addCase(getRequestsByUser.rejected, (state, action) => {
+      .addCase(listUserRequests.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
 
     builder
-      .addCase(addRequest.pending, (state) => {
+      .addCase(createRequest.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(addRequest.fulfilled, (state, action) => {
+      .addCase(createRequest.fulfilled, (state, action) => {
         state.loading = false;
         const newRequest = action.payload.request;
         if (action.payload.success && newRequest) {
           state.requests = [newRequest, ...(state.requests || [])];
         }
       })
-      .addCase(addRequest.rejected, (state, action) => {
+      .addCase(createRequest.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
@@ -275,11 +275,11 @@ const shippingRequestSlice = createSlice({
       });
 
     builder
-      .addCase(getRequestsByOffice.pending, (state) => {
+      .addCase(listOfficeRequests.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(getRequestsByOffice.fulfilled, (state, action) => {
+      .addCase(listOfficeRequests.fulfilled, (state, action) => {
         state.loading = false;
         if (action.payload.success) {
           state.requests = action.payload.requests || [];
@@ -288,7 +288,7 @@ const shippingRequestSlice = createSlice({
           state.limit = action.payload.limit || 10;
         }
       })
-      .addCase(getRequestsByOffice.rejected, (state, action) => {
+      .addCase(listOfficeRequests.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

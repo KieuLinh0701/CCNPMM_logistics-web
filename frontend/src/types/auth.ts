@@ -4,13 +4,14 @@ export interface User {
   firstName: string;
   lastName: string;
   phoneNumber: string;
-  codeCity: number;
-  codeWard: number;
-  detailAddress: string;
   role: 'admin' | 'manager' | 'shipper' | 'driver' | 'user';
   isVerified: boolean;
   isActive: boolean;
   lastLoginAt?: string;
+  images?: string;
+  detailAddress?: string;
+  codeWard?: number;
+  codeCity?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -21,7 +22,7 @@ export interface RegisterData {
   firstName: string;
   lastName: string;
   phoneNumber: string;
-  role?: 'admin' | 'manager' | 'shipper' | 'driver' | 'user';
+  role?: 'admin' | 'manager' | 'staff' | 'shipper' | 'driver' | 'user';
 }
 
 export interface LoginData {
@@ -36,7 +37,7 @@ export interface VerifyOTPData {
   firstName: string;
   lastName: string;
   phoneNumber: string;
-  role?: 'admin' | 'manager' | 'shipper' | 'driver' | 'user';
+  role?: 'admin' | 'manager' | 'staff' | 'shipper' | 'driver' | 'user';
 }
 
 export interface ForgotPasswordData {

@@ -127,36 +127,26 @@ const HeaderHome: React.FC = () => {
             >
               <Menu.Item key="/"><Link to="/">Trang chủ</Link></Menu.Item>
 
-              <Menu.SubMenu key="services" title="Dịch vụ">
-                <Menu.Item key="/services/standard">
-                  <Link to="/services/standard">Giao hàng tiêu chuẩn</Link>
-                </Menu.Item>
-                <Menu.Item key="/services/fast">
-                  <Link to="/services/fast">Giao hàng nhanh</Link>
-                </Menu.Item>
-                <Menu.Item key="/services/super-fast">
-                  <Link to="/services/super-fast">Hỏa tốc</Link>
-                </Menu.Item>
-              </Menu.SubMenu>
+              <Menu.Item key="/info/services"><Link to="/info/services">Dịch vụ</Link></Menu.Item>
 
               <Menu.SubMenu key="tracking" title="Tra cứu">
                 <Menu.Item key="/tracking/shipping-fee">
                   <Link to="/tracking/shipping-fee">Cước vận chuyển</Link>
                 </Menu.Item>
-                <Menu.Item key="/tracking/office">
-                  <Link to="/tracking/office">Bưu cục</Link>
+                <Menu.Item key="/tracking/office-search">
+                  <Link to="/tracking/office-search">Bưu cục</Link>
                 </Menu.Item>
-                <Menu.Item key="/tracking/order">
-                  <Link to="/tracking/order">Vận đơn</Link>
+                <Menu.Item key="/tracking/order-tracking">
+                  <Link to="/tracking/order-tracking">Vận đơn</Link>
                 </Menu.Item>
-                <Menu.Item key="/tracking/price-list">
-                  <Link to="/tracking/price-list">Bảng giá</Link>
+                <Menu.Item key="/info/shipping-rates">
+                  <Link to="/info/shipping-rates">Bảng giá</Link>
                 </Menu.Item>
               </Menu.SubMenu>
 
               <Menu.Item key="/promotions"><Link to="/promotions">Khuyến mãi</Link></Menu.Item>
-              <Menu.Item key="/about"><Link to="/about">Giới thiệu</Link></Menu.Item>
-              <Menu.Item key="/contact"><Link to="/contact">Liên hệ</Link></Menu.Item>
+              <Menu.Item key="/info/company"><Link to="/info/company">Về chúng tôi</Link></Menu.Item>
+              <Menu.Item key="/info/contact"><Link to="/info/contact">Liên hệ</Link></Menu.Item>
             </Menu>
           </Col>
 
@@ -256,37 +246,27 @@ const HeaderHome: React.FC = () => {
           <Menu.Item key="/"><Link to="/">Trang chủ</Link></Menu.Item>
 
           {/* Dịch vụ */}
-          <Menu.ItemGroup title="Dịch vụ">
-            <Menu.Item key="/services/standard">
-              <Link to="/services/standard">Giao hàng tiêu chuẩn</Link>
-            </Menu.Item>
-            <Menu.Item key="/services/fast">
-              <Link to="/services/fast">Giao hàng nhanh</Link>
-            </Menu.Item>
-            <Menu.Item key="/services/super-fast">
-              <Link to="/services/super-fast">Hỏa tốc</Link>
-            </Menu.Item>
-          </Menu.ItemGroup>
+          <Menu.Item key="/info/services"><Link to="/info/services">Dịch vụ</Link></Menu.Item>
 
           {/* Tra cứu */}
           <Menu.ItemGroup title="Tra cứu">
             <Menu.Item key="/tracking/shipping-fee">
               <Link to="/tracking/shipping-fee">Cước vận chuyển</Link>
             </Menu.Item>
-            <Menu.Item key="/tracking/office">
-              <Link to="/tracking/office">Bưu cục</Link>
+            <Menu.Item key="/tracking/office-search">
+              <Link to="/tracking/office-search">Bưu cục</Link>
             </Menu.Item>
-            <Menu.Item key="/tracking/order">
-              <Link to="/tracking/order">Vận đơn</Link>
+            <Menu.Item key="/tracking/order-tracking">
+              <Link to="/tracking/order-tracking">Vận đơn</Link>
             </Menu.Item>
-            <Menu.Item key="/tracking/price-list">
-              <Link to="/tracking/price-list">Bảng giá</Link>
+            <Menu.Item key="/info/shipping-rates">
+              <Link to="/info/shipping-rates">Bảng giá</Link>
             </Menu.Item>
           </Menu.ItemGroup>
           
           <Menu.Item key="/promotions"><Link to="/promotions">Khuyến mãi</Link></Menu.Item>
-          <Menu.Item key="/about"><Link to="/about">Giới thiệu</Link></Menu.Item>
-          <Menu.Item key="/contact"><Link to="/contact">Liên hệ</Link></Menu.Item>
+          <Menu.Item key="/info/company"><Link to="/info/company">Về chúng tôi</Link></Menu.Item>
+          <Menu.Item key="/info/contact"><Link to="/info/contact">Liên hệ</Link></Menu.Item>
         </Menu>
       </Drawer>
 

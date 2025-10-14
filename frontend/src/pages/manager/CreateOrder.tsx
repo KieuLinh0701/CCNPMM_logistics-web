@@ -25,6 +25,8 @@ import { getActiveServiceTypes } from "../../store/serviceTypeSlice";
 import { serviceType } from "../../types/serviceType";
 import { Order } from "../../types/order";
 import { calculateShippingFee as calculateShippingFeeThunk } from "../../store/orderSlice";
+import { adminAPI } from "../../services/api";
+import api from "../../services/api";
 
 const { Text } = Typography;
 const { Option } = Select;
@@ -34,6 +36,11 @@ const CreateOrder: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
 
   const [totalFee, setTotalFee] = useState<number>(0);
+  const [promotionCode, setPromotionCode] = useState<string>('');
+  const [promotionDiscount, setPromotionDiscount] = useState<number>(0);
+  const [promotionValid, setPromotionValid] = useState<boolean>(false);
+  const [promotionLoading, setPromotionLoading] = useState<boolean>(false);
+  const [promotionId, setPromotionId] = useState<number | null>(null);
 
   // Lấy serviceType slice
   const { serviceTypes, loading: serviceLoading, error: serviceError } =
@@ -47,15 +54,32 @@ const CreateOrder: React.FC = () => {
 
   const [showPromoModal, setShowPromoModal] = useState(false);
   const [selectedPromo, setSelectedPromo] = useState<string | null>(null);
+  const [promoList, setPromoList] = useState<any[]>([]);
 
-  const promoList = [
-    { code: "PROMO10", desc: "Giảm 10% cho đơn hàng đầu tiên" },
-    { code: "FREESHIP", desc: "Miễn phí vận chuyển tối đa 30k" },
-    { code: "SALE20", desc: "Giảm 20% cho đơn từ 200k" },
-    { code: "SAVE50", desc: "Giảm 50k cho đơn từ 300k" },
-    { code: "NEWUSER", desc: "Ưu đãi dành cho khách mới" },
-    { code: "SPRING", desc: "Giảm 30% mùa xuân" },
-  ];
+  // Load active promotions from database
+  useEffect(() => {
+    const loadPromotions = async () => {
+      try {
+        const response = await adminAPI.getActivePromotions();
+        if (response.success) {
+          // API trả về { success: true, data: { promotions: [...], pagination: {...} } }
+          const promotions = response.data?.promotions || response.data || [];
+          if (Array.isArray(promotions)) {
+            setPromoList(promotions);
+          } else {
+            console.error('Invalid promotion data format:', response);
+            setPromoList([]);
+          }
+        } else {
+          setPromoList([]);
+        }
+      } catch (error) {
+        console.error('Error loading promotions:', error);
+        setPromoList([]);
+      }
+    };
+    loadPromotions();
+  }, []);
 
   useEffect(() => {
     dispatch(getActiveServiceTypes());
@@ -76,6 +100,12 @@ const CreateOrder: React.FC = () => {
     }
   }, [serviceTypes]);
 
+  // Tính toán totalFee bao gồm promotion discount
+  useEffect(() => {
+    const finalFee = Math.max(0, shippingFee - promotionDiscount);
+    setTotalFee(finalFee);
+  }, [shippingFee, promotionDiscount]);
+
   const calculateShippingFee = (
     weight: number,
     service: serviceType | null,
@@ -94,22 +124,46 @@ const CreateOrder: React.FC = () => {
     );
   };
 
-  const getDiscountValue = (promoCode: string, shippingFee: number) => {
-    switch (promoCode) {
-      case "PROMO10":
-        return shippingFee * 0.1;
-      case "FREESHIP":
-        return Math.min(shippingFee, 30000);
-      case "SALE20":
-        return shippingFee >= 200000 ? 20000 : 0;
-      case "SAVE50":
-        return shippingFee >= 300000 ? 50000 : 0;
-      default:
-        return 0;
+  const validatePromotionCode = async (code: string, orderValue: number) => {
+    if (!code || !orderValue) return;
+    
+    setPromotionLoading(true);
+    try {
+      const response = await api.post('/orders/validate-promotion', {
+        code,
+        orderValue
+      });
+      
+      if ((response.data as any).success) {
+        setPromotionDiscount((response.data as any).data.discountAmount);
+        setPromotionValid(true);
+        setPromotionId((response.data as any).data.promotion.id);
+        message.success(`Mã khuyến mãi hợp lệ! Giảm ${(response.data as any).data.discountAmount.toLocaleString('vi-VN')}đ`);
+      } else {
+        setPromotionDiscount(0);
+        setPromotionValid(false);
+        setPromotionId(null);
+        message.error((response.data as any).message || 'Mã khuyến mãi không hợp lệ');
+      }
+    } catch (error: any) {
+      setPromotionDiscount(0);
+      setPromotionValid(false);
+      setPromotionId(null);
+      message.error(error.response?.data?.message || 'Lỗi khi kiểm tra mã khuyến mãi');
+    } finally {
+      setPromotionLoading(false);
     }
   };
 
-  const onFinish = (values: any) => {
+  const getDiscountValue = (promoCode: string, shippingFee: number) => {
+    // Sử dụng promotion discount từ API
+    if (promotionValid && promotionCode === promoCode) {
+      return promotionDiscount;
+    }
+    return 0;
+  };
+
+  const onFinish = async (values: any) => {
     // map form values về type Order
     const order: Partial<Order> = {
       senderName: values.senderName,
@@ -140,13 +194,32 @@ const CreateOrder: React.FC = () => {
               : "Cash",
 
       notes: values.note || "",
-      discountAmount: 0,
-      shippingFee: 0,
+      discountAmount: promotionDiscount,
+      shippingFee: shippingFee,
       status: "pending",
     };
 
     console.log("Order payload:", order);
-    message.success("Tạo đơn hàng thành công!");
+    
+    try {
+      const orderPayload = {
+        ...order,
+        promotionId: promotionId
+      };
+      const response = await api.post('/orders', orderPayload);
+      if ((response.data as any).success) {
+        message.success("Tạo đơn hàng thành công!");
+        form.resetFields();
+        setPromotionCode('');
+        setPromotionDiscount(0);
+        setPromotionValid(false);
+        setPromotionId(null);
+      } else {
+        message.error((response.data as any).message || 'Tạo đơn hàng thất bại');
+      }
+    } catch (error: any) {
+      message.error(error.response?.data?.message || 'Lỗi khi tạo đơn hàng');
+    }
   };
 
   return (
@@ -378,8 +451,16 @@ const CreateOrder: React.FC = () => {
           <div>
             <div style={{ marginBottom: 16 }}>
               <Text strong>Phí dịch vụ:</Text>
-              <div >{shippingFee.toLocaleString()} VNĐ</div>
+              <div>{shippingFee.toLocaleString()} VNĐ</div>
             </div>
+            
+            {promotionValid && promotionDiscount > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                <Text strong style={{ color: '#52c41a' }}>Giảm giá:</Text>
+                <div style={{ color: '#52c41a' }}>-{promotionDiscount.toLocaleString()} VNĐ</div>
+              </div>
+            )}
+            
             <Divider style={{ margin: "8px 0" }} />
             <div style={{ marginBottom: 16 }}>
               <Text strong style={{ fontSize: 16 }}>Tổng phí:</Text>
@@ -388,6 +469,10 @@ const CreateOrder: React.FC = () => {
 
             <Input.Search
               placeholder="Nhập mã khuyến mãi"
+              value={promotionCode}
+              onChange={(e) => setPromotionCode(e.target.value)}
+              onSearch={(value) => validatePromotionCode(value, totalFee)}
+              loading={promotionLoading}
               enterButton={
                 <Button
                   type="primary"
@@ -397,6 +482,21 @@ const CreateOrder: React.FC = () => {
               }
               style={{ marginBottom: 12 }}
             />
+            
+            {promotionValid && (
+              <div style={{ 
+                marginBottom: 12, 
+                padding: 8, 
+                background: '#f6ffed', 
+                border: '1px solid #b7eb8f', 
+                borderRadius: 4,
+                fontSize: 12
+              }}>
+                <Text style={{ color: '#52c41a' }}>
+                  ✓ Mã khuyến mãi hợp lệ! Giảm {promotionDiscount.toLocaleString('vi-VN')}đ
+                </Text>
+              </div>
+            )}
 
             <Button
               type="dashed"
@@ -435,7 +535,7 @@ const CreateOrder: React.FC = () => {
             style={{ width: "100%" }}
           >
             <List
-              dataSource={promoList}
+              dataSource={Array.isArray(promoList) ? promoList : []}
               renderItem={(item) => (
                 <List.Item
                   style={{
@@ -447,7 +547,7 @@ const CreateOrder: React.FC = () => {
                   <Radio value={item.code}>
                     <div>
                       <Text strong>{item.code}</Text>
-                      <div style={{ fontSize: 13, color: "#555" }}>{item.desc}</div>
+                      <div style={{ fontSize: 13, color: "#555" }}>{item.description}</div>
                     </div>
                   </Radio>
                 </List.Item>

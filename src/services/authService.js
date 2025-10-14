@@ -6,6 +6,9 @@ import jwt from 'jsonwebtoken';
 import speakeasy from 'speakeasy';
 import nodemailer from 'nodemailer';
 import db from '../models/index.js';
+import fs from 'fs';
+import path from 'path';
+ 
 
 const salt = bcrypt.genSaltSync(10);
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_here';
@@ -401,6 +404,70 @@ const getAssignableRoles = async (userId) => {
   });
 };
 
+// Update User Profile
+const updateUserProfile = async (userId, payload) => {
+  try {
+    const user = await db.User.findByPk(userId);
+    if (!user) return { success: false, message: "Không tìm thấy người dùng" };
+
+    const { firstName, lastName, phoneNumber, detailAddress, codeWard, codeCity } = payload || {};
+
+    if (typeof firstName !== "undefined") user.firstName = firstName;
+    if (typeof lastName !== "undefined") user.lastName = lastName;
+    if (typeof phoneNumber !== "undefined") user.phoneNumber = phoneNumber;
+    if (typeof detailAddress !== "undefined") user.detailAddress = detailAddress;
+    if (typeof codeWard !== "undefined") user.codeWard = codeWard;
+    if (typeof codeCity !== "undefined") user.codeCity = codeCity;
+
+    await user.save();
+
+    const sanitized = user.toJSON();
+    delete sanitized.password;
+
+    return { success: true, message: "Cập nhật thông tin thành công", user: sanitized };
+  } catch (error) {
+    return { success: false, message: "Lỗi server" };
+  }
+};
+
+// Update Avatar
+const updateUserAvatar = async (userId, imagePath) => {
+  try {
+    if (!imagePath) return { success: false, message: "Thiếu đường dẫn ảnh" };
+
+    const user = await db.User.findByPk(userId);
+    if (!user) return { success: false, message: "Không tìm thấy người dùng" };
+
+    // Chỉ lưu tên file vào DB
+    const filename = path.basename(imagePath);
+    
+
+    // Xóa ảnh cũ nếu có và khác tên
+    const oldFilename = user.images;
+    if (oldFilename && oldFilename !== filename) {
+      const uploadRoot = 'C:/uploads';
+      const oldFull = path.join(uploadRoot, oldFilename);
+      try {
+        if (fs.existsSync(oldFull)) {
+          fs.unlinkSync(oldFull);
+        }
+      } catch (_) {}
+    }
+
+    user.images = filename;
+    await user.save();
+    
+    
+    const sanitized = user.toJSON();
+    delete sanitized.password;
+
+    return { success: true, message: "Cập nhật ảnh đại diện thành công", user: sanitized };
+  } catch (error) {
+    
+    return { success: false, message: "Lỗi server" };
+  }
+};
+
 export default {
   registerUser,
   verifyOTPAndCreateUser,
@@ -411,4 +478,6 @@ export default {
   verifyResetOTP,
   resetPassword,
   getAssignableRoles,
+  updateUserProfile,
+  updateUserAvatar
 };

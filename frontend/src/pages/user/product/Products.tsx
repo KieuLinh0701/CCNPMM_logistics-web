@@ -4,7 +4,7 @@ import { Form, message } from 'antd';
 import dayjs from 'dayjs';
 import { product } from '../../../types/product';
 import { useAppDispatch, useAppSelector } from '../../../hooks/redux';
-import { addProduct, getProductsByUser, getStatusesEnum, getTypesEnum, importProducts, updateProduct } from '../../../store/productSlice';
+import { createProduct, listUserProducts, getProductStatuses, getProductTypes, importProducts, updateProduct } from '../../../store/productSlice';
 import SearchFilters from './components/SearchFilters';
 import Actions from './components/Actions';
 import ProductTable from './components/Table';
@@ -18,7 +18,7 @@ const Products: React.FC = () => {
   const [searchText, setSearchText] = useState('');
   const [filterType, setFilterType] = useState<string>('All');
   const [filterStatus, setFilterStatus] = useState<string>('All');
-  const [sort, setSort] = useState('none');
+  const [sort, setSort] = useState('newest');
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [importResults, setImportResults] = useState<any[]>([]);
@@ -35,28 +35,50 @@ const Products: React.FC = () => {
   const handleAddProduct = async () => {
     await form.validateFields();
     try {
-      await dispatch(addProduct(newProduct));
-      message.success('Thêm sản phẩm thành công!');
+      const result = await dispatch(createProduct(newProduct)).unwrap();
+
+      const successMessage = result?.message || 'Thêm sản phẩm thành công!';
+      if (result.success) {
+        message.success(successMessage);
+      } else {
+        message.error(successMessage);
+      }
+
       setIsModalOpen(false);
       setNewProduct({});
       form.resetFields();
       fetchProducts(1);
-    } catch (error) {
-      message.error('Có lỗi khi thêm sản phẩm!');
+    } catch (error: any) {
+      const errorMessage =
+        error?.message ||
+        error?.response?.data?.message ||
+        'Có lỗi khi thêm sản phẩm!';
+      message.error(errorMessage);
     }
   };
 
   const handleEditProduct = async () => {
     await form.validateFields();
     try {
-      await dispatch(updateProduct({ product: newProduct }));
-      message.success('Cập nhật sản phẩm thành công!');
+      const result = await dispatch(updateProduct({ product: newProduct })).unwrap();
+
+      const successMessage = result?.message || 'Sửa sản phẩm thành công!';
+      if (result.success) {
+        message.success(successMessage);
+      } else {
+        message.error(successMessage);
+      }
+
       setIsModalOpen(false);
       setNewProduct({});
       form.resetFields();
-      fetchProducts(currentPage);
-    } catch (error) {
-      message.error('Cập nhật thất bại!');
+      fetchProducts(1);
+    } catch (error: any) {
+      const errorMessage =
+        error?.message ||
+        error?.response?.data?.message ||
+        'Có lỗi khi sửa sản phẩm!';
+      message.error(errorMessage);
     }
   };
 
@@ -112,13 +134,22 @@ const Products: React.FC = () => {
 
         // Gửi lên API 
         const resultAction = await dispatch(importProducts({ products: newProducts })).unwrap();
+        console.log("resultAction", resultAction);
+
+        // Nếu backend trả về success: true
         if (resultAction?.success) {
-          message.success("Import sản phẩm thành công!");
+          // Lấy message từ backend
+          message.success(resultAction?.message || "Import sản phẩm thành công!");
+
+          // Lưu kết quả chi tiết để hiển thị
           setImportResults(resultAction.results ?? []);
           setImportModalOpen(true);
           setCurrentPage(1);
-          dispatch(getProductsByUser({ page: currentPage, limit: pageSize }));
+
+          // Cập nhật lại danh sách sản phẩm
+          dispatch(listUserProducts({ page: currentPage, limit: pageSize }));
         } else {
+          // Nếu backend trả về success: false
           message.error(resultAction?.message || "Import thất bại");
         }
 
@@ -171,7 +202,7 @@ const Products: React.FC = () => {
       searchText: search !== undefined ? search : searchText,
       type: filterType !== 'All' ? filterType : undefined,
       status: filterStatus !== 'All' ? filterStatus : undefined,
-      sort: sort !== 'none' ? sort : undefined,
+      sort: sort !== 'newest' ? sort : undefined,
       stock: stockFilter != 'All' ? stockFilter : undefined,
     };
 
@@ -180,7 +211,7 @@ const Products: React.FC = () => {
       payload.endDate = dateRange[1].endOf('day').toISOString();
     }
 
-    dispatch(getProductsByUser(payload));
+    dispatch(listUserProducts(payload));
   };
 
   const handleFilterChange = (filter: string, value: string) => {
@@ -202,7 +233,7 @@ const Products: React.FC = () => {
     setSearchText('');
     setFilterType('All');
     setFilterStatus('All');
-    setSort('none');
+    setSort('newest');
     setDateRange(null);
     setCurrentPage(1);
     setStockFilter('All');
@@ -210,12 +241,12 @@ const Products: React.FC = () => {
 
   // Effects
   useEffect(() => {
-    dispatch(getProductsByUser({ page: currentPage, limit: pageSize }));
+    dispatch(listUserProducts({ page: currentPage, limit: pageSize }));
   }, [dispatch, currentPage, pageSize]);
 
   useEffect(() => {
-    dispatch(getTypesEnum());
-    dispatch(getStatusesEnum());
+    dispatch(getProductTypes());
+    dispatch(getProductStatuses());
   }, [dispatch]);
 
   useEffect(() => {

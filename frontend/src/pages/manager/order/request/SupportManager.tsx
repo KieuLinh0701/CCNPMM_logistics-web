@@ -6,7 +6,7 @@ import AddEditModal from './components/AddEditModal';
 import { useAppDispatch, useAppSelector } from '../../../../hooks/redux';
 import RequestTable from './components/Table';
 import { ShippingRequest } from '../../../../types/shippingRequest';
-import { addRequest, cancelRequest, getRequestsByOffice, getStatusesEnum, getTypesEnum, updateRequest } from '../../../../store/shippingRequestSlice';
+import { createRequest, cancelRequest, listOfficeRequests, getRequestStatuses, getRequestTypes, updateRequest } from '../../../../store/shippingRequestSlice';
 import DetailModal from './components/DetailModal';
 import { useNavigate } from 'react-router-dom';
 import { getByUserId } from '../../../../store/officeSlice';
@@ -42,7 +42,7 @@ const SupportManager: React.FC = () => {
 
   const handleAddRequest = async () => {
     try {
-      const result = await dispatch(addRequest(newRequest)).unwrap();
+      const result = await dispatch(createRequest(newRequest)).unwrap();
       if (result.success) {
         message.success(result.message || 'Thêm yêu cầu thành công!');
         setIsModalOpen(false);
@@ -168,7 +168,7 @@ const SupportManager: React.FC = () => {
     }
 
     console.log('📡 Fetching requests with payload:', payload);
-    dispatch(getRequestsByOffice(payload));
+    dispatch(listOfficeRequests(payload));
   };
 
   const handleFilterChange = (filter: string, value: string) => {
@@ -213,8 +213,8 @@ const SupportManager: React.FC = () => {
 
   // useEffect cho initial data
   useEffect(() => {
-    dispatch(getTypesEnum());
-    dispatch(getStatusesEnum());
+    dispatch(getRequestTypes());
+    dispatch(getRequestStatuses());
     if (!office && user?.id !== undefined) {
       dispatch(getByUserId(user.id));
     }

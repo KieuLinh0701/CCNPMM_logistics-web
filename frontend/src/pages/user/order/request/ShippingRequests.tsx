@@ -1,15 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import * as XLSX from "xlsx";
 import { Form, message, Modal } from 'antd';
 import dayjs from 'dayjs';
 import SearchFilters from './components/SearchFilters';
 import Actions from './components/Actions';
-import ProductTable from './components/Table';
 import AddEditModal from './components/AddEditModal';
 import { useAppDispatch, useAppSelector } from '../../../../hooks/redux';
 import RequestTable from './components/Table';
 import { ShippingRequest } from '../../../../types/shippingRequest';
-import { addRequest, cancelRequest, getRequestsByUser, getStatusesEnum, getTypesEnum, updateRequest } from '../../../../store/shippingRequestSlice';
+import { createRequest, cancelRequest, listUserRequests, getRequestStatuses, getRequestTypes, updateRequest } from '../../../../store/shippingRequestSlice';
 import DetailModal from './components/DetailModal';
 import { useNavigate } from 'react-router-dom';
 
@@ -43,7 +41,7 @@ const ShippingRequests: React.FC = () => {
 
   const handleAddRequest = async () => {
     try {
-      const result = await dispatch(addRequest(newRequest)).unwrap();
+      const result = await dispatch(createRequest(newRequest)).unwrap();
       if (result.success) {
         message.success(result.message || 'Thêm yêu cầu thành công!');
         setIsModalOpen(false);
@@ -162,7 +160,7 @@ const ShippingRequests: React.FC = () => {
       payload.endDate = dateRange[1].endOf('day').toISOString();
     }
 
-    dispatch(getRequestsByUser(payload));
+    dispatch(listUserRequests(payload));
   };
 
   const handleFilterChange = (filter: string, value: string) => {
@@ -207,12 +205,12 @@ const ShippingRequests: React.FC = () => {
   };
 
   useEffect(() => {
-    dispatch(getRequestsByUser({ page: currentPage, limit: pageSize }));
+    dispatch(listUserRequests({ page: currentPage, limit: pageSize }));
   }, [dispatch, currentPage, pageSize]);
 
   useEffect(() => {
-    dispatch(getTypesEnum());
-    dispatch(getStatusesEnum());
+    dispatch(getRequestTypes());
+    dispatch(getRequestStatuses());
   }, [dispatch]);
 
   useEffect(() => {

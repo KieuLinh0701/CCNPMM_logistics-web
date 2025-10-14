@@ -171,13 +171,13 @@ const OrderList = () => {
   useEffect(() => {
     // Fetch provinces
     axios
-      .get<{ code: number; name: string }[]>("https://provinces.open-api.vn/api/p/")
+      .get<{ code: number; name: string }[]>("https://provinces.open-api.vn/api/v2/p/")
       .then((res) => setProvinceList(res.data))
       .catch((err) => console.error(err));
 
     // Fetch wards
     axios
-      .get<{ code: number; name: string }[]>("https://provinces.open-api.vn/api/w/")
+      .get<{ code: number; name: string }[]>("https://provinces.open-api.vn/api/v2/w/")
       .then((res) => setWardList(res.data))
       .catch((err) => console.error(err));
   }, []);

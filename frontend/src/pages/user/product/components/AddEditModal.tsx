@@ -108,17 +108,15 @@ const AddEditModal: React.FC<AddEditModalProps> = ({
             />
           </Form.Item>
 
-          {mode !== 'edit' && (
-            <Form.Item label="Tồn kho" name="stock">
-              <InputNumber
-                min={0}
-                style={{ width: '100%' }}
-                value={product.stock}
-                defaultValue={0}
-                onChange={(val) => onProductChange({ ...product, stock: val ?? 0 })}
-              />
-            </Form.Item>
-          )}
+          <Form.Item label="Tồn kho" name="stock">
+            <InputNumber
+              min={0}
+              style={{ width: '100%' }}
+              value={product.stock}
+              defaultValue={0}
+              onChange={(val) => onProductChange({ ...product, stock: val ?? 0 })}
+            />
+          </Form.Item>
 
           <Form.Item label="Loại" name="type" rules={[{ required: true, message: 'Chọn loại sản phẩm!' }]}>
             <Select

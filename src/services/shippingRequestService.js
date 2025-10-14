@@ -1,9 +1,9 @@
 import db from '../models';
 
-const requestService = {
+const shippingRequestService = {
 
   // Get Shift Enum
-  async getTypesEnum(userId) {
+  async getRequestTypes() {
     try {
       // Lấy User đang thực hiện
       const user = await db.User.count({
@@ -28,7 +28,7 @@ const requestService = {
   },
 
   // Get Status Enum
-  async getStatusesEnum(userId) {
+  async getRequestStatuses(userId) {
     try {
       // Lấy User đang thực hiện
       const user = await db.User.count({
@@ -54,7 +54,7 @@ const requestService = {
   },
 
   // Get Requests By User 
-  async getRequestsByUser(userId, page, limit, filters) {
+  async listUserRequests(userId, page, limit, filters) {
     try {
       const { Op } = db.Sequelize;
 
@@ -146,13 +146,28 @@ const requestService = {
     }
   },
 
-  async addRequest(userId, trackingNumber, requestContent, requestType) {
+  async createRequest(data) {
     const t = await db.sequelize.transaction();
     try {
-      // Kiểm tra user tồn tại
-      const user = await db.User.findOne({ where: { id: userId } });
-      if (!user) {
-        return { success: false, message: 'Người dùng không tồn tại' };
+      const { userId,
+        trackingNumber,
+        requestContent,
+        requestType,
+        contactName,
+        contactPhoneNumber,
+        contactEmail,
+        contactCityCode,
+        contactWardCode,
+        contactDetailAddress
+      } = data;
+
+      // Kiểm tra user nếu có
+      let user = null;
+      if (userId) {
+        user = await db.User.findOne({ where: { id: userId } });
+        if (!user) {
+          return { success: false, message: 'Người dùng không tồn tại' };
+        }
       }
 
       // Kiểm tra loại yêu cầu hợp lệ
@@ -161,40 +176,25 @@ const requestService = {
         return { success: false, message: "Loại yêu cầu không hợp lệ" };
       }
 
-      // Kiểm tra nội dung yêu cầu (cho phép trống với DeliveryReminder)
+      // Kiểm tra nội dung yêu cầu
       if (requestType !== 'DeliveryReminder') {
         if (!requestContent || requestContent.trim().length === 0) {
           return { success: false, message: "Nội dung yêu cầu không được để trống" };
         }
       }
-
       if (requestContent && requestContent.length > 1000) {
         return { success: false, message: "Nội dung yêu cầu không được vượt quá 1000 ký tự" };
       }
 
+      // Xử lý order nếu trackingNumber có
       let order = null;
       let orderId = null;
       let officeId = null;
 
-      // Xác định các loại yêu cầu có thể để trống trackingNumber
       const canTrackingNumberBeEmpty = ['Inquiry', 'Complaint'].includes(requestType);
-
-      // Kiểm tra trackingNumber theo loại yêu cầu
-      if (!trackingNumber || trackingNumber.trim() === '') {
-        // Nếu không có trackingNumber, chỉ cho phép loại Inquiry và Complaint
-        if (!canTrackingNumberBeEmpty) {
-          return {
-            success: false,
-            message: "Mã đơn hàng là bắt buộc cho loại yêu cầu này"
-          };
-        }
-      } else {
-        // Nếu có trackingNumber thì kiểm tra order
+      if (trackingNumber && trackingNumber.trim() !== '') {
         order = await db.Order.findOne({
-          where: {
-            trackingNumber: trackingNumber.trim(),
-            userId: userId
-          }
+          where: { trackingNumber: trackingNumber.trim(), userId: userId || undefined }
         });
 
         if (!order) {
@@ -203,130 +203,76 @@ const requestService = {
 
         orderId = order.id;
 
-        // Kiểm tra request trùng lặp
-        if (orderId) {
-          const existingRequest = await db.ShippingRequest.findOne({
-            where: {
-              orderId: orderId,
-              requestType: requestType,
-              status: ['Pending', 'Processing']
-            }
-          });
+        // Check trùng lặp request
+        const existingRequest = await db.ShippingRequest.findOne({
+          where: { orderId, requestType, status: ['Pending', 'Processing'] }
+        });
 
-          if (existingRequest) {
-            return {
-              success: false,
-              message: 'Đã có yêu cầu tương tự cho đơn hàng này đang được xử lý. Vui lòng đợi hoàn tất trước khi tạo yêu cầu mới'
-            };
-          }
+        if (existingRequest) {
+          return {
+            success: false,
+            message: 'Đã có yêu cầu tương tự cho đơn hàng này đang được xử lý'
+          };
         }
 
-        // Kiểm tra trạng thái order theo từng loại yêu cầu
-        const orderStatus = order.status;
+        // Logic gán office như trước
+        const orderWithOffice = await db.Order.findOne({
+          where: { id: orderId },
+          include: [
+            { model: db.Office, as: 'fromOffice', attributes: ['id'] },
+            { model: db.Office, as: 'toOffice', attributes: ['id'] }
+          ]
+        });
 
-        // DeliveryReminder: không được tạo nếu order ở trạng thái draft, cancelled, delivered
-        if (requestType === 'DeliveryReminder') {
-          const invalidStatuses = ['draft', 'cancelled', 'delivered', 'returned'];
-          if (invalidStatuses.includes(orderStatus)) {
-            return {
-              success: false,
-              message: "Không thể tạo yêu cầu hối giao hàng cho đơn hàng ở trạng thái này"
-            };
-          }
-        }
-
-        // Complaint: không được tạo nếu order ở trạng thái draft, pending, confirmed, cancelled
-        if (requestType === 'Complaint') {
-          const invalidStatuses = ['draft', 'pending', 'confirmed', 'cancelled'];
-          if (invalidStatuses.includes(orderStatus)) {
-            return {
-              success: false,
-              message: "Không thể tạo yêu cầu khiếu nại cho đơn hàng ở trạng thái này"
-            };
-          }
-        }
-
-        // ChangeOrderInfo: không được tạo nếu order ở trạng thái cancelled, delivered
-        if (requestType === 'ChangeOrderInfo') {
-          const invalidStatuses = ['cancelled', 'delivered', 'returned'];
-          if (invalidStatuses.includes(orderStatus)) {
-            return {
-              success: false,
-              message: "Không thể thay đổi thông tin đơn hàng ở trạng thái này"
-            };
-          }
-        }
-
-        // GÁN OFFICE THEO LOGIC - THÊM PHẦN NÀY
-        if (orderId && requestType !== 'Inquiry') {
-          // Lấy thông tin order với office
-          const orderWithOffice = await db.Order.findOne({
-            where: { id: orderId },
-            include: [
-              {
-                model: db.Office,
-                as: 'fromOffice',
-                attributes: ['id']
-              },
-              {
-                model: db.Office,
-                as: 'toOffice',
-                attributes: ['id']
+        if (orderWithOffice) {
+          const orderStatus = order.status;
+          switch (requestType) {
+            case 'ChangeOrderInfo':
+              if (['draft', 'pending', 'confirmed', 'picked_up'].includes(orderStatus)) {
+                officeId = orderWithOffice.fromOffice?.id;
+              } else if (orderStatus === 'in_transit') {
+                officeId = orderWithOffice.toOffice?.id;
               }
-            ]
-          });
-
-          if (orderWithOffice) {
-            // Logic gán office theo loại request và trạng thái order
-            switch (requestType) {
-              case 'ChangeOrderInfo':
-                if (['draft', 'pending', 'confirmed', 'picked_up'].includes(orderStatus)) {
-                  officeId = orderWithOffice.fromOffice?.id;
-                } else if (orderStatus === 'in_transit') {
-                  officeId = orderWithOffice.toOffice?.id;
-                }
-                break;
-
-              case 'DeliveryReminder':
-                if (['pending', 'confirmed', 'picked_up'].includes(orderStatus)) {
-                  officeId = orderWithOffice.fromOffice?.id;
-                } else if (orderStatus === 'in_transit') {
-                  officeId = orderWithOffice.toOffice?.id;
-                }
-                break;
-
-              case 'Complaint':
-                if (orderStatus === 'picked_up') {
-                  officeId = orderWithOffice.fromOffice?.id;
-                } else if (['in_transit', 'delivered', 'returned'].includes(orderStatus)) {
-                  officeId = orderWithOffice.toOffice?.id;
-                }
-                break;
-
-              default:
-                // Inquiry không gán office
-                break;
-            }
+              break;
+            case 'DeliveryReminder':
+              if (['pending', 'confirmed', 'picked_up'].includes(orderStatus)) {
+                officeId = orderWithOffice.fromOffice?.id;
+              } else if (orderStatus === 'in_transit') {
+                officeId = orderWithOffice.toOffice?.id;
+              }
+              break;
+            case 'Complaint':
+              if (orderStatus === 'picked_up') {
+                officeId = orderWithOffice.fromOffice?.id;
+              } else if (['in_transit', 'delivered', 'returned'].includes(orderStatus)) {
+                officeId = orderWithOffice.toOffice?.id;
+              }
+              break;
           }
         }
+      } else if (!canTrackingNumberBeEmpty) {
+        return { success: false, message: "Mã đơn hàng là bắt buộc cho loại yêu cầu này" };
       }
 
-      // Tạo shipping request mới
+      // Tạo request
       const newRequest = await db.ShippingRequest.create({
-        orderId: orderId,
-        officeId: officeId,
-        requestType: requestType,
-        requestContent: requestContent ? requestContent.trim() : null,
+        orderId,
+        officeId,
+        requestType,
+        requestContent: requestContent?.trim() || null,
         status: 'Pending',
+        userId: userId || null,
+        contactName: userId ? null : contactName,
+        contactPhoneNumber: userId ? null : contactPhoneNumber,
+        contactEmail: userId ? null : contactEmail,
+        contactCityCode: userId ? null : contactCityCode,
+        contactWardCode: userId ? null : contactWardCode,
+        contactDetailAddress: userId ? null : contactDetailAddress
       }, { transaction: t });
 
       await t.commit();
 
-      return {
-        success: true,
-        message: "Tạo yêu cầu thành công",
-        request: newRequest,
-      };
+      return { success: true, message: "Tạo yêu cầu thành công", request: newRequest };
     } catch (error) {
       await t.rollback();
       console.error("Add Shipping Request error:", error);
@@ -474,7 +420,7 @@ const requestService = {
   },
 
   // Get Requests By Office - cho manager
-  async getRequestsByOffice(userId, officeId, page, limit, filters) {
+  async listOfficeRequests(userId, officeId, page, limit, filters) {
     try {
       const { Op } = db.Sequelize;
 
@@ -529,7 +475,7 @@ const requestService = {
         }
       };
 
-      // Lọc dữ liệu - GIỮ NGUYÊN như getRequestsByUser
+      // Lọc dữ liệu - GIỮ NGUYÊN như listUserRequests
       const { searchText, requestType, status, startDate, endDate, sort } = filters || {};
 
       // Tìm kiếm theo trackingNumber của Order
@@ -591,4 +537,4 @@ const requestService = {
 
 };
 
-export default requestService;
+export default shippingRequestService;

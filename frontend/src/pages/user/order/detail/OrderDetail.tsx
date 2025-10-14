@@ -49,12 +49,12 @@ const OrderDetail: React.FC = () => {
     // --- Fetch tất cả provinces + wards ---
     useEffect(() => {
         axios
-            .get<City[]>("https://provinces.open-api.vn/api/p/")
+            .get<City[]>("https://provinces.open-api.vn/api/v2/p/")
             .then((res) => setCitys(res.data))
             .catch((err) => console.error("Lỗi load provinces:", err));
 
         axios
-            .get<Ward[]>("https://provinces.open-api.vn/api/w/")
+            .get<Ward[]>("https://provinces.open-api.vn/api/v2/w/")
             .then((res) => setWards(res.data))
             .catch((err) => console.error("Lỗi load wards:", err));
     }, []);

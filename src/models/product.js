@@ -53,11 +53,13 @@ export default (sequelize) => {
         defaultValue: 'Active',
         comment: 'Trạng thái sản phẩm'
       },
+
       stock: {
         type: DataTypes.INTEGER,
         defaultValue: 0,
         comment: 'Số lượng hàng trong kho'
       },
+
       soldQuantity: {
         type: DataTypes.INTEGER,
         defaultValue: 0,

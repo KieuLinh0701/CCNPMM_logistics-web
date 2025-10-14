@@ -21,11 +21,11 @@ const initialState: ProductState = {
 };
 
 // Lấy Danh sách sản phẩm của cửa hàng
-export const getTypesEnum = createAsyncThunk(
+export const getProductTypes = createAsyncThunk(
   'products/get-types',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await productAPI.getTypesEnum();
+      const response = await productAPI.getProductTypes();
       return response;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Lấy loại hàng hóa thất bại');
@@ -33,7 +33,7 @@ export const getTypesEnum = createAsyncThunk(
   }
 );
 
-export const getProductsByUser = createAsyncThunk<
+export const listUserProducts = createAsyncThunk<
   ProductResponse,
   {
     page: number,
@@ -64,7 +64,7 @@ export const getProductsByUser = createAsyncThunk<
       if (endDate) params.append("endDate", endDate);
       if (stock) params.append("stock", stock);
 
-      const data = await productAPI.getProductsByUser(params.toString());
+      const data = await productAPI.listUserProducts(params.toString());
       return data;
     } catch (err: any) {
       return thunkAPI.rejectWithValue(err.response?.data?.message || 'Lỗi khi lấy danh sách sản phẩm của cửa hàng');
@@ -73,11 +73,11 @@ export const getProductsByUser = createAsyncThunk<
 );
 
 // Lấy Status Enum
-export const getStatusesEnum = createAsyncThunk(
+export const getProductStatuses = createAsyncThunk(
   'products/get-statuses',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await productAPI.getStatusesEnum();
+      const response = await productAPI.getProductStatuses();
       return response;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Lấy thông tin trạng thái làm việc thất bại');
@@ -86,7 +86,7 @@ export const getStatusesEnum = createAsyncThunk(
 );
 
 // Add Product
-export const addProduct = createAsyncThunk<
+export const createProduct = createAsyncThunk<
   ProductResponse,
   Partial<product>,
   { rejectValue: string }
@@ -94,7 +94,7 @@ export const addProduct = createAsyncThunk<
   'products/add',
   async (product, thunkAPI) => {
     try {
-      const data = await productAPI.addProduct(product);
+      const data = await productAPI.createProduct(product);
       return data;
     } catch (err: any) {
       return thunkAPI.rejectWithValue(err.response?.data?.message || 'Lỗi khi thêm sản phẩm');
@@ -136,7 +136,7 @@ export const importProducts = createAsyncThunk<
   }
 );
 
-export const getActiveProductsByUser = createAsyncThunk<
+export const listActiveUserProducts = createAsyncThunk<
   ProductResponse,
   {
     limit: number,
@@ -154,7 +154,7 @@ export const getActiveProductsByUser = createAsyncThunk<
       if (searchText) params.append("search", searchText);
       if (lastId) params.append("lastId", String(lastId));
 
-      const data = await productAPI.getActiveProductsByUser(params.toString());
+      const data = await productAPI.listActiveUserProducts(params.toString());
       return data;
     } catch (err: any) {
       return thunkAPI.rejectWithValue(err.response?.data?.message || 'Lỗi khi lấy danh sách sản phẩm của cửa hàng');
@@ -176,44 +176,44 @@ const productSlice = createSlice({
   extraReducers: (builder) => {
     // Get Statused 
     builder
-      .addCase(getStatusesEnum.pending, (state) => {
+      .addCase(getProductStatuses.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(getStatusesEnum.fulfilled, (state, action) => {
+      .addCase(getProductStatuses.fulfilled, (state, action) => {
         state.loading = false;
         if (action.payload.success && action.payload.statuses) {
           state.statuses = action.payload.statuses;
         }
       })
-      .addCase(getStatusesEnum.rejected, (state, action) => {
+      .addCase(getProductStatuses.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
     // Get Types Enum
     builder
-      .addCase(getTypesEnum.pending, (state) => {
+      .addCase(getProductTypes.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(getTypesEnum.fulfilled, (state, action) => {
+      .addCase(getProductTypes.fulfilled, (state, action) => {
         state.loading = false;
         if (action.payload.success && action.payload.types) {
           state.types = action.payload.types;
         }
       })
-      .addCase(getTypesEnum.rejected, (state, action) => {
+      .addCase(getProductTypes.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
 
     // Get Products By User
     builder
-      .addCase(getProductsByUser.pending, (state) => {
+      .addCase(listUserProducts.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(getProductsByUser.fulfilled, (state, action) => {
+      .addCase(listUserProducts.fulfilled, (state, action) => {
         state.loading = false;
         if (action.payload.success) {
           state.products = action.payload.products || [];
@@ -222,25 +222,25 @@ const productSlice = createSlice({
           state.limit = action.payload.limit || 10;
         }
       })
-      .addCase(getProductsByUser.rejected, (state, action) => {
+      .addCase(listUserProducts.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
 
     // Add Product
     builder
-      .addCase(addProduct.pending, (state) => {
+      .addCase(createProduct.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(addProduct.fulfilled, (state, action) => {
+      .addCase(createProduct.fulfilled, (state, action) => {
         state.loading = false;
         const newProduct = action.payload.product;
         if (action.payload.success && newProduct) {
           state.products = [newProduct, ...(state.products || [])];
         }
       })
-      .addCase(addProduct.rejected, (state, action) => {
+      .addCase(createProduct.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
@@ -303,11 +303,11 @@ const productSlice = createSlice({
 
     // Get Active Products By User
     builder
-      .addCase(getActiveProductsByUser.pending, (state) => {
+      .addCase(listActiveUserProducts.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(getActiveProductsByUser.fulfilled, (state, action) => {
+      .addCase(listActiveUserProducts.fulfilled, (state, action) => {
         state.loading = false;
         if (action.payload.success) {
           if (action.meta.arg.lastId) {
@@ -320,7 +320,7 @@ const productSlice = createSlice({
           state.nextCursor = action.payload.nextCursor || null;
         }
       })
-      .addCase(getActiveProductsByUser.rejected, (state, action) => {
+      .addCase(listActiveUserProducts.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

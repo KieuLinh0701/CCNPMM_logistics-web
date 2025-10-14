@@ -78,6 +78,30 @@ export const getProfile = createAsyncThunk(
   }
 );
 
+export const updateProfile = createAsyncThunk(
+  'auth/updateProfile',
+  async (data: Partial<{ firstName: string; lastName: string; phoneNumber: string; detailAddress?: string; codeWard?: number; codeCity?: number }>, { rejectWithValue }) => {
+    try {
+      const response = await authAPI.updateProfile(data);
+      return response;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Cập nhật thông tin thất bại');
+    }
+  }
+);
+
+export const updateAvatar = createAsyncThunk(
+  'auth/updateAvatar',
+  async (file: File, { rejectWithValue }) => {
+    try {
+      const response = await authAPI.updateAvatar(file);
+      return response;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Cập nhật ảnh đại diện thất bại');
+    }
+  }
+);
+
 export const forgotPassword = createAsyncThunk(
   'auth/password/forgot',
   async (data: ForgotPasswordData, { rejectWithValue }) => {
@@ -218,6 +242,42 @@ const authSlice = createSlice({
         }
       })
       .addCase(getProfile.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+    // Update Profile
+    builder
+      .addCase(updateProfile.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateProfile.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload.success && action.payload.user) {
+          state.user = action.payload.user as any;
+          localStorage.setItem('user', JSON.stringify(action.payload.user));
+        }
+      })
+      .addCase(updateProfile.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+    // Update Avatar
+    builder
+      .addCase(updateAvatar.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateAvatar.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload.success && action.payload.user) {
+          state.user = action.payload.user as any;
+          localStorage.setItem('user', JSON.stringify(action.payload.user));
+        }
+      })
+      .addCase(updateAvatar.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

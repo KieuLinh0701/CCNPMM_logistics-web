@@ -8,8 +8,8 @@ const { Text, Title } = Typography;
 
 const FooterHome: React.FC = () => {
   const aboutLinks = [
-    { key: 'about', label: <Link to="/about">Giới thiệu</Link> },
-    { key: 'contact', label: <Link to="/contact">Liên hệ</Link> },
+    { key: 'about', label: <Link to="/info/company">Về chúng tôi</Link> },
+    { key: 'contact', label: <Link to="/info/contact">Liên hệ</Link> },
     { key: 'consulting', label: <Link to="/consulting">Tư vấn</Link> },
   ];
 

@@ -20,7 +20,6 @@ interface SearchFiltersProps {
   onSearchChange: (value: string) => void;
   onFilterChange: (filter: string, value: string) => void;
   onSortChange: (value: string) => void;
-  // ✅ FIX: Sửa type cho onDateRangeChange
   onDateRangeChange: (dates: [Dayjs, Dayjs] | null) => void;
   onClearFilters: () => void;
   onHoverChange: (hover: boolean) => void;
@@ -106,7 +105,8 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
             onChange={onSortChange}
             style={{ width: 180, height: 36 }}
           >
-            <Option value="none">Không sắp xếp</Option>
+            <Option value="newest">Mới nhất</Option>
+            <Option value="oldest">Cũ nhất</Option>
             <Option value="bestSelling">Bán chạy nhất</Option>
             <Option value="leastSelling">Bán ít nhất</Option>
             <Option value="highestPrice">Giá cao nhất</Option>

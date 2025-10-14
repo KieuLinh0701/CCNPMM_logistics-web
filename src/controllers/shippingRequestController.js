@@ -1,12 +1,11 @@
-import requestService from "../services/requestService";
+import shippingRequestService from "../services/shippingRequestService";
 
-const requestController = {
-  async getTypesEnum(req, res) {
+const shippingRequestController = {
+  async getRequestTypes(req, res) {
     try {
-
       const userId = req.user.id;
 
-      const result = await requestService.getTypesEnum(userId);
+      const result = await shippingRequestService.getRequestTypes(userId);
 
       return res.status(200).json(result);
 
@@ -19,12 +18,12 @@ const requestController = {
     }
   },
 
-  async getStatusesEnum(req, res) {
+  async getRequestStatuses(req, res) {
     try {
 
       const userId = req.user.id;
 
-      const result = await requestService.getStatusesEnum(userId);
+      const result = await shippingRequestService.getRequestStatuses(userId);
 
       return res.status(200).json(result);
 
@@ -38,7 +37,7 @@ const requestController = {
   },
 
   // Get Requests By User
-  async getRequestsByUser(req, res) {
+  async listUserRequests(req, res) {
     try {
       const userId = req.user.id;
 
@@ -54,7 +53,7 @@ const requestController = {
         endDate: req.query.endDate || undefined,
       };
 
-      const result = await requestService.getRequestsByUser(userId, page, limit, filters);
+      const result = await shippingRequestService.listUserRequests(userId, page, limit, filters);
 
       return res.status(200).json(result);
 
@@ -67,14 +66,29 @@ const requestController = {
     }
   },
 
-  // Add Request 
-  async addRequest(req, res) {
+  async createRequest(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = req.user ? req.user.id : null; // kiểm tra user có đăng nhập không
+      const { trackingNumber, requestContent, requestType, contactName, contactPhoneNumber, contactEmail, contactCityCode, contactWardCode, contactDetailAddress } = req.body;
 
-      const { trackingNumber, requestContent, requestType } = req.body;
+      const data = {
+        trackingNumber,
+        requestContent,
+        requestType,
+        userId,
+      };
 
-      const result = await requestService.addRequest(userId, trackingNumber, requestContent, requestType);
+      // Nếu user không có tài khoản, thêm thông tin liên hệ
+      if (!userId) {
+        data.contactName = contactName;
+        data.contactPhoneNumber = contactPhoneNumber;
+        data.contactEmail = contactEmail;
+        data.contactCityCode = contactCityCode;
+        data.contactWardCode = contactWardCode;
+        data.contactDetailAddress = contactDetailAddress;
+      }
+
+      const result = await requestService.createRequest(data);
 
       return res.status(200).json(result);
     } catch (error) {
@@ -95,7 +109,7 @@ const requestController = {
 
       const { requestContent } = req.body;
 
-      const result = await requestService.updateRequest(userId, id, requestContent);
+      const result = await shippingRequestService.updateRequest(userId, id, requestContent);
 
       return res.status(200).json(result);
     } catch (error) {
@@ -113,7 +127,7 @@ const requestController = {
 
       const { requestId } = req.body;
 
-      const result = await requestService.cancelRequest(userId, requestId);
+      const result = await shippingRequestService.cancelRequest(userId, requestId);
 
       return res.status(200).json(result);
     } catch (error) {
@@ -125,7 +139,7 @@ const requestController = {
     }
   },
 
-  async getRequestsByOffice(req, res) {
+  async listOfficeRequests(req, res) {
     try {
       const userId = req.user.id;
 
@@ -143,7 +157,7 @@ const requestController = {
         endDate: req.query.endDate || undefined,
       };
 
-      const result = await requestService.getRequestsByOffice(userId, officeId, page, limit, filters);
+      const result = await shippingRequestService.listOfficeRequests(userId, officeId, page, limit, filters);
 
       return res.status(200).json(result);
 
@@ -157,4 +171,4 @@ const requestController = {
   },
 };
 
-export default requestController;
+export default shippingRequestController;

@@ -3,8 +3,6 @@ import { Menu } from "antd";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   DashboardOutlined,
-  TableOutlined,
-  CreditCardOutlined,
   GlobalOutlined,
   ShoppingOutlined,
   CarOutlined,
@@ -14,6 +12,13 @@ import {
   DollarOutlined,
   DropboxOutlined,
   SearchOutlined,
+  UserOutlined,
+  ShopOutlined,
+  SettingOutlined,
+  ShoppingCartOutlined,
+  GiftOutlined,
+  BarChartOutlined,
+  ProfileOutlined,
 } from "@ant-design/icons";
 
 const { SubMenu } = Menu;
@@ -41,39 +46,64 @@ const Sidenav: React.FC<Props> = ({ color }) => {
   const menuConfig: Record<string, MenuItem[]> = {
     admin: [
       {
-        key: "/manager/dashboard",
+        key: "/admin/dashboard",
         label: "Báo cáo & Thống kê",
-        path: "/manager/dashboard",
+        path: "/admin/dashboard",
         icon: <DashboardOutlined />,
       },
       {
-        key: "/tables",
-        label: "Tables",
-        path: "/tables",
-        icon: <TableOutlined />,
+        key: "/admin/users",
+        label: "Quản lý người dùng",
+        path: "/admin/users",
+        icon: <UserOutlined />,
       },
       {
-        key: "/billing",
-        label: "Billing",
-        path: "/billing",
-        icon: <CreditCardOutlined />,
+        key: "/admin/postoffices",
+        label: "Quản lý bưu cục",
+        path: "/admin/postoffices",
+        icon: <ShopOutlined />,
       },
       {
-        key: "orders",
-        label: "Quản lý đơn hàng",
-        icon: <ShoppingOutlined />,
-        children: [
-          {
-            key: "/orders/list",
-            label: "Danh sách đơn hàng",
-            path: "/orders/list",
-          },
-          {
-            key: "/orders/history",
-            label: "Lịch sử đơn hàng",
-            path: "/orders/history",
-          },
-        ],
+        key: "/admin/servicetypes",
+        label: "Loại dịch vụ",
+        path: "/admin/servicetypes",
+        icon: <SettingOutlined />,
+      },
+      {
+        key: "/admin/orders",
+        label: "Đơn hàng",
+        path: "/admin/orders",
+        icon: <ShoppingCartOutlined />,
+      },
+      {
+        key: "/admin/vehicles",
+        label: "Phương tiện",
+        path: "/admin/vehicles",
+        icon: <CarOutlined />,
+      },
+      {
+        key: "/admin/fees",
+        label: "Quản lý phí",
+        path: "/admin/fees",
+        icon: <DollarOutlined />,
+      },
+      {
+        key: "/admin/promotions",
+        label: "Khuyến mãi",
+        path: "/admin/promotions",
+        icon: <GiftOutlined />,
+      },
+      {
+        key: "/admin/reports",
+        label: "Báo cáo",
+        path: "/admin/reports",
+        icon: <BarChartOutlined />,
+      },
+      {
+        key: "/admin/profile",
+        label: "Hồ sơ",
+        path: "/admin/profile",
+        icon: <ProfileOutlined />,
       },
     ],
     manager: [
@@ -189,7 +219,7 @@ const Sidenav: React.FC<Props> = ({ color }) => {
         ],
       },
       {
-        key: "product",
+        key: "/user/products",
         label: "Quản lý sản phẩm",
         path: "/user/products",
         icon: <DropboxOutlined />,
@@ -217,26 +247,63 @@ const Sidenav: React.FC<Props> = ({ color }) => {
         ],
       },
       {
-        key: "lookup",
+        key: "tracking",
         label: "Tra cứu thông tin",
-        icon: <SearchOutlined />, 
+        icon: <SearchOutlined />,
         children: [
           {
-            key: "/user/lookup/shipping-fee",
+            key: "/user/tracking/shipping-fee",
             label: "Tra cứu cước vận chuyển",
-            path: "/user/lookup/shipping-fee",
+            path: "/user/tracking/shipping-fee",
           },
           {
-            key: "/user/lookup/post-office",
+            key: "/user/tracking/office-search",
             label: "Tra cứu bưu cục",
-            path: "/user/lookup/post-office",
+            path: "/user/tracking/office-search",
           },
           {
-            key: "/user/lookup/shipping-rates",
+            key: "/user/info/shipping-rates",
             label: "Bảng giá",
-            path: "/user/lookup/shipping-rates",
+            path: "/user/info/shipping-rates",
           },
         ],
+      },
+    ],
+    shipper: [ 
+      {
+        key: "/shipper/dashboard",
+        label: "Tổng quan",
+        path: "/shipper/dashboard",
+        icon: <DashboardOutlined />,
+      },
+      {
+        key: "shipper-orders",
+        label: "Quản lý đơn hàng",
+        icon: <ShoppingOutlined />,
+        children: [
+          {
+            key: "/shipper/orders/assigned",
+            label: "Đơn hàng được giao",
+            path: "/shipper/orders/assigned",
+          },
+          {
+            key: "/shipper/orders/delivered",
+            label: "Đơn hàng đã giao",
+            path: "/shipper/orders/delivered",
+          },
+        ],
+      },
+      {
+        key: "/shipper/route",
+        label: "Lộ trình giao hàng",
+        path: "/shipper/route",
+        icon: <CarOutlined />,
+      },
+      {
+        key: "/shipper/cod",
+        label: "Quản lý COD",
+        path: "/shipper/cod",
+        icon: <DollarOutlined />,
       },
     ],
   };
@@ -275,7 +342,7 @@ const Sidenav: React.FC<Props> = ({ color }) => {
             </SubMenu>
           ) : (
             <Menu.Item key={item.key} icon={item.icon}>
-              <NavLink to={item.path || "#"}>{item.label}</NavLink>
+              <NavLink to={item.path || "#"}>{item.label}</NavLink> {/* ← SỬA LỖI: item.label thay vì child.label */}
             </Menu.Item>
           )
         )}

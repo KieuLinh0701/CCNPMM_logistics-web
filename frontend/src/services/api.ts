@@ -4,10 +4,8 @@ import { Office, OfficeResponse } from '../types/office';
 import { Employee, EmployeeCheckResult, EmployeeResponse } from '../types/employee';
 import { ServiceTypeResponse } from '../types/serviceType';
 import { Order, OrderResponse } from '../types/order';
-import { getProductsByUser } from '../store/productSlice';
 import { ImportProductsResponse, product, ProductResponse } from '../types/product';
 import { PromotionResponse } from '../types/promotion';
-import { cancelOrder, getPayersEnum, getPaymentStatusesEnum } from '../store/orderSlice';
 import { ImportVehiclesResponse, Vehicle, VehicleResponse } from '../types/vehicle';
 import { ShippingRequest, ShippingRequestResponse } from '../types/shippingRequest';
 
@@ -50,6 +48,100 @@ api.interceptors.response.use(
   }
 );
 
+export type UserRow = {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  role: 'admin' | 'manager' | 'staff' | 'driver';
+  isVerified: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type Paginated<T> = { data: T[]; pagination: { page: number; limit: number; total: number }; success: boolean };
+export type PostOfficeRow = {
+  id: number;
+  code: string;
+  name: string;
+  address: string;
+  phoneNumber: string;
+  email: string;
+  codeWard: number;
+  codeCity: number;
+  latitude: number;
+  longitude: number;
+  openingTime: string;
+  closingTime: string;
+  type: 'Head Office' | 'Post Office';
+  status: 'Active' | 'Inactive' | 'Maintenance';
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ServiceTypeRow = {
+  id: number;
+  name: string;
+  deliveryTime: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type VehicleRow = {
+  id: number;
+  licensePlate: string;
+  type: 'Truck' | 'Van';
+  capacity: number;
+  status: 'Available' | 'InUse' | 'Maintenance';
+  description?: string;
+  officeId?: number;
+  office?: {
+    id: number;
+    name: string;
+    address: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+  shipments?: {
+    id: number;
+    status: string;
+    createdAt: string;
+  }[];
+};
+
+export type OrderRow = {
+  id: number;
+  trackingNumber: string;
+  senderName: string;
+  senderPhone: string;
+  senderAddress: string;
+  recipientName: string;
+  recipientPhone: string;
+  recipientAddress: string;
+  weight: number;
+  basePrice: number;
+  codAmount: number;
+  codFee: number;
+  totalAmount: number;
+  status: 'pending' | 'confirmed' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled';
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+  postOffice: {
+    id: number;
+    name: string;
+    area: string;
+  };
+  serviceType: {
+    id: number;
+    name: string;
+    deliveryTime: string;
+  };
+};
+
 export const authAPI = {
   // Register user
   register: async (data: RegisterData): Promise<AuthResponse> => {
@@ -75,6 +167,22 @@ export const authAPI = {
     return response.data;
   },
 
+  // Update profile
+  updateProfile: async (payload: Partial<{ firstName: string; lastName: string; phoneNumber: string; detailAddress?: string; codeWard?: number; codeCity?: number }>): Promise<AuthResponse> => {
+    const response = await api.put<AuthResponse>('/auth/profile', payload);
+    return response.data;
+  },
+
+  // Update avatar
+  updateAvatar: async (file: File): Promise<AuthResponse> => {
+    const form = new FormData();
+    form.append('avatar', file);
+    const response = await api.put<AuthResponse>('/auth/profile/avatar', form, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
+  },
+
   // Forgot password
   forgotPassword: async (data: ForgotPasswordData): Promise<AuthResponse> => {
     const response = await api.post<AuthResponse>('/auth/password/forgot', data);
@@ -96,6 +204,122 @@ export const authAPI = {
   // Get Assignable Roles
   getAssignableRoles: async (): Promise<AuthResponse> => {
     const response = await api.get<AuthResponse>('/auth/roles/assignable');
+    return response.data;
+  },
+};
+
+export const adminAPI = {
+  listUsers: async (params?: { page?: number; limit?: number; search?: string }): Promise<Paginated<UserRow>> => {
+    const response = await api.get<Paginated<UserRow>>('/admin/users', { params });
+    return response.data;
+  },
+  getUser: async (id: number): Promise<{ success: boolean; data: UserRow }> => {
+    const response = await api.get<{ success: boolean; data: UserRow }>(`/admin/users/${id}`);
+    return response.data;
+  },
+  createUser: async (payload: { email: string; password: string; firstName: string; lastName: string; phoneNumber: string; role: UserRow['role']; isActive?: boolean }): Promise<{ success: boolean; data: UserRow }> => {
+    const response = await api.post<{ success: boolean; data: UserRow }>(`/admin/users`, payload);
+    return response.data;
+  },
+  updateUser: async (id: number, payload: Partial<{ password: string; firstName: string; lastName: string; phoneNumber: string; role: UserRow['role']; isActive: boolean }>): Promise<{ success: boolean; data: UserRow }> => {
+    const response = await api.put<{ success: boolean; data: UserRow }>(`/admin/users/${id}`, payload);
+    return response.data;
+  },
+  deleteUser: async (id: number): Promise<{ success: boolean }> => {
+    const response = await api.delete<{ success: boolean }>(`/admin/users/${id}`);
+    return response.data;
+  },
+
+  // PostOffice APIs
+  listPostOffices: async (params?: { page?: number; limit?: number; search?: string }): Promise<Paginated<PostOfficeRow>> => {
+    const response = await api.get<Paginated<PostOfficeRow>>('/admin/offices', { params });
+    return response.data;
+  },
+  getPostOffice: async (id: number): Promise<{ success: boolean; data: PostOfficeRow }> => {
+    const response = await api.get<{ success: boolean; data: PostOfficeRow }>(`/admin/offices/${id}`);
+    return response.data;
+  },
+  createPostOffice: async (payload: { code: string; name: string; address: string; phoneNumber: string; email: string; codeWard: number; codeCity: number; latitude: number; longitude: number; openingTime: string; closingTime: string; type?: 'Head Office' | 'Post Office'; status?: 'Active' | 'Inactive' | 'Maintenance' }): Promise<{ success: boolean; data: PostOfficeRow }> => {
+    const response = await api.post<{ success: boolean; data: PostOfficeRow }>(`/admin/offices`, payload);
+    return response.data;
+  },
+  updatePostOffice: async (id: number, payload: Partial<{ code: string; name: string; address: string; phoneNumber: string; email: string; codeWard: number; codeCity: number; latitude: number; longitude: number; openingTime: string; closingTime: string; type: 'Head Office' | 'Post Office'; status: 'Active' | 'Inactive' | 'Maintenance' }>): Promise<{ success: boolean; data: PostOfficeRow }> => {
+    const response = await api.put<{ success: boolean; data: PostOfficeRow }>(`/admin/offices/${id}`, payload);
+    return response.data;
+  },
+  deletePostOffice: async (id: number): Promise<{ success: boolean }> => {
+    const response = await api.delete<{ success: boolean }>(`/admin/offices/${id}`);
+    return response.data;
+  },
+
+  // ServiceType APIs
+  listServiceTypes: async (params?: { page?: number; limit?: number; search?: string }): Promise<Paginated<ServiceTypeRow>> => {
+    const response = await api.get<Paginated<ServiceTypeRow>>('/admin/servicetypes', { params });
+    return response.data;
+  },
+  getServiceType: async (id: number): Promise<{ success: boolean; data: ServiceTypeRow }> => {
+    const response = await api.get<{ success: boolean; data: ServiceTypeRow }>(`/admin/servicetypes/${id}`);
+    return response.data;
+  },
+  createServiceType: async (payload: { name: string; deliveryTime?: string; status?: string }): Promise<{ success: boolean; data: ServiceTypeRow }> => {
+    const response = await api.post<{ success: boolean; data: ServiceTypeRow }>(`/admin/servicetypes`, payload);
+    return response.data;
+  },
+  updateServiceType: async (id: number, payload: Partial<{ name: string; deliveryTime?: string; status?: string }>): Promise<{ success: boolean; data: ServiceTypeRow }> => {
+    const response = await api.put<{ success: boolean; data: ServiceTypeRow }>(`/admin/servicetypes/${id}`, payload);
+    return response.data;
+  },
+  deleteServiceType: async (id: number): Promise<{ success: boolean }> => {
+    const response = await api.delete<{ success: boolean }>(`/admin/servicetypes/${id}`);
+    return response.data;
+  },
+
+  // Order APIs
+  listOrders: async (params?: { page?: number; limit?: number; search?: string; status?: string; postOfficeId?: string }): Promise<Paginated<OrderRow>> => {
+    const response = await api.get<Paginated<OrderRow>>('/admin/orders', { params });
+    return response.data;
+  },
+  getOrder: async (id: number): Promise<{ success: boolean; data: OrderRow }> => {
+    const response = await api.get<{ success: boolean; data: OrderRow }>(`/admin/orders/${id}`);
+    return response.data;
+  },
+  updateOrderStatus: async (id: number, status: string): Promise<{ success: boolean; data: OrderRow }> => {
+    const response = await api.put<{ success: boolean; data: OrderRow }>(`/admin/orders/${id}/status`, { status });
+    return response.data;
+  },
+  deleteOrder: async (id: number): Promise<{ success: boolean }> => {
+    const response = await api.delete<{ success: boolean }>(`/admin/orders/${id}`);
+    return response.data;
+  },
+
+  // Vehicle APIs
+  listVehicles: async (params?: { page?: number; limit?: number; search?: string; type?: string; status?: string }): Promise<Paginated<VehicleRow>> => {
+    const response = await api.get<Paginated<VehicleRow>>('/admin/vehicles', { params });
+    return response.data;
+  },
+  getVehicle: async (id: number): Promise<{ success: boolean; data: VehicleRow }> => {
+    const response = await api.get<{ success: boolean; data: VehicleRow }>(`/admin/vehicles/${id}`);
+    return response.data;
+  },
+  createVehicle: async (payload: { licensePlate: string; type: 'Truck' | 'Van'; capacity: number; status?: 'Available' | 'InUse' | 'Maintenance'; description?: string; officeId?: number }): Promise<{ success: boolean; data: VehicleRow }> => {
+    const response = await api.post<{ success: boolean; data: VehicleRow }>(`/admin/vehicles`, payload);
+    return response.data;
+  },
+  updateVehicle: async (id: number, payload: Partial<{ licensePlate: string; type: 'Truck' | 'Van'; capacity: number; status: 'Available' | 'InUse' | 'Maintenance'; description: string; officeId: number }>): Promise<{ success: boolean; data: VehicleRow }> => {
+    const response = await api.put<{ success: boolean; data: VehicleRow }>(`/admin/vehicles/${id}`, payload);
+    return response.data;
+  },
+  deleteVehicle: async (id: number): Promise<{ success: boolean }> => {
+    const response = await api.delete<{ success: boolean }>(`/admin/vehicles/${id}`);
+    return response.data;
+  },
+  getVehicleStats: async (): Promise<{ success: boolean; data: { total: number; available: number; inUse: number; maintenance: number } }> => {
+    const response = await api.get<{ success: boolean; data: { total: number; available: number; inUse: number; maintenance: number } }>('/admin/vehicles/stats');
+    return response.data;
+  },
+  // Promotion APIs
+  getActivePromotions: async (): Promise<{ success: boolean; data: { promotions: any[]; pagination: any } }> => {
+    const response = await api.get<{ success: boolean; data: { promotions: any[]; pagination: any } }>('/admin/promotions?status=active&limit=100');
     return response.data;
   },
 };
@@ -232,23 +456,23 @@ export const serviceTypeAPI = {
 
 export const productAPI = {
   // Get Statuses Enum
-  getStatusesEnum: async (): Promise<ProductResponse> => {
+  getProductStatuses: async (): Promise<ProductResponse> => {
     const response = await api.get<ProductResponse>('/products/statuses');
     return response.data;
   },
 
   // Get Types Enum
-  getTypesEnum: async (): Promise<ProductResponse> => {
+  getProductTypes: async (): Promise<ProductResponse> => {
     const response = await api.get<ProductResponse>('/products/types');
     return response.data;
   },
 
-  getProductsByUser: async (query: string): Promise<ProductResponse> => {
+  listUserProducts: async (query: string): Promise<ProductResponse> => {
     const res = await api.get<ProductResponse>(`/products?${query}`);
     return res.data;
   },
 
-  addProduct: async (product: Partial<product>): Promise<ProductResponse> => {
+  createProduct: async (product: Partial<product>): Promise<ProductResponse> => {
     const token = localStorage.getItem('token');
     if (!token) throw new Error("Không tìm thấy token xác thực");
 
@@ -302,7 +526,7 @@ export const productAPI = {
     }
   },
 
-  getActiveProductsByUser: async (query: string): Promise<ProductResponse> => {
+  listActiveUserProducts: async (query: string): Promise<ProductResponse> => {
     const res = await api.get<ProductResponse>(`/products/get-active?${query}`);
     return res.data;
   },
@@ -532,23 +756,23 @@ export const vehicleAPI = {
 
 export const requestAPI = {
   // Get Statuses Enum
-  getStatusesEnum: async (): Promise<ShippingRequestResponse> => {
-    const response = await api.get<ShippingRequestResponse>('/requests/get-statuses');
+  getRequestStatuses: async (): Promise<ShippingRequestResponse> => {
+    const response = await api.get<ShippingRequestResponse>('/requests/statuses');
     return response.data;
   },
 
   // Get Types Enum
-  getTypesEnum: async (): Promise<ShippingRequestResponse> => {
-    const response = await api.get<ShippingRequestResponse>('/requests/get-types');
+  getRequestTypes: async (): Promise<ShippingRequestResponse> => {
+    const response = await api.get<ShippingRequestResponse>('/requests/types');
     return response.data;
   },
 
-  getRequestsByUser: async (query: string): Promise<ShippingRequestResponse> => {
+  listUserRequests: async (query: string): Promise<ShippingRequestResponse> => {
     const res = await api.get<ShippingRequestResponse>(`/requests?${query}`);
     return res.data;
   },
 
-  addRequest: async (request: Partial<ShippingRequest>): Promise<ShippingRequestResponse> => {
+  createRequest: async (request: Partial<ShippingRequest>): Promise<ShippingRequestResponse> => {
     const token = localStorage.getItem('token');
     if (!token) throw new Error("Không tìm thấy token xác thực");
 
@@ -590,8 +814,8 @@ export const requestAPI = {
     return res.data;
   },
 
-  getRequestsByOffice: async (officeId: number, query: string): Promise<ShippingRequestResponse> => {
-    const res = await api.get<ShippingRequestResponse>(`/requests/by-office/${officeId}?${query}`);
+  listOfficeRequests: async (officeId: number, query: string): Promise<ShippingRequestResponse> => {
+    const res = await api.get<ShippingRequestResponse>(`/requests/office/${officeId}?${query}`);
     return res.data;
   },
 }

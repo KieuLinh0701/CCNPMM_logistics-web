@@ -17,7 +17,7 @@ import { styles } from "../style/Order.styles";
 import SenderInfo from "./components/SenderInfo";
 import { Order } from "../../../../types/order";
 import SelectProductModal from "./components/SelectProductModal";
-import { getActiveProductsByUser } from "../../../../store/productSlice";
+import { listActiveUserProducts } from "../../../../store/productSlice";
 import { OrderProduct } from "../../../../types/orderProduct";
 import { product } from "../../../../types/product";
 import { serviceType } from "../../../../types/serviceType";
@@ -87,6 +87,10 @@ const OrderEdit: React.FC = () => {
     const [fromOffice] = Form.useForm();
     const [orderInfo] = Form.useForm();
 
+    // Biến kiểm tra xem địa chỉ người gửi, người nhận có tỉnh thành nằm trong khu vực hoạt động không
+    const [isHasOfficeSender, setIsHasOfficeSender] = useState(true);
+    const [isHasOfficeRecipient, setIsHasOfficerRecipient] = useState(true);
+
     // Lấy serviceType slice
     const { serviceTypes, loading: serviceLoading, error: serviceError } =
         useSelector((state: RootState) => state.serviceType);
@@ -94,12 +98,12 @@ const OrderEdit: React.FC = () => {
     // --- Fetch tất cả provinces + wards ---
     useEffect(() => {
         axios
-            .get<City[]>("https://provinces.open-api.vn/api/p/")
+            .get<City[]>("https://provinces.open-api.vn/api/v2/p/")
             .then((res) => setCitys(res.data))
             .catch((err) => console.error("Lỗi load provinces:", err));
 
         axios
-            .get<Ward[]>("https://provinces.open-api.vn/api/w/")
+            .get<Ward[]>("https://provinces.open-api.vn/api/v2/w/")
             .then((res) => setWards(res.data))
             .catch((err) => console.error("Lỗi load wards:", err));
     }, []);
@@ -137,7 +141,7 @@ const OrderEdit: React.FC = () => {
                     limit: 10,
                     searchText,
                     lastId: promotionNextCursor,
-                    shippingFee, // dùng giá trị từ redux
+                    shippingFee,
                 })
             );
         }
@@ -160,11 +164,36 @@ const OrderEdit: React.FC = () => {
         if (!order) return;
 
         try {
-            await senderInfo.validateFields();
-            await recipientInfo.validateFields();
-            await paymentCard.validateFields();
-            await fromOffice.validateFields();
-            await orderInfo.validateFields();
+            await Promise.all([
+                senderInfo.validateFields(),
+                recipientInfo.validateFields(),
+                paymentCard.validateFields(),
+                fromOffice.validateFields(),
+                orderInfo.validateFields(),
+            ]);
+
+            if (order.status === "draft") {
+                if (!isHasOfficeSender && !isHasOfficeRecipient) {
+                    message.error(
+                        "Rất tiếc, cả địa chỉ người gửi và người nhận đều nằm ngoài khu vực phục vụ. Vui lòng chọn khu vực khác."
+                    );
+                    return;
+                }
+
+                if (!isHasOfficeSender) {
+                    message.error(
+                        "Rất tiếc, địa chỉ người gửi hiện nằm ngoài khu vực phục vụ của chúng tôi. Vui lòng chọn khu vực khác."
+                    );
+                    return;
+                }
+
+                if (!isHasOfficeRecipient) {
+                    message.error(
+                        "Rất tiếc, địa chỉ người nhận hiện nằm ngoài khu vực phục vụ của chúng tôi. Vui lòng chọn khu vực khác."
+                    );
+                    return;
+                }
+            }
 
             const updatedOrder = {
                 ...order,
@@ -176,9 +205,6 @@ const OrderEdit: React.FC = () => {
                 promotion: selectedPromo as any,
                 status: tempStatus,
             };
-
-            console.log("Saving order with current status:", updatedOrder.status);
-            console.log("newOrder: ", updatedOrder);
 
             // Hiển thị modal xác nhận trước khi lưu
             Modal.confirm({
@@ -300,13 +326,13 @@ const OrderEdit: React.FC = () => {
 
     const handleSearch = (value: string) => {
         setSearchText(value);
-        dispatch(getActiveProductsByUser({ limit: 10, searchText: value }));
+        dispatch(listActiveUserProducts({ limit: 10, searchText: value }));
     };
 
     const handleLoadMoreProducts = () => {
         if (nextCursor) {
             dispatch(
-                getActiveProductsByUser({
+                listActiveUserProducts({
                     limit: 10,
                     lastId: nextCursor,
                     searchText,
@@ -342,7 +368,7 @@ const OrderEdit: React.FC = () => {
         if (showProductModal) {
             setSelectedProductIds(orderProducts.map(op => op.product.id));
             // gọi fetch products nếu cần
-            dispatch(getActiveProductsByUser({ limit: 10, searchText: "" }));
+            dispatch(listActiveUserProducts({ limit: 10, searchText: "" }));
         }
     }, [showProductModal]);
 
@@ -381,11 +407,11 @@ const OrderEdit: React.FC = () => {
 
     // Khi senderProvince thay đổi thì lấy office
     useEffect(() => {
-        if (senderProvince) {
+        if (senderProvince && senderWard) {
             setSelectedOffice(null);
             setLocalOffices([]);
 
-            dispatch(getOfficesByArea({ codeCity: senderProvince }))
+            dispatch(getOfficesByArea({ codeCity: senderProvince, codeWard: senderWard.code }))
                 .unwrap()
                 .then((response) => {
                     const fetchedOffices = response.offices || [];
@@ -394,7 +420,12 @@ const OrderEdit: React.FC = () => {
 
                     if (fetchedOffices.length === 0) {
                         setSelectedOffice(null);
+                        setIsHasOfficeSender(false);
+                        message.error(
+                            "Rất tiếc, chúng tôi chưa phục vụ khu vực này. Vui lòng chọn một thành phố khác"
+                        );
                     } else {
+                        setIsHasOfficeSender(true);
                         if (order?.fromOffice) {
                             const matchedOffice = fetchedOffices.find(
                                 office => office.id === order.fromOffice?.id && office.codeCity === senderProvince
@@ -414,6 +445,27 @@ const OrderEdit: React.FC = () => {
             setSelectedOffice(null);
         }
     }, [senderProvince, dispatch, order?.fromOffice]);
+
+    // Theo dõi khi recipient.cityCode thay đổi
+    useEffect(() => {
+        if (recipientProvince && recipientProvince !== 0) {
+            dispatch(getOfficesByArea({ codeCity: recipientProvince }))
+                .unwrap()
+                .then((response) => {
+                    const fetchedOffices = response.offices || [];
+                    if (fetchedOffices.length == 0) {
+                        setIsHasOfficerRecipient(false);
+                        message.error("Rất tiếc, chúng tôi chưa phục vụ khu vực này. Vui lòng chọn một thành phố khác")
+                    } else {
+                        setIsHasOfficerRecipient(true);
+                    }
+                })
+                .catch((error) => {
+                    setLocalOffices([]);
+                    setIsHasOfficerRecipient(false);
+                });
+        }
+    }, [recipientProvince]);
 
     useEffect(() => {
         setSearchText("");
@@ -613,9 +665,9 @@ const OrderEdit: React.FC = () => {
                                                 firstName: order.user.firstName,
                                                 lastName: order.user.lastName,
                                                 phoneNumber: order.user.phoneNumber,
-                                                detailAddress: order.user.detailAddress,
-                                                codeWard: order.user.codeWard,
-                                                codeCity: order.user.codeCity,
+                                                detailAddress: order.user.detailAddress || "",
+                                                codeWard: order.user.codeWard || 0,
+                                                codeCity: order.user.codeCity || 0,
                                             }
                                             : undefined
                                     }

@@ -526,6 +526,227 @@ const employeeService = {
       return { success: false, message: "Lỗi server khi import nhân viên" };
     }
   },
+
+  //
+  // List employees with pagination and search
+  async listEmployees(params) {
+    try {
+      const { page = 1, limit = 20, search = "", officeId, status, shift } = params;
+      const offset = (Number(page) - 1) * Number(limit);
+      const where = {};
+
+      if (officeId) where.officeId = officeId;
+      if (status) where.status = status;
+      if (shift) where.shift = shift;
+
+      const { rows, count } = await db.Employee.findAndCountAll({
+        where,
+        limit: Number(limit),
+        offset,
+        order: [["createdAt", "DESC"]],
+        include: [
+          {
+            model: db.User,
+            as: 'user',
+            attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber', 'role'],
+            where: search ? {
+              [db.Sequelize.Op.or]: [
+                { firstName: { [db.Sequelize.Op.like]: `%${search}%` } },
+                { lastName: { [db.Sequelize.Op.like]: `%${search}%` } },
+                { email: { [db.Sequelize.Op.like]: `%${search}%` } },
+                { phoneNumber: { [db.Sequelize.Op.like]: `%${search}%` } },
+              ]
+            } : undefined
+          },
+          {
+            model: db.Office,
+            as: 'office',
+            attributes: ['id', 'name', 'address', 'type']
+          }
+        ]
+      });
+
+      return {
+        success: true,
+        data: rows,
+        pagination: { page: Number(page), limit: Number(limit), total: count }
+      };
+    } catch (error) {
+      console.error("listEmployees error:", error);
+      return { success: false, message: "Lỗi server khi lấy danh sách nhân viên" };
+    }
+  },
+
+  // Get employee by ID
+  async getEmployeeById(employeeId) {
+    try {
+      const employee = await db.Employee.findByPk(employeeId, {
+        include: [
+          {
+            model: db.User,
+            as: 'user',
+            attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber', 'role', 'isActive']
+          },
+          {
+            model: db.Office,
+            as: 'office',
+            attributes: ['id', 'name', 'address', 'type', 'status']
+          }
+        ]
+      });
+
+      if (!employee) {
+        return { success: false, message: "Không tìm thấy nhân viên" };
+      }
+      return { success: true, data: employee };
+    } catch (error) {
+      console.error("getEmployeeById error:", error);
+      return { success: false, message: "Lỗi server khi lấy nhân viên" };
+    }
+  },
+
+  // Create new employee
+  async createEmployee(employeeData) {
+    try {
+      const { userId, officeId, shift = "Full Day", status = "Inactive" } = employeeData;
+
+      if (!userId || !officeId) {
+        return { success: false, message: "Thiếu thông tin bắt buộc" };
+      }
+
+      const user = await db.User.findByPk(userId);
+      if (!user) return { success: false, message: "Không tìm thấy người dùng" };
+
+      if (!['manager', 'shipper'].includes(user.role)) {
+        return { success: false, message: "Người dùng không có quyền làm nhân viên" };
+      }
+
+      const office = await db.Office.findByPk(officeId);
+      if (!office) return { success: false, message: "Không tìm thấy văn phòng" };
+
+      const existingEmployee = await db.Employee.findOne({ where: { userId } });
+      if (existingEmployee) {
+        return { success: false, message: "Người dùng đã là nhân viên" };
+      }
+
+      const created = await db.Employee.create({ userId, officeId, shift, status });
+
+      const newEmployee = await db.Employee.findByPk(created.id, {
+        include: [
+          {
+            model: db.User,
+            as: 'user',
+            attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber', 'role']
+          },
+          {
+            model: db.Office,
+            as: 'office',
+            attributes: ['id', 'name', 'address', 'type']
+          }
+        ]
+      });
+
+      return { success: true, data: newEmployee };
+    } catch (error) {
+      console.error("createEmployee error:", error);
+      return { success: false, message: "Lỗi server khi tạo nhân viên" };
+    }
+  },
+
+  // Update employee (basic)
+  async updateEmployeeBasic(employeeId, updateData) {
+    try {
+      const { officeId, shift, status } = updateData;
+
+      const employee = await db.Employee.findByPk(employeeId);
+      if (!employee) return { success: false, message: "Không tìm thấy nhân viên" };
+
+      if (officeId && officeId !== employee.officeId) {
+        const office = await db.Office.findByPk(officeId);
+        if (!office) return { success: false, message: "Không tìm thấy văn phòng" };
+      }
+
+      if (typeof officeId !== "undefined") employee.officeId = officeId;
+      if (typeof shift !== "undefined") employee.shift = shift;
+      if (typeof status !== "undefined") employee.status = status;
+
+      await employee.save();
+
+      const updatedEmployee = await db.Employee.findByPk(employee.id, {
+        include: [
+          {
+            model: db.User,
+            as: 'user',
+            attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber', 'role']
+          },
+          {
+            model: db.Office,
+            as: 'office',
+            attributes: ['id', 'name', 'address', 'type']
+          }
+        ]
+      });
+
+      return { success: true, data: updatedEmployee };
+    } catch (error) {
+      console.error("updateEmployeeBasic error:", error);
+      return { success: false, message: "Lỗi server khi cập nhật nhân viên" };
+    }
+  },
+
+  // Delete employee
+  async deleteEmployee(employeeId) {
+    try {
+      const employee = await db.Employee.findByPk(employeeId);
+      if (!employee) {
+        return { success: false, message: "Không tìm thấy nhân viên" };
+      }
+      await employee.destroy();
+      return { success: true };
+    } catch (error) {
+      console.error("deleteEmployee error:", error);
+      return { success: false, message: "Lỗi server khi xóa nhân viên" };
+    }
+  },
+
+  // Get employee by user ID (for shipper)
+  async getEmployeeByUserId(userId) {
+    try {
+      console.log('=== EMPLOYEE SERVICE GET BY USER ID START ===');
+      console.log('User ID:', userId);
+      
+      const employee = await db.Employee.findOne({
+        where: { userId },
+        include: [
+          {
+            model: db.User,
+            as: 'user',
+            attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber', 'role']
+          },
+          {
+            model: db.Office,
+            as: 'office',
+            attributes: ['id', 'name', 'address', 'type']
+          }
+        ]
+      });
+
+      console.log('Employee found:', employee);
+      
+      if (!employee) {
+        console.log('No employee found for userId:', userId);
+        return null;
+      }
+
+      return employee;
+    } catch (error) {
+      console.error('=== EMPLOYEE SERVICE GET BY USER ID ERROR ===');
+      console.error('Error details:', error);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+      throw error;
+    }
+  },
 };
 
 

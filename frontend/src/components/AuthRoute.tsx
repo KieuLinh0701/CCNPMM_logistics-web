@@ -21,6 +21,7 @@ export const AuthRoute = ({
     staff: "/staff/dashboard",
     shipper: "/shipper/dashboard",
     user: "/user/dashboard",
+    driver: "/shipper/dashboard",
   };
 
   // Public route: chỉ cho phép truy cập khi CHƯA login

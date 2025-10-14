@@ -1,3 +1,4 @@
+import { User } from "./auth";
 import { Office } from "./office";
 import { Order } from "./order";
 
@@ -10,6 +11,13 @@ export interface ShippingRequest {
   status: 'Pending' | 'Processing' | 'Resolved' | 'Rejected' | 'Cancelled';
   response: string;
   createdAt: Date;
+  user?: User;
+  contactName?: string;
+  contactEmail?: string;
+  contactPhoneNumber?: string;
+  contactCityCode?: number;
+  contactWardCode?: number;
+  contactDetailAddress?: string;
 }
 
 export interface ShippingRequestResponse {

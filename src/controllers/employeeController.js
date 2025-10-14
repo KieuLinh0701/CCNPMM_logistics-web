@@ -1,6 +1,66 @@
 import employeeService from '../services/employeeService.js';
 
 const employeeController = {
+  // Admin list employees
+  async list(req, res) {
+    try {
+      const { page, limit, search, officeId, status, shift } = req.query;
+      const result = await employeeService.listEmployees({ page, limit, search, officeId, status, shift });
+      if (!result.success) return res.status(400).json(result);
+      return res.json(result);
+    } catch (error) {
+      console.error("listEmployees error:", error);
+      return res.status(500).json({ success: false, message: 'Lỗi server khi lấy danh sách nhân viên' });
+    }
+  },
+
+  // Admin get employee by id
+  async getById(req, res) {
+    try {
+      const result = await employeeService.getEmployeeById(req.params.id);
+      if (!result.success) return res.status(404).json(result);
+      return res.json(result);
+    } catch (error) {
+      console.error('getEmployeeById error:', error);
+      return res.status(500).json({ success: false, message: 'Lỗi server khi lấy nhân viên' });
+    }
+  },
+
+  // Admin create employee (basic)
+  async create(req, res) {
+    try {
+      const result = await employeeService.createEmployee(req.body);
+      if (!result.success) return res.status(400).json(result);
+      return res.status(201).json(result);
+    } catch (error) {
+      console.error('createEmployee error:', error);
+      return res.status(500).json({ success: false, message: 'Lỗi server khi tạo nhân viên' });
+    }
+  },
+
+  // Admin update employee (basic)
+  async update(req, res) {
+    try {
+      const result = await employeeService.updateEmployeeBasic(req.params.id, req.body);
+      if (!result.success) return res.status(404).json(result);
+      return res.json(result);
+    } catch (error) {
+      console.error('updateEmployeeBasic error:', error);
+      return res.status(500).json({ success: false, message: 'Lỗi server khi cập nhật nhân viên' });
+    }
+  },
+
+  // Admin delete employee
+  async remove(req, res) {
+    try {
+      const result = await employeeService.deleteEmployee(req.params.id);
+      if (!result.success) return res.status(404).json(result);
+      return res.json(result);
+    } catch (error) {
+      console.error('deleteEmployee error:', error);
+      return res.status(500).json({ success: false, message: 'Lỗi server khi xóa nhân viên' });
+    }
+  },
   // Get Shift Enum
   async getShiftEnum(req, res) {
     try {
