@@ -88,7 +88,7 @@ const shippingRequestController = {
         data.contactDetailAddress = contactDetailAddress;
       }
 
-      const result = await requestService.createRequest(data);
+      const result = await shippingRequestService.createRequest(data);
 
       return res.status(200).json(result);
     } catch (error) {

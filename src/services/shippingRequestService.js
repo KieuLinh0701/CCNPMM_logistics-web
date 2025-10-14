@@ -3,7 +3,7 @@ import db from '../models';
 const shippingRequestService = {
 
   // Get Shift Enum
-  async getRequestTypes() {
+  async getRequestTypes(userId) {
     try {
       // Lấy User đang thực hiện
       const user = await db.User.count({
