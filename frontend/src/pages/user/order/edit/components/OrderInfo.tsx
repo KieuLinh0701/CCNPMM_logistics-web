@@ -141,21 +141,25 @@ const OrderInfo: React.FC<Props> = ({
                   },
                   {
                     validator: (_, value) => {
-                      if (value && (isNaN(value) || value <= 0)) {
-                        return Promise.reject(new Error("Khối lượng phải lớn hơn 0"));
+                      // Chỉ kiểm tra khi có giá trị
+                      if (value !== undefined && value !== null && value !== '') {
+                        if (isNaN(value) || value <= 0) {
+                          return Promise.reject(new Error("Khối lượng phải là số lớn hơn 0"));
+                        }
                       }
                       return Promise.resolve();
                     },
                   },
                 ]}
+                validateTrigger={['onChange', 'onBlur']}
               >
                 <InputNumber
                   style={{ width: "100%" }}
                   placeholder="Ví dụ: 1.5"
                   disabled={isWeightDisabled}
                   onChange={handleWeightChange}
-                  min={0.001}
-                  step={0.001}
+                  min={0.01}
+                  step={0.01}
                 />
               </Form.Item>
             </Col>
@@ -207,7 +211,7 @@ const OrderInfo: React.FC<Props> = ({
                   style={{ width: "100%" }}
                   placeholder="Ví dụ: 20000"
                   disabled={false}
-                  onChange={handleCodChange} // ✅ Thêm onChange trực tiếp
+                  onChange={handleCodChange}
                 />
               </Form.Item>
             </Col>
@@ -230,14 +234,16 @@ const OrderInfo: React.FC<Props> = ({
                   },
                   {
                     type: "number",
-                    min: 0,
-                    message: "Nhập tổng giá trị hàng hóa hợp lệ",
+                    min: 1,
+                    message: "Tổng giá trị hàng hóa phải lớn hơn 0",
                   },
                 ]}
               >
                 <InputNumber
                   style={{ width: "100%" }}
                   placeholder="Ví dụ: 20000"
+                  min={1}
+                  step={1000}
                   disabled={isOrderValueDisabled}
                   onChange={handleOrderValueChange}
                 />

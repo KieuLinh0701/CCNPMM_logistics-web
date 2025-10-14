@@ -359,8 +359,8 @@ const OrderEdit: React.FC = () => {
                 0
             );
             setOrderValue(totalValue);
-            setWeight(Number(totalWeight.toFixed(3)));
-            setOrderWeight(Number(totalWeight.toFixed(3)));
+            setWeight(Number(totalWeight.toFixed(2)));
+            setOrderWeight(Number(totalWeight.toFixed(2)));
         }
     };
 
@@ -877,7 +877,9 @@ const OrderEdit: React.FC = () => {
                             <PromotionCard
                                 shippingFee={order.shippingFee}
                                 discountAmount={order.discountAmount}
-                                totalFee={Math.max(0, (order.shippingFee ?? 0) - (order.discountAmount ?? 0))}
+                                totalFee={Math.ceil(Math.max(((order.shippingFee || 0) - (order.discountAmount || 0)), 0) * 1.1) + (order.orderValue ? order.orderValue * 0.005 : 0) + (order.cod ? order.cod * 0.02 : 0)}
+                                cod={order.cod}
+                                orderValue={order.orderValue}
                                 selectedPromo={selectedPromo}
                                 setSelectedPromo={setSelectedPromo}
                                 setShowPromoModal={setShowPromoModal}

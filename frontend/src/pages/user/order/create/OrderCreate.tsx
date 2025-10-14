@@ -816,7 +816,9 @@ const OrderCreate: React.FC = () => {
                         <PromotionCard
                             shippingFee={shippingFee}
                             discountAmount={discountAmount}
-                            totalFee={Math.max(0, shippingFee - discountAmount)}
+                            totalFee={Math.ceil(Math.max(((shippingFee || 0) - (discountAmount || 0)), 0) * 1.1) + (orderValue ? orderValue * 0.005 : 0) + (codAmount ? codAmount * 0.02 : 0)}
+                            cod={codAmount}
+                            orderValue={orderValue}
                             selectedPromo={selectedPromo}
                             setSelectedPromo={setSelectedPromo}
                             setShowPromoModal={setShowPromoModal}

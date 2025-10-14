@@ -219,6 +219,16 @@ export default (sequelize) => {
         }
       },
 
+      // Tổng phí dịch vụ 
+      totalFee: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+        validate: {
+          min: 0
+        }
+      },
+
       payer: {
         type: DataTypes.ENUM('Customer', 'Shop'),
         allowNull: false,

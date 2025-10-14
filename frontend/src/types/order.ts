@@ -37,6 +37,7 @@ export interface Order {
 
   discountAmount: number;
   shippingFee: number;
+  totalFee: number;
 
   status: 'draft' | 'pending' | 'confirmed' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled' | 'returned';
 

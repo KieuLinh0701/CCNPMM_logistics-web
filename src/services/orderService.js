@@ -367,6 +367,9 @@ const orderService = {
         }
         if (orderData.orderValue < totalOrderValue)
           throw new Error("Tổng giá trị đơn hàng không khớp với sản phẩm");
+      } else {
+        if (orderData.orderValue <= 0)
+          throw new Error("Gía trị đơn hàng phải lớn hơn 0");
       }
 
       // 3. Validate COD
@@ -477,6 +480,7 @@ const orderService = {
           deliveredAt: orderData.deliveredAt || null,
           createdBy: createdBy,
           createdByType: createdByType,
+          totalFee: Math.ceil(Math.max(((shippingFee || 0) - (discountAmount || 0)), 0) * 1.1) + (orderValue ? orderValue * 0.005 : 0) + (codAmount ? codAmount * 0.02 : 0),
         },
         { transaction: t }
       );
@@ -1167,6 +1171,29 @@ const orderService = {
           updateData[key] = orderData[key];
         }
       });
+
+      let totalOrderValue = 0;
+      if (orderData.orderProducts?.length > 0) {
+        for (const p of orderData.orderProducts) {
+          totalOrderValue += p.price * p.quantity;
+        }
+        if (updateData.orderValue !== totalOrderValue) {
+          throw new Error("Tổng giá trị đơn hàng không khớp với sản phẩm");
+        }
+      } else {
+        if (!updateData.orderValue || updateData.orderValue <= 0) {
+          throw new Error("Gía trị đơn hàng phải lớn hơn 0");
+        }
+      }
+
+      // Tính lại totalFee
+      const shippingFee = updateData.shippingFee ?? existingOrder.shippingFee ?? 0;
+      const discountAmount = updateData.discountAmount ?? existingOrder.discountAmount ?? 0;
+      const orderValue = updateData.orderValue ?? existingOrder.orderValue ?? 0;
+      const codAmount = updateData.cod ?? existingOrder.cod ?? 0;
+
+      updateData.totalFee = Math.ceil(Math.max((shippingFee - discountAmount), 0) * 1.1) + Math.ceil(orderValue * 0.0005) + Math.ceil(codAmount * 0.02);
+
       return updateData;
     }
 
@@ -1183,6 +1210,19 @@ const orderService = {
           updateData[field] = orderData[field];
         }
       });
+
+      // Tính lại totalFee nếu orderValue hoặc cod thay đổi
+      if ('orderValue' in orderData || 'cod' in orderData) {
+        const shippingFee = existingOrder.shippingFee ?? 0; 
+        const discountAmount = existingOrder.discountAmount ?? 0; 
+        const orderValue = updateData.orderValue ?? existingOrder.orderValue ?? 0;
+        const codAmount = updateData.cod ?? existingOrder.cod ?? 0;
+
+        updateData.totalFee = Math.ceil(Math.max((shippingFee - discountAmount),0) * 1.1)
+          + Math.ceil(orderValue * 0.0005)
+          + Math.ceil(codAmount * 0.02);
+      }
+
       return updateData;
     }
 

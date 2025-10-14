@@ -276,15 +276,15 @@ const OrderInfo: React.FC<Props> = ({
                   },
                   {
                     type: "number",
-                    min: 0,
-                    message: "Nhập tổng giá trị hàng hóa hợp lệ",
+                    min: 1, 
+                    message: "Tổng giá trị hàng hóa phải lớn hơn 0",
                   },
                 ]}
               >
                 <InputNumber
                   style={{ width: "100%" }}
                   placeholder="Ví dụ: 150,000"
-                  min={0}
+                  min={1} 
                   step={1000}
                   disabled={isOrderValueDisabled || disabled}
                   onChange={handleOrderValueChange}
