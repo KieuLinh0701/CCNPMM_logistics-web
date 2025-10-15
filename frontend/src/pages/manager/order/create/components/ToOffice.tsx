@@ -1,22 +1,21 @@
 import React, { useEffect } from "react";
 import { Card, Form, Select } from "antd";
-import { styles } from "../../style/Order.styles";
 import { Office } from "../../../../../types/office";
 import { FormInstance } from "antd/lib";
+import { styles } from "../../../../user/order/style/Order.styles";
 
 interface Props {
   form: FormInstance;
   selectedOffice?: Office | null;
   offices: Office[];
   onChange: (office: Office | null) => void;
-  disabled: boolean;
 }
 
-const FromOffice: React.FC<Props> = ({ form, selectedOffice, offices, onChange, disabled }) => {
+const ToOffice: React.FC<Props> = ({ form, selectedOffice, offices, onChange }) => {
   
   // Đồng bộ giá trị selectedOffice với form
   useEffect(() => {
-    form.setFieldsValue({ senderOfficeId: selectedOffice?.id ?? undefined });
+    form.setFieldsValue({ recipientOfficeId: selectedOffice?.id ?? undefined });
   }, [selectedOffice, form]);
 
   return (
@@ -24,13 +23,12 @@ const FromOffice: React.FC<Props> = ({ form, selectedOffice, offices, onChange, 
       <div style={styles.cardTitleEdit}>Bưu cục gửi</div>
       <Form form={form} layout="vertical">
         <Form.Item
-          name="senderOfficeId"
-          label="Chọn bưu cục lấy"
+          name="recipientOfficeId"
+          label="Chọn bưu cục"
           rules={[{ required: true, message: "Vui lòng chọn bưu cục" }]}
         >
           <Select
-            placeholder="Chọn bưu cục"
-            disabled={disabled}
+            placeholder="Chọn bưu cục nhận"
             value={selectedOffice?.id} 
             onChange={(value) => {
               const office = offices.find((o) => o.id === value) || null;
@@ -49,4 +47,4 @@ const FromOffice: React.FC<Props> = ({ form, selectedOffice, offices, onChange, 
   );
 };
 
-export default FromOffice;
+export default ToOffice;

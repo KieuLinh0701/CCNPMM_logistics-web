@@ -78,11 +78,23 @@ export const getPaymentMethodsEnum = createAsyncThunk(
   }
 );
 
-export const createOrder = createAsyncThunk(
-  "orders/create",
+export const createOrderForUser = createAsyncThunk(
+  "orders/create/by-user",
   async (order: Order, { rejectWithValue }) => {
     try {
-      const response = await orderAPI.createOrder(order);
+      const response = await orderAPI.createOrderForUser(order);
+      return response;
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
+export const createOrderForManager = createAsyncThunk(
+  "orders/create/by-manager",
+  async (order: Order, { rejectWithValue }) => {
+    try {
+      const response = await orderAPI.createOrderForManager(order);
       return response;
     } catch (err: any) {
       return rejectWithValue(err.response?.data || err.message);
@@ -176,11 +188,11 @@ export const getPaymentStatusesEnum = createAsyncThunk(
   }
 );
 
-export const cancelOrder = createAsyncThunk(
-  "orders/cancel",
+export const cancelOrderForUser = createAsyncThunk(
+  "orders/cancel/by-user",
   async (orderId: number, { rejectWithValue }) => {
     try {
-      const response = await orderAPI.cancelOrder(orderId);
+      const response = await orderAPI.cancelOrderForUser(orderId);
       return response;
     } catch (err: any) {
       return rejectWithValue(err.response?.data.message || "Hủy đơn hàng thất bại");
@@ -310,6 +322,18 @@ export const confirmOrderAndAssignToOffice = createAsyncThunk(
   }
 );
 
+export const cancelOrderForManager = createAsyncThunk(
+  "orders/cancel/by-manager",
+  async (orderId: number, { rejectWithValue }) => {
+    try {
+      const response = await orderAPI.cancelOrderForManager(orderId);
+      return response;
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data.message || "Hủy đơn hàng thất bại");
+    }
+  }
+);
+
 const orderSlice = createSlice({
   name: 'order',
   initialState,
@@ -375,14 +399,29 @@ const orderSlice = createSlice({
 
     // Create Order
     builder
-      .addCase(createOrder.pending, (state) => {
+      .addCase(createOrderForUser.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(createOrder.fulfilled, (state) => {
+      .addCase(createOrderForUser.fulfilled, (state) => {
         state.loading = false;
       })
-      .addCase(createOrder.rejected, (state, action) => {
+      .addCase(createOrderForUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+
+      // Create Order
+    builder
+      .addCase(createOrderForManager.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(createOrderForManager.fulfilled, (state) => {
+        state.loading = false;
+      })
+      .addCase(createOrderForManager.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
@@ -443,14 +482,14 @@ const orderSlice = createSlice({
 
     // Cancel Order
     builder
-      .addCase(cancelOrder.pending, (state) => {
+      .addCase(cancelOrderForUser.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(cancelOrder.fulfilled, (state) => {
+      .addCase(cancelOrderForUser.fulfilled, (state) => {
         state.loading = false;
       })
-      .addCase(cancelOrder.rejected, (state, action) => {
+      .addCase(cancelOrderForUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
@@ -588,6 +627,20 @@ const orderSlice = createSlice({
         }
       })
       .addCase(confirmOrderAndAssignToOffice.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+      // Cancel Order
+    builder
+      .addCase(cancelOrderForManager.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(cancelOrderForManager.fulfilled, (state) => {
+        state.loading = false;
+      })
+      .addCase(cancelOrderForManager.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

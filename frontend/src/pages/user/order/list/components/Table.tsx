@@ -73,7 +73,7 @@ const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, onCancel,
       title: "Địa chỉ người nhận",
       key: "recipientAddress",
       align: "center",
-      width: 300, 
+      width: 300,
       render: (_, record) => {
         const cityName = provinceList.find((p) => p.code === Number(record.recipientCityCode))?.name || "";
         const wardName = wardList.find((w) => w.code === Number(record.recipientWardCode))?.name || "";
@@ -124,6 +124,16 @@ const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, onCancel,
       }
     },
     { title: "Ngày tạo", dataIndex: "createdAt", key: "createdAt", align: "center", render: (date) => dayjs(date).format('DD/MM/YYYY HH:mm:ss') },
+    {
+      title: "Ngày hoàn thành",
+      dataIndex: "deliveredAt",
+      key: "deliveredAt",
+      align: "center",
+      render: (date) =>
+        date
+          ? dayjs(date).format("DD/MM/YYYY HH:mm:ss")
+          : "---",
+    },
     {
       title: "Hành động",
       key: "action",

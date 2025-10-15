@@ -91,6 +91,9 @@ const OrderEdit: React.FC = () => {
     const [isHasOfficeSender, setIsHasOfficeSender] = useState(true);
     const [isHasOfficeRecipient, setIsHasOfficerRecipient] = useState(true);
 
+    // Thêm state để quản lý số lượng
+    const [quantityValues, setQuantityValues] = useState<{ [key: number]: number }>({});
+
     // Lấy serviceType slice
     const { serviceTypes, loading: serviceLoading, error: serviceError } =
         useSelector((state: RootState) => state.serviceType);
@@ -771,18 +774,91 @@ const OrderEdit: React.FC = () => {
                                             key: "quantity",
                                             align: "center",
                                             render: (value: number, record: OrderProduct, index: number) => {
-                                                if (order.status !== "draft") return <span>{value}</span>;
+                                                const currentValue = quantityValues[index] || value;
+
+                                                const handleChange = (newValue: number | null) => {
+                                                    const numValue = newValue || 0;
+
+                                                    // Validate stock
+                                                    if (numValue > record.product.stock) {
+                                                        message.error(`Số lượng vượt quá tồn kho! Tồn kho hiện tại: ${record.product.stock}`);
+                                                        return;
+                                                    }
+
+                                                    handleQuantityChange(numValue, index);
+                                                };
+
                                                 return (
-                                                    <InputNumber
-                                                        min={1}
-                                                        value={value}
-                                                        onChange={(newValue) =>
-                                                            handleQuantityChange(newValue, index)
-                                                        }
-                                                        style={{ width: 80 }}
-                                                    />
+                                                    <Form.Item
+                                                        name={['orderProducts', index, 'quantity']}
+                                                        rules={[
+                                                            {
+                                                                validator: (_, val) => {
+                                                                    if (val === undefined || val === null || val === '') {
+                                                                        return Promise.reject(new Error("Vui lòng nhập số lượng"));
+                                                                    }
+
+                                                                    const numValue = Number(val);
+                                                                    if (isNaN(numValue)) {
+                                                                        return Promise.reject(new Error("Số lượng phải là số"));
+                                                                    }
+
+                                                                    if (numValue <= 0) {
+                                                                        return Promise.reject(new Error("Số lượng phải lớn hơn 0"));
+                                                                    }
+
+                                                                    if (numValue > record.product.stock) {
+                                                                        return Promise.reject(
+                                                                            new Error(`Số lượng tối đa hiện tại: ${record.product.stock}`)
+                                                                        );
+                                                                    }
+
+                                                                    return Promise.resolve();
+                                                                },
+                                                            },
+                                                        ]}
+                                                        initialValue={currentValue}
+                                                        validateTrigger={['onChange', 'onBlur']}
+                                                    >
+                                                        <InputNumber
+                                                            min={1}
+                                                            max={record.product.stock}
+                                                            value={currentValue}
+                                                            onChange={handleChange}
+                                                            onBlur={(e) => {
+                                                                const value = e.target.value;
+                                                                if (value && Number(value) > record.product.stock) {
+                                                                    message.warning(`Số lượng không được vượt quá ${record.product.stock}`);
+                                                                }
+                                                            }}
+                                                            style={{
+                                                                width: 100,
+                                                                borderColor: currentValue > record.product.stock ? '#ff4d4f' : undefined
+                                                            }}
+                                                            placeholder="Nhập số lượng"
+                                                            formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                            parser={(value) => value?.replace(/\$\s?|(,*)/g, '') as any}
+                                                        />
+                                                    </Form.Item>
                                                 );
                                             },
+                                        },
+                                        {
+                                            title: "Tồn kho",
+                                            dataIndex: ["product", "stock"],
+                                            key: "stock",
+                                            align: "center",
+                                            render: (stock: number, record: OrderProduct) => (
+                                                <div>
+                                                    <span style={{
+                                                        color: stock === 0 ? '#ff4d4f' :
+                                                            stock < 10 ? '#faad14' : '#52c41a',
+                                                        fontWeight: 'bold'
+                                                    }}>
+                                                        {stock.toLocaleString()}
+                                                    </span>
+                                                </div>
+                                            ),
                                         },
                                         ...(order.status === "draft"
                                             ? [
@@ -877,7 +953,11 @@ const OrderEdit: React.FC = () => {
                             <PromotionCard
                                 shippingFee={order.shippingFee}
                                 discountAmount={order.discountAmount}
-                                totalFee={Math.ceil(Math.max(((order.shippingFee || 0) - (order.discountAmount || 0)), 0) * 1.1) + (order.orderValue ? order.orderValue * 0.005 : 0) + (order.cod ? order.cod * 0.02 : 0)}
+                                totalFee={Math.ceil(
+                                    Math.max(((order.shippingFee || 0) - (order.discountAmount || 0)), 0) * 1.1 +
+                                    (orderValue ? orderValue * 0.005 : 0) +
+                                    (order.cod ? order.cod * 0.02 : 0)
+                                )}
                                 cod={order.cod}
                                 orderValue={order.orderValue}
                                 selectedPromo={selectedPromo}

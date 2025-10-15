@@ -173,8 +173,8 @@ const SearchFilters: React.FC<Props> = ({
                 <Option value="codLow">COD thấp nhất</Option>
                 <Option value="orderValueHigh">Giá trị đơn cao nhất</Option>
                 <Option value="orderValueLow">Giá trị đơn thấp nhất</Option>
-                <Option value="feeHigh">Phí vận chuyển cao nhất</Option>
-                <Option value="feeLow">Phí vận chuyển thấp nhất</Option>
+                <Option value="feeHigh">Phí dịch vụ cao nhất</Option>
+                <Option value="feeLow">Phí dịch vụ thấp nhất</Option>
                 <Option value="weightHigh">Khối lượng cao nhất</Option>
                 <Option value="weightLow">Khối lượng thấp nhất</Option>
               </Select>

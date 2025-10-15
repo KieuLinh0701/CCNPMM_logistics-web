@@ -557,13 +557,30 @@ export const orderAPI = {
   },
 
   // Create new order
-  createOrder: async (orderData: Order): Promise<OrderResponse> => {
+  createOrderForUser: async (orderData: Order): Promise<OrderResponse> => {
     const token = localStorage.getItem('token');
     if (!token) throw new Error("Không tìm thấy token xác thực");
 
     try {
       const response = await api.post<OrderResponse>(
-        '/orders/create',
+        '/orders/create/by-user',
+        orderData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi tạo đơn hàng');
+    }
+  },
+
+  // Create new order
+  createOrderForManager: async (orderData: Order): Promise<OrderResponse> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("Không tìm thấy token xác thực");
+
+    try {
+      const response = await api.post<OrderResponse>(
+        'orders/create/by-manager',
         orderData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -590,8 +607,13 @@ export const orderAPI = {
     return response.data;
   },
 
-  cancelOrder: async (orderId: number): Promise<OrderResponse> => {
-    const res = await api.put<OrderResponse>(`/orders/cancel`, { orderId });
+  cancelOrderForUser: async (orderId: number): Promise<OrderResponse> => {
+    const res = await api.put<OrderResponse>(`/orders/cancel/by-user`, { orderId });
+    return res.data;
+  },
+
+  cancelOrderForManager: async (orderId: number): Promise<OrderResponse> => {
+    const res = await api.put<OrderResponse>(`/orders/cancel/by-manager`, { orderId });
     return res.data;
   },
 

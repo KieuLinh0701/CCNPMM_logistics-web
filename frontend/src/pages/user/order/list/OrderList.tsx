@@ -5,7 +5,7 @@ import { Modal, message, Tag, Row, Col } from "antd";
 import dayjs from "dayjs";
 import { useAppDispatch, useAppSelector } from "../../../../hooks/redux";
 import {
-  cancelOrder,
+  cancelOrderForUser,
   getOrdersByUser,
   getPayersEnum,
   getPaymentMethodsEnum,
@@ -88,7 +88,7 @@ const OrderList = () => {
       },
       onOk: async () => {
         try {
-          const resultAction = await dispatch(cancelOrder(orderId)).unwrap();
+          const resultAction = await dispatch(cancelOrderForUser(orderId)).unwrap();
           if (resultAction.success) {
             message.success(resultAction.message || "Hủy đơn hàng thành công");
             fetchOrders(currentPage);

@@ -319,7 +319,7 @@ const orderService = {
   },
 
   // Create Order
-  async createOrderOfLinh(userId, orderData) {
+  async createOrderForUser(userId, orderData) {
     const t = await db.sequelize.transaction();
 
     try {
@@ -414,6 +414,11 @@ const orderService = {
         where: { codeCity: orderData.recipientCityCode },
       });
       if (!recipientOffice) throw new Error("Địa chỉ người nhận chưa nằm trong khu vực phục vụ của chúng tôi");
+      // Kiểm tra xem địa chỉ người gửi có thuộc fromOffice
+      const checkSenderOffice = await db.Office.findOne({
+        where: { codeCity: orderData.fromOffice.codeCity },
+      });
+      if (!checkSenderOffice) throw new Error("Địa chỉ người gửi không thuộc bưu cục nhận đã chọn");
 
       // 8. Validate payer & payment method
       const validPayers = ["Shop", "Customer"];
@@ -431,20 +436,7 @@ const orderService = {
       const createdByType = currentUser.role;
 
       // 11. Xác định user tạo đơn hàng
-      let orderUserId = null;
-      if (currentUser.role == "user") {
-        orderUserId = currentUser.id;
-      } else if (currentUser.role != "user") {
-        if (orderData.senderPhone) {
-          const senderUser = await db.User.findOne({
-            where: { phone: orderData.senderPhone },
-            transaction: t
-          });
-          if (senderUser) {
-            orderUserId = senderUser.id;
-          }
-        }
-      }
+      let orderUserId = currentUser.id;
 
       // 12. Tạo Order
       const order = await db.Order.create(
@@ -480,7 +472,11 @@ const orderService = {
           deliveredAt: orderData.deliveredAt || null,
           createdBy: createdBy,
           createdByType: createdByType,
-          totalFee: Math.ceil(Math.max(((shippingFee || 0) - (discountAmount || 0)), 0) * 1.1) + (orderValue ? orderValue * 0.005 : 0) + (codAmount ? codAmount * 0.02 : 0),
+          totalFee: Math.ceil(
+            Math.max(((shippingFee || 0) - (discountAmount || 0)), 0) * 1.1 +
+            (orderValue ? orderValue * 0.005 : 0) +
+            (codAmount ? codAmount * 0.02 : 0)
+          )
         },
         { transaction: t }
       );
@@ -600,9 +596,18 @@ const orderService = {
       }
 
       if (startDate && endDate) {
-        whereCondition.createdAt = {
-          [Op.between]: [new Date(startDate), new Date(endDate)],
-        };
+        whereCondition[Op.or] = [
+          {
+            createdAt: {
+              [Op.between]: [new Date(startDate), new Date(endDate)],
+            },
+          },
+          {
+            deliveredAt: {
+              [Op.between]: [new Date(startDate), new Date(endDate)],
+            },
+          },
+        ];
       }
 
       let orderCondition = [["createdAt", "DESC"]];
@@ -628,10 +633,10 @@ const orderService = {
             orderCondition = [["orderValue", "ASC"]];
             break;
           case "feeHigh":
-            orderCondition = [["shippingFee", "DESC"]];
+            orderCondition = [["totalFee", "DESC"]];
             break;
           case "feeLow":
-            orderCondition = [["shippingFee", "ASC"]];
+            orderCondition = [["totalFee", "ASC"]];
             break;
           case "weightHigh":
             orderCondition = [["weight", "DESC"]];
@@ -726,7 +731,7 @@ const orderService = {
   },
 
   // Cancel Order
-  async cancelOrder(userId, orderId) {
+  async cancelOrderForUser(userId, orderId) {
     const t = await db.sequelize.transaction();
     try {
       // 1. Kiểm tra user tồn tại
@@ -737,7 +742,7 @@ const orderService = {
 
       // 2. Tìm order theo id + userId (bao gồm cả sản phẩm và promotion)
       const order = await db.Order.findOne({
-        where: { id: orderId, userId },
+        where: { id: orderId, createdBy: userId },
         include: [
           {
             model: db.OrderProduct,
@@ -959,6 +964,12 @@ const orderService = {
           transaction: t,
         });
 
+        // Kiểm tra xem địa chỉ người nhận có thuộc fromOffice
+        const checkSenderOffice = await db.Office.findOne({
+          where: { codeCity: orderData.fromOffice.codeCity },
+          transaction: t,
+        });
+
         if (!senderOffice && !recipientOffice) {
           await t.rollback();
           return { success: false, message: "Cả người gửi và người nhận đều nằm ngoài khu vực phục vụ" };
@@ -970,6 +981,10 @@ const orderService = {
         if (!recipientOffice) {
           await t.rollback();
           return { success: false, message: "Địa chỉ người nhận nằm ngoài khu vực phục vụ" };
+        }
+        if (!checkSenderOffice) {
+          await t.rollback();
+          return { success: false, message: "Địa chỉ người nhận không thuộc bưu cục đến đã chọn" };
         }
       }
 
@@ -1192,7 +1207,11 @@ const orderService = {
       const orderValue = updateData.orderValue ?? existingOrder.orderValue ?? 0;
       const codAmount = updateData.cod ?? existingOrder.cod ?? 0;
 
-      updateData.totalFee = Math.ceil(Math.max((shippingFee - discountAmount), 0) * 1.1) + Math.ceil(orderValue * 0.0005) + Math.ceil(codAmount * 0.02);
+      updateData.totalFee = Math.ceil(
+        Math.max(((shippingFee || 0) - (discountAmount || 0)), 0) * 1.1 +
+        (orderValue ? orderValue * 0.005 : 0) +
+        (codAmount ? codAmount * 0.02 : 0)
+      );
 
       return updateData;
     }
@@ -1213,14 +1232,16 @@ const orderService = {
 
       // Tính lại totalFee nếu orderValue hoặc cod thay đổi
       if ('orderValue' in orderData || 'cod' in orderData) {
-        const shippingFee = existingOrder.shippingFee ?? 0; 
-        const discountAmount = existingOrder.discountAmount ?? 0; 
+        const shippingFee = existingOrder.shippingFee ?? 0;
+        const discountAmount = existingOrder.discountAmount ?? 0;
         const orderValue = updateData.orderValue ?? existingOrder.orderValue ?? 0;
         const codAmount = updateData.cod ?? existingOrder.cod ?? 0;
 
-        updateData.totalFee = Math.ceil(Math.max((shippingFee - discountAmount),0) * 1.1)
-          + Math.ceil(orderValue * 0.0005)
-          + Math.ceil(codAmount * 0.02);
+        updateData.totalFee = Math.ceil(
+          Math.max(((shippingFee || 0) - (discountAmount || 0)), 0) * 1.1 +
+          (orderValue ? orderValue * 0.005 : 0) +
+          (codAmount ? codAmount * 0.02 : 0)
+        );
       }
 
       return updateData;
@@ -1305,6 +1326,8 @@ const orderService = {
       };
     }
   },
+
+  //============== For Manager ======================//
 
   async getOrdersByOffice(userId, officeId, page, limit, filters) {
     try {
@@ -1410,11 +1433,18 @@ const orderService = {
       }
 
       if (startDate && endDate) {
-        whereCondition[Op.and].push({
-          createdAt: {
-            [Op.between]: [new Date(startDate), new Date(endDate)],
+        whereCondition[Op.or] = [
+          {
+            createdAt: {
+              [Op.between]: [new Date(startDate), new Date(endDate)],
+            },
           },
-        });
+          {
+            deliveredAt: {
+              [Op.between]: [new Date(startDate), new Date(endDate)],
+            },
+          },
+        ];
       }
 
       let orderCondition = [["createdAt", "DESC"]];
@@ -1637,6 +1667,279 @@ const orderService = {
       };
     }
   },
+
+  // Create Order
+  async createOrderForManager(userId, orderData) {
+    const t = await db.sequelize.transaction();
+
+    try {
+      // 0. Lấy User đang thực hiện
+      const currentUser = await db.User.findByPk(userId, {
+        include: [
+          {
+            model: db.Employee,
+            as: 'employee',
+            include: [
+              {
+                model: db.Office,
+                as: 'office'
+              }
+            ]
+          }
+        ]
+      });
+
+      if (!currentUser) throw new Error("Người dùng không tồn tại");
+
+      if (currentUser.role !== "manager" || currentUser.employee.status !== "Active") {
+        throw new Error("Người dùng không có quyền để tạo đơn hàng");
+      }
+
+      // 1. Validate sender/recipient info
+      const phoneRegex = /^\d{10}$/;
+      if (!phoneRegex.test(orderData.senderPhone))
+        throw new Error("Số điện thoại người gửi không hợp lệ");
+      if (!phoneRegex.test(orderData.recipientPhone))
+        throw new Error("Số điện thoại người nhận không hợp lệ");
+
+      if (
+        !orderData.senderCityCode ||
+        !orderData.senderWardCode ||
+        !orderData.senderDetailAddress
+      )
+        throw new Error("Địa chỉ người gửi không hợp lệ");
+      if (
+        !orderData.recipientCityCode ||
+        !orderData.recipientWardCode ||
+        !orderData.recipientDetailAddress
+      )
+        throw new Error("Địa chỉ người nhận không hợp lệ");
+
+      // 3. Validate COD
+      if (orderData.cod < 0)
+        throw new Error("COD không hợp lệ");
+
+      if (orderData.shippingFee < 0)
+        throw new Error("Phí vận chuyển không hợp lệ");
+
+      // 4. Validate weight
+      if (orderData.weight <= 0 || orderData.weight > 500)
+        throw new Error("Khối lượng đơn hàng không hợp lệ");
+
+      // 5. Validate service type
+      const serviceType = await db.ServiceType.findByPk(orderData.serviceType.id);
+      if (!serviceType) throw new Error("Loại dịch vụ không tồn tại");
+
+      // 6. Validate địa chỉ người nhận có thuộc khu vực phục vụ không
+      const recipientOffice = await db.Office.findOne({
+        where: { codeCity: orderData.recipientCityCode },
+      });
+      console.log("orderData.toOffice.cityCode", orderData.toOffice.codeCity);
+      if (!recipientOffice) throw new Error("Địa chỉ người nhận chưa nằm trong khu vực phục vụ của chúng tôi");
+      // Kiểm tra xem địa chỉ người nhận có thuộc toOffice
+      const checkRecipientOffice = await db.Office.findOne({
+        where: { codeCity: orderData.toOffice.codeCity },
+      });
+      if (!checkRecipientOffice) throw new Error("Địa chỉ người nhận không thuộc bưu cục đến đã chọn");
+
+      // 8. Validate payer
+      const validPayers = ["Shop", "Customer"];
+      if (!validPayers.includes(orderData.payer))
+        throw new Error("Người trả phí không hợp lệ");
+
+      // 9. Generate trackingNumber nếu chưa có
+      const trackingNumber =
+        orderData.trackingNumber || generateTrackingNumber(14);
+
+      // 10. Xác định createdBy và createdByType theo role của user hiện tại
+      const createdBy = currentUser.id;
+      const createdByType = currentUser.role;
+
+      // 11. Xác định user tạo đơn hàng
+      let orderUserId = null;
+      if (orderData.senderPhone) {
+        const senderUser = await db.User.findOne({
+          where: { phoneNumber: orderData.senderPhone },
+          transaction: t
+        });
+        if (senderUser) {
+          orderUserId = senderUser.id;
+        }
+      }
+
+      console.log("shippingFee", orderData.shippingFee);
+
+      const shippingFee = orderData.shippingFee || 0;
+      const codAmount = orderData.cod || 0;
+      const orderValue = orderData.orderValue || 0;
+
+      // 12. Tạo Order
+      const order = await db.Order.create(
+        {
+          trackingNumber,
+          senderName: orderData.senderName,
+          senderPhone: orderData.senderPhone,
+          senderCityCode: orderData.senderCityCode,
+          senderWardCode: orderData.senderWardCode,
+          senderDetailAddress: orderData.senderDetailAddress,
+
+          recipientName: orderData.recipientName,
+          recipientPhone: orderData.recipientPhone,
+          recipientCityCode: orderData.recipientCityCode,
+          recipientWardCode: orderData.recipientWardCode,
+          recipientDetailAddress: orderData.recipientDetailAddress,
+
+          weight: orderData.weight,
+          serviceTypeId: serviceType.id,
+          discountAmount: 0,
+          shippingFee: shippingFee,
+          cod: codAmount,
+          orderValue: orderValue,
+          payer: orderData.payer,
+          paymentMethod: "Cash",
+          paymentStatus: orderData.paymentStatus,
+          notes: orderData.notes,
+          userId: orderUserId || null,
+          status: orderData.status || "picked_up",
+          fromOfficeId: currentUser.employee.office.id,
+          toOfficeId: orderData.toOffice?.id,
+          createdBy: createdBy,
+          createdByType: createdByType,
+          totalFee:
+            Math.ceil((shippingFee || 0) * 1.1) +
+            (codAmount ? codAmount * 0.02 : 0) +
+            (orderValue ? orderValue * 0.005 : 0) + 10000,
+        },
+        { transaction: t }
+      );
+
+      await t.commit();
+
+      // 15. Load lại order đầy đủ
+      const createdOrder = await db.Order.findByPk(order.id, {
+        include: [
+          {
+            model: db.OrderProduct,
+            as: "orderProducts",
+            include: [{ model: db.Product, as: "product" }],
+          },
+          { model: db.Promotion, as: "promotion" },
+          { model: db.ServiceType, as: "serviceType" },
+          { model: db.Office, as: "fromOffice" },
+          { model: db.Office, as: "toOffice" },
+          { model: db.User, as: "user" },
+          { model: db.User, as: "creator" },
+        ],
+      });
+
+      return {
+        success: true,
+        message: "Tạo đơn hàng thành công",
+        order: createdOrder,
+      };
+    } catch (error) {
+      if (!t.finished) {
+        await t.rollback();
+      }
+      console.error("Create Order error:", error);
+      return {
+        success: false,
+        message: error.message || "Lỗi server khi tạo đơn hàng",
+      };
+    }
+  },
+
+  async cancelOrderForManager(userId, orderId) {
+    const t = await db.sequelize.transaction();
+    try {
+      // 1. Kiểm tra user tồn tại
+      const user = await db.User.findByPk(userId);
+      if (!user) {
+        return { success: false, message: "Người dùng không tồn tại" };
+      }
+
+      // 2. Lấy order
+      const order = await db.Order.findOne({
+        where: { id: orderId },
+        include: [
+          { model: db.OrderProduct, as: "orderProducts", include: [{ model: db.Product, as: "product" }] },
+          { model: db.Promotion, as: "promotion" },
+        ],
+        transaction: t,
+      });
+      if (!order) return { success: false, message: "Đơn hàng không tồn tại" };
+
+      // 3. Phân quyền
+      const isManager = user.role === "manager";
+      if (!isManager) {
+        return { success: false, message: "Bạn không có quyền hủy đơn hàng" };
+      } else {
+        const employee = await db.Employee.findOne({
+          where: { userId: userId, officeId: order.fromOfficeId, status: "Active" },
+        });
+
+        if (!employee) {
+          return { success: false, message: "Bạn không có quyền hủy đơn vì không thuộc bưu cục gửi" };
+        }
+      }
+
+      // 4. Kiểm tra trạng thái có thể hủy
+      const cancellableStatuses = ["draft", "pending", "confirmed", "picked_up"];
+      if (!cancellableStatuses.includes(order.status)) {
+        return { success: false, message: "Không thể hủy đơn ở trạng thái hiện tại" };
+      }
+
+      // 5. Khôi phục stock & soldQuantity
+      if (order.orderProducts?.length > 0) {
+        for (const op of order.orderProducts) {
+          const product = await db.Product.findByPk(op.productId, { transaction: t });
+          if (product) {
+            await product.increment("stock", { by: op.quantity, transaction: t });
+            await product.decrement("soldQuantity", { by: op.quantity, transaction: t });
+          }
+        }
+      }
+
+      // 6. Khôi phục promotion nếu có
+      if (order.promotionId) {
+        const promotion = await db.Promotion.findByPk(order.promotionId, { transaction: t });
+        if (promotion && promotion.usedCount > 0) {
+          promotion.usedCount -= 1;
+          await promotion.save({ transaction: t });
+        }
+      }
+
+      // 7. Xử lý hoàn tiền nếu cần
+      if (order.paymentMethod === "VNPay" && order.paymentStatus === "Paid") {
+        const refundResult = await paymentService.refundVNPay(order.id);
+        if (!refundResult.success) console.warn("Refund VNPay thất bại:", refundResult.message);
+        order.paymentStatus = "Refunded";
+      } else if (order.paymentMethod === "Cash" && order.paymentStatus === "Paid") {
+        // Đánh dấu đã thanh toán nhưng hủy => cần xử lý hoàn tiền thủ công nếu có
+        order.paymentStatus = "Refunded"; // hoặc "RefundRequired" nếu muốn tách riêng
+      }
+
+      // 8. Cập nhật trạng thái hủy
+      order.status = "cancelled";
+      await order.save({ transaction: t });
+
+      await t.commit();
+      return {
+        success: true,
+        message:
+          order.paymentMethod === "VNPay"
+            ? "Hoàn tiền và hủy đơn hàng thành công"
+            : "Hủy đơn hàng thành công",
+        order,
+      };
+    } catch (error) {
+      if (!t.finished) await t.rollback();
+      console.error("Cancel Order error:", error);
+      return { success: false, message: error.message || "Lỗi server khi hủy đơn hàng" };
+    }
+  },
+
+  // ===================== Admin ==================================/
 
   // Track Order
   async trackOrder(trackingNumber) {

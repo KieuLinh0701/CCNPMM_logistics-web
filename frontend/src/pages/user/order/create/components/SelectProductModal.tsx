@@ -76,7 +76,6 @@ const SelectProductModal: React.FC<Props> = ({
         dataSource={products}
         loading={loading}
         pagination={false}
-        scroll={{ y: 400 }}
         rowSelection={{
           type: 'checkbox',
           selectedRowKeys: selectedProductIds,
@@ -151,7 +150,7 @@ const SelectProductModal: React.FC<Props> = ({
           </Button>
           <Button
             type="primary"
-            style={{ background: "#1C3D90", borderColor: "#1C3D90" }}
+            style={{ background: "#1C3D90", borderColor: "#1C3D90", color: "#ffffff"}}
             onClick={handleConfirm}
             disabled={selectedProductIds.length === 0}
           >

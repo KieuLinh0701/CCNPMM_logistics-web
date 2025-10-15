@@ -16,9 +16,10 @@ interface Props {
   onDetail: (trackingNumber: string) => void;
   onEdit: (trackingNumber: string) => void;
   onApprove: (order: Order) => void;
+  oncancel: (orderId: number) => void;
 }
 
-const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, role, officeId, onDetail, onEdit, onApprove }) => {
+const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, role, officeId, onDetail, onEdit, onApprove, oncancel }) => {
   const navigate = useNavigate();
 
   const statusTag = (status: string) => {
@@ -70,6 +71,32 @@ const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, role, off
         </Space>
       ),
     },
+    {
+      title: "Điểm gửi",
+      dataIndex: "fromOffice",
+      key: "fromOffice",
+      align: "center",
+      render: (fromOffice) => {
+        if (!fromOffice) return "---";
+        return fromOffice.id === officeId
+          ? <Tag color="cyan">Bưu cục hiện tại</Tag>
+          : fromOffice.name
+      }
+    },
+    {
+      title: "Điểm nhận",
+      dataIndex: "toOffice",
+      key: "toOffice",
+      align: "center",
+      render: (toOffice) => {
+        if (!toOffice)
+          return <Tag color="red">Chưa có</Tag>;
+
+        return toOffice.id === officeId
+          ? <Tag color="cyan">Bưu cục hiện tại</Tag>
+          : toOffice.name;
+      }
+    },
     { title: "Tên người gửi", dataIndex: "senderName", key: "senderName", align: "center" },
     { title: "SĐT người gửi", dataIndex: "senderPhone", key: "senderPhone", align: "center" },
     {
@@ -114,8 +141,8 @@ const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, role, off
         );
       },
     },
-    { title: "Gía trị đơn (VNĐ)", dataIndex: "orderValue", key: "orderValue", align: "center" },
-    { title: "Phí vận chuyển (VNĐ)", dataIndex: "shippingFee", key: "shippingFee", align: "center" },
+    { title: "Giá trị đơn (VNĐ)", dataIndex: "orderValue", key: "orderValue", align: "center" },
+    { title: "Phí dịch vụ (VNĐ)", dataIndex: "totalFee", key: "totalFee", align: "center" },
     { title: "COD (VNĐ)", dataIndex: "cod", key: "cod", align: "center" },
     { title: "Khối lượng (Kg)", dataIndex: "weight", key: "weight", align: "center" },
     {
@@ -138,45 +165,29 @@ const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, role, off
     },
     { title: "Trạng thái thanh toán", dataIndex: "paymentStatus", key: "paymentStatus", align: "center", render: (p) => statusTag(p) },
     { title: "Trạng thái", dataIndex: "status", key: "status", align: "center", render: (s) => statusTag(s) },
-    {
-      title: "Điểm gửi",
-      dataIndex: "fromOffice",
-      key: "fromOffice",
-      align: "center",
-      render: (fromOffice) => {
-        if (!fromOffice) return "---";
-        return fromOffice.id === officeId
-          ? "Bưu cục hiện tại"
-          : fromOffice.name
-      }
-    },
-    {
-      title: "Điểm nhận",
-      dataIndex: "toOffice",
-      key: "toOffice",
-      align: "center",
-      render: (toOffice) => {
-        if (!toOffice) return "---";
-        return toOffice.id === officeId
-          ? "Bưu cục hiện tại"
-          : toOffice.name
-      }
-    },
-    { title: "Trạng thái", dataIndex: "status", key: "status", align: "center", render: (s) => statusTag(s) },
     { title: "Ngày tạo", dataIndex: "createdAt", key: "createdAt", align: "center", render: (date) => dayjs(date).format('DD/MM/YYYY HH:mm:ss') },
     {
-      title: 'Hành động',
-      key: 'action',
-      align: 'center',
+      title: "Ngày hoàn thành",
+      dataIndex: "deliveredAt",
+      key: "deliveredAt",
+      align: "center",
+      render: (date) =>
+        date
+          ? dayjs(date).format("DD/MM/YYYY HH:mm:ss")
+          : "---",
+    },
+    {
+      title: "Hành động",
+      key: "action",
+      align: "center",
       width: 250,
       render: (_, record: Order) => {
-        const canApprove = ["pending"].includes(record.status);
+        const canApprove = record.status === "pending";
+        const canCancel = ["pending", "picked_up", "confirmed"].includes(record.status);
 
-        // Kiểm tra điều kiện thanh toán
-        const hasPaymentIssue = record.paymentMethod !== 'Cash' && record.paymentStatus === 'Unpaid';
-
-        // Nếu có vấn đề thanh toán thì disable nút
-        const isApproveDisabled = !canApprove || hasPaymentIssue;
+        // Kiểm tra điều kiện thanh toán (nếu không phải tiền mặt mà chưa trả)
+        const hasPaymentIssue =
+          record.paymentMethod !== "Cash" && record.paymentStatus === "Unpaid";
 
         return (
           <Space>
@@ -190,7 +201,7 @@ const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, role, off
               Xem
             </Button>
 
-            {/* Nút Sửa thông tin */}
+            {/* Nút Sửa */}
             <Button
               type="link"
               icon={<EditOutlined />}
@@ -200,14 +211,28 @@ const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, role, off
               Sửa
             </Button>
 
+            {/* Nút Xác nhận (chỉ hiện khi status là pending) */}
+            {canApprove && (
+              <Button
+                type="link"
+                icon={<CheckCircleOutlined />}
+                size="small"
+                disabled={hasPaymentIssue}
+                onClick={() => onApprove(record)}
+              >
+                Xác nhận
+              </Button>
+            )}
+
+            {/* Nút Hủy */}
             <Button
               type="link"
-              icon={<CheckCircleOutlined />}
+              icon={<CloseCircleOutlined />}
               size="small"
-              disabled={isApproveDisabled}
-              onClick={() => onApprove(record)}
+              disabled={!canCancel}
+              onClick={() => oncancel(record.id)}
             >
-              Xác nhận
+              Hủy
             </Button>
           </Space>
         );

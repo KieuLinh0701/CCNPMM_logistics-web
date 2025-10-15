@@ -6,7 +6,7 @@ import { message, Modal } from "antd";
 import { AppDispatch } from "../../../../store/store";
 import { Order } from "../../../../types/order";
 import { City, Ward } from "../../../../types/location";
-import { cancelOrder, createVNPayURL, getOrderByTrackingNumber, updateOrderStatusToPending } from "../../../../store/orderSlice";
+import { cancelOrderForUser, createVNPayURL, getOrderByTrackingNumber, updateOrderStatusToPending } from "../../../../store/orderSlice";
 
 import Header from "./components/Header";
 import OrderSenderRecipient from "./components/SenderRecipientInfo";
@@ -98,7 +98,7 @@ const OrderDetail: React.FC = () => {
             onOk: async () => {
                 try {
                     if (!order?.id) return;
-                    const resultAction = await dispatch(cancelOrder(order.id)).unwrap();
+                    const resultAction = await dispatch(cancelOrderForUser(order.id)).unwrap();
                     if (resultAction.success) {
                         message.success("Hủy đơn hàng thành công");
                         setOrder((prev) => (prev ? { ...prev, status: "cancelled" } : prev));

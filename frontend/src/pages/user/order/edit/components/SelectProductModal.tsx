@@ -84,11 +84,11 @@ const SelectProductModal: React.FC<Props> = ({
           },
           { title: "Loại", dataIndex: "type", key: "type", align: "center", },
           {
-            title: "Ngày tạo",
-            dataIndex: "createdAt",
-            key: "createdAt",
+            title: "Tồn kho",
+            dataIndex: "stock",
+            key: "stock",
             align: "center",
-            render: (d: string) => new Date(d).toLocaleDateString("vi-VN"),
+            render: (s: number) => s.toLocaleString("vi-VN"),
           },
         ]}
       />

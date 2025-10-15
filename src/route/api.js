@@ -8,18 +8,15 @@ import fs from 'fs';
 import userController from "../controllers/userController.js";
 import officeController from "../controllers/officeController.js";
 import employeeController from "../controllers/employeeController.js";
-import productController from "../controllers/productController.js"; // ✅ GIỮ LẠI
+import productController from "../controllers/productController.js"; 
 import serviceTypeController from "../controllers/serviceTypeController.js";
 import shippingRateController from "../controllers/shippingRateController.js";
-import vehicleController from "../controllers/vehicleController.js"; // ✅ GIỮ LẠI
-// import productController from "../controllers/productController.js"; // ❌ XÓA DÒNG NÀY (trùng)
-import promotionController from "../controllers/promotionController.js"; // ✅ GIỮ LẠI
+import vehicleController from "../controllers/vehicleController.js"; 
+import promotionController from "../controllers/promotionController.js"; 
 import payment from "./payment.js";
-// import vehicleController from "../controllers/vehicleController.js"; // ❌ XÓA DÒNG NÀY (trùng)
 import shippingRequestController from "../controllers/shippingRequestController.js";
 import shipperController from "../controllers/shipperController.js";
 import orderController from "../controllers/orderController.js";
-// import * as promotionController from "../controllers/promotionController.js"; // ❌ XÓA DÒNG NÀY (trùng cả tên và module)
 
 let router = express.Router();
 
@@ -72,11 +69,13 @@ let initApiRoutes = (app) => {
     router.get("/orders/calculate-shipping-fee", orderController.calculateShippingFee);
     router.get('/orders/statuses', verifyToken, orderController.getStatusesEnum);
     router.get('/orders/payment-methods', verifyToken, orderController.getPaymentMethodsEnum);
-    router.post('/orders/create', verifyToken, orderController.createOrderOfLinh);
+    router.post('/orders/create/by-user', verifyToken, orderController.createOrderForUser);
+    router.post('/orders/create/by-manager', verifyToken, orderController.createOrderForManager);
     router.get('/orders/by-user', verifyToken, orderController.getOrdersByUser);
     router.get('/orders/payers', verifyToken, orderController.getPayersEnum);
     router.get('/orders/payment-statuses', verifyToken, orderController.getPaymentStatusesEnum);
-    router.put('/orders/cancel', verifyToken, orderController.cancelOrder);
+    router.put('/orders/cancel/by-user', verifyToken, orderController.cancelOrderForUser);
+    router.put('/orders/cancel/by-manager', verifyToken, orderController.cancelOrderForManager);
     router.get('/orders/:trackingNumber', verifyToken, orderController.getOrderByTrackingNumber);
     router.put('/orders/edit', verifyToken, orderController.updateOrder);
     router.put('/orders/to-pending', verifyToken, orderController.updateOrderStatusToPending);

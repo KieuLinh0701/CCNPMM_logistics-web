@@ -1,5 +1,5 @@
 import React from "react";
-import { Modal, Input, Radio, List, Button } from "antd";
+import { Modal, Input, Radio, List, Button, Tag } from "antd";
 import { Promotion } from "../../../../../types/promotion";
 
 interface Props {
@@ -23,11 +23,15 @@ const SelectedPromoModal: React.FC<Props> = ({
   onLoadMore,
   nextCursor,
 }) => {
+  const handleClearSelection = () => {
+    setSelectedPromo(null);
+  };
+
   return (
-    <Modal 
-      title="Chọn khuyến mãi" 
-      open={open} 
-      onCancel={onCancel} 
+    <Modal
+      title="Chọn khuyến mãi"
+      open={open}
+      onCancel={onCancel}
       footer={null}
       width={600}
     >
@@ -37,6 +41,32 @@ const SelectedPromoModal: React.FC<Props> = ({
         onSearch={onSearch}
         style={{ marginBottom: 16 }}
       />
+
+      {/* Thông báo khi đã chọn */}
+      {selectedPromo && (
+        <div style={{
+          marginBottom: 16,
+          padding: "12px",
+          background: "#f6ffed",
+          border: "1px solid #b7eb8f",
+          borderRadius: 6
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <strong>Đã chọn: </strong>
+              <Tag color="green">{selectedPromo.code}</Tag>
+            </div>
+            <Button
+              size="small"
+              type="text"
+              danger
+              onClick={handleClearSelection}
+            >
+              Bỏ chọn
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div style={{ maxHeight: 400, overflow: 'auto', marginBottom: 16 }}>
         <Radio.Group
@@ -104,8 +134,8 @@ const SelectedPromoModal: React.FC<Props> = ({
           paddingTop: 16
         }}
       >
-        <Button 
-          style={{ borderColor: "#1C3D90", color: "#1C3D90" }} 
+        <Button
+          style={{ borderColor: "#1C3D90", color: "#1C3D90" }}
           onClick={onCancel}
         >
           Hủy

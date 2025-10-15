@@ -5,7 +5,7 @@ import axios from "axios";
 import { Button, Col, Form, InputNumber, message, Modal, Row, Tooltip } from "antd";
 import { AppDispatch, RootState } from "../../../../store/store";
 import { City, Ward } from "../../../../types/location";
-import { getPayersEnum, getPaymentMethodsEnum, createOrder, createVNPayURL } from "../../../../store/orderSlice";
+import { getPayersEnum, getPaymentMethodsEnum, createOrderForUser, createVNPayURL } from "../../../../store/orderSlice";
 
 import Header from "./components/Header";
 import Actions from "./components/Actions";
@@ -29,7 +29,7 @@ import SelectedPromoModal from "./components/SelectPromoModal";
 import { getActivePromotions } from "../../../../store/promotionSlice";
 import { calculateShippingFee as calculateShippingFeeThunk } from "../../../../store/orderSlice";
 import PromotionCard from "./components/PromotionCard";
-import { Promotion, PromotionResponse } from "../../../../types/promotion";
+import { Promotion } from "../../../../types/promotion";
 import { useAppSelector } from "../../../../hooks/redux";
 import { Order } from "../../../../types/order";
 
@@ -62,9 +62,6 @@ const OrderCreate: React.FC = () => {
     const [orderValue, setOrderValue] = useState(0);
     const [weight, setWeight] = useState(0);
     const [codAmount, setCodAmount] = useState(0);
-
-    const { offices = [] } = useSelector((state: RootState) => state.office);
-
     const [selectedOffice, setSelectedOffice] = useState<Office | null>(null);
     const [selectedPromo, setSelectedPromo] = useState<Promotion | null>(null);
     const [showPromoModal, setShowPromoModal] = useState<boolean>(false);
@@ -282,7 +279,7 @@ const OrderCreate: React.FC = () => {
                 fromOffice: selectedOffice || undefined,
             } as Order;
 
-            const response = await dispatch(createOrder(orderData)).unwrap();
+            const response = await dispatch(createOrderForUser(orderData)).unwrap();
 
             if (response.success && response.order) {
                 handleOrderSuccess(response.order, status, orderData);
@@ -301,34 +298,6 @@ const OrderCreate: React.FC = () => {
         } finally {
             setIsSubmitting(false);
         }
-    };
-
-    const handleCancelOrder = () => {
-        Modal.confirm({
-            title: "Xác nhận hủy",
-            content: "Bạn chắc chắn muốn hủy tạo đơn hàng?",
-            okText: "Hủy",
-            cancelText: "Tiếp tục",
-            centered: true,
-            icon: null,
-            okButtonProps: {
-                style: {
-                    ...styles.button,
-                    backgroundColor: "#1C3D90",
-                    color: "#fff",
-                },
-            },
-            cancelButtonProps: {
-                style: {
-                    ...styles.button,
-                    backgroundColor: "#e0e0e0",
-                    color: "#333",
-                },
-            },
-            onOk: async () => {
-                navigate(-1);
-            },
-        });
     };
 
     const handleSelectProducts = (selected: product[]) => {
@@ -816,7 +785,11 @@ const OrderCreate: React.FC = () => {
                         <PromotionCard
                             shippingFee={shippingFee}
                             discountAmount={discountAmount}
-                            totalFee={Math.ceil(Math.max(((shippingFee || 0) - (discountAmount || 0)), 0) * 1.1) + (orderValue ? orderValue * 0.005 : 0) + (codAmount ? codAmount * 0.02 : 0)}
+                            totalFee={Math.ceil(
+                                Math.max(((shippingFee || 0) - (discountAmount || 0)), 0) * 1.1 +
+                                (orderValue ? orderValue * 0.005 : 0) +
+                                (codAmount ? codAmount * 0.02 : 0)
+                            )}
                             cod={codAmount}
                             orderValue={orderValue}
                             selectedPromo={selectedPromo}

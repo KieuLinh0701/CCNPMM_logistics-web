@@ -31,7 +31,7 @@ const Vehicles: React.FC = () => {
   const [form] = Form.useForm();
 
   const {
-    vehicles = [],
+    vehicles = [], 
     total = 0,
     statuses = [],
     types = [],

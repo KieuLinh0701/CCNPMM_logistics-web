@@ -119,9 +119,9 @@ const Sidenav: React.FC<Props> = ({ color }) => {
         icon: <ShoppingOutlined />,
         children: [
           {
-            key: "/manager/orders/list",
+            key: "/manager/orders",
             label: "Danh sách đơn hàng",
-            path: "/manager/orders/list",
+            path: "/manager/orders",
           },
           {
             key: "/manager/orders/assign",

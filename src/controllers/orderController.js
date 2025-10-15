@@ -54,11 +54,11 @@ const orderController = {
     }
   },
 
-  async createOrderOfLinh(req, res) {
+  async createOrderForUser(req, res) {
     try {
       const userId = req.user.id;
       const order = req.body;
-      const result = await orderService.createOrderOfLinh(userId, order);
+      const result = await orderService.createOrderForUser(userId, order);
 
       if (!result.success) {
         return res.status(400).json(result);
@@ -139,11 +139,11 @@ const orderController = {
   },
 
   // Cancel Order
-  async cancelOrder(req, res) {
+  async cancelOrderForUser(req, res) {
     try {
       const userId = req.user.id;
       const { orderId } = req.body;
-      const result = await orderService.cancelOrder(userId, orderId);
+      const result = await orderService.cancelOrderForUser(userId, orderId);
       return res.status(200).json(result);
     } catch (error) {
       console.error("Cancel Order error:", error);
@@ -211,6 +211,8 @@ const orderController = {
     }
   },
 
+  // ==================== Manager ====================================//
+
   async getOrdersByOffice(req, res) {
     try {
       const userId = req.user.id;
@@ -266,6 +268,41 @@ const orderController = {
       return res.status(500).json({
         success: false,
         message: "Lỗi server khi cập nhật trạng thái đơn hàng thành xác nhận và xác nhận bưu cục nhận",
+      });
+    }
+  },
+  
+  async createOrderForManager(req, res) {
+    try {
+      const userId = req.user.id;
+      const order = req.body;
+      const result = await orderService.createOrderForManager(userId, order);
+
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+
+      return res.status(201).json(result);
+    } catch (error) {
+      console.error("Create Order error:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Lỗi server khi tạo đơn hàng",
+      });
+    }
+  },
+
+  async cancelOrderForManager(req, res) {
+    try {
+      const userId = req.user.id;
+      const { orderId } = req.body;
+      const result = await orderService.cancelOrderForManager(userId, orderId);
+      return res.status(200).json(result);
+    } catch (error) {
+      console.error("Cancel Order error:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Lỗi server khi hủy đơn hàng",
       });
     }
   },

@@ -10,6 +10,7 @@ import {
   getPaymentStatusesEnum,
   getOrdersByOffice,
   confirmOrderAndAssignToOffice,
+  cancelOrderForManager,
 } from "../../../../store/orderSlice";
 import { useAppDispatch, useAppSelector } from "../../../../hooks/redux";
 import SearchFilters from "./components/SearchFilters";
@@ -131,11 +132,49 @@ const OrderListManager = () => {
     setSelectedOrder(null);
   };
 
-  // Hàm hủy
+  // Hàm hủy xác nhận
   const handleCancel = () => {
     setIsOfficeSelectionModalVisible(false);
     setSelectedOrder(null);
   };
+
+  // Hàm hủy đơn hàng
+  const handleCancelOrder = (orderId: number) => {
+    Modal.confirm({
+      title: "Xác nhận hủy đơn hàng",
+      content: "Bạn có chắc chắn muốn hủy đơn hàng này không?",
+      okText: "Hủy",
+      cancelText: "Không",
+      centered: true,
+      icon: null,
+      okButtonProps: {
+        style: {
+          backgroundColor: "#1C3D90",
+          color: "#fff",
+        },
+      },
+      cancelButtonProps: {
+        style: {
+          backgroundColor: "#e0e0e0",
+          color: "#333",
+        },
+      },
+      onOk: async () => {
+        try {
+          const resultAction = await dispatch(cancelOrderForManager(orderId)).unwrap();
+          if (resultAction.success) {
+            message.success(resultAction.message || "Hủy đơn hàng thành công");
+            fetchOrders(currentPage);
+          } else {
+            message.error(resultAction.message || "Hủy đơn thất bại");
+          }
+        } catch (error: any) {
+          message.error(error.message || "Lỗi server khi hủy đơn hàng");
+        }
+      },
+    });
+  };
+
 
   useEffect(() => {
     dispatch(getPaymentMethodsEnum());
@@ -158,13 +197,13 @@ const OrderListManager = () => {
   useEffect(() => {
     // Fetch provinces
     axios
-      .get<{ code: number; name: string }[]>("https://provinces.open-api.vn/api/p/")
+      .get<{ code: number; name: string }[]>("https://provinces.open-api.vn/api/v2/p/")
       .then((res) => setProvinceList(res.data))
       .catch((err) => console.error(err));
 
     // Fetch wards
     axios
-      .get<{ code: number; name: string }[]>("https://provinces.open-api.vn/api/w/")
+      .get<{ code: number; name: string }[]>("https://provinces.open-api.vn/api/v2/w/")
       .then((res) => setWardList(res.data))
       .catch((err) => console.error(err));
 
@@ -220,9 +259,11 @@ const OrderListManager = () => {
 
       <Row justify="end" style={{ marginBottom: 25, marginTop: 40 }}>
         <Col>
-          <OrderActions
-            onAdd={() => navigate("/${user.role}/orders/create")}
-          />
+          {user &&
+            <OrderActions
+              onAdd={() => navigate(`/${user.role}/orders/create`)}
+            />
+          }
         </Col>
       </Row>
 
@@ -237,6 +278,7 @@ const OrderListManager = () => {
         onDetail={handleViewOrderDetail}
         onEdit={handleEditOrder}
         onApprove={handleApprove}
+        oncancel={handleCancelOrder}
       />
       {selectedOrder && <OfficeSelectionModal
         open={isOfficeSelectionModalVisible}
