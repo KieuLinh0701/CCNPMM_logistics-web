@@ -21,6 +21,7 @@ interface AddressFormProps {
   initialWard?: number;
   initialDetail?: string;
   disableCity?: boolean;
+  disableWard?: boolean;
   disableDetailAddress?: boolean;
 }
 
@@ -31,6 +32,7 @@ const AddressForm: React.FC<AddressFormProps> = ({
   initialWard,
   initialDetail,
   disableCity,
+  disableWard,
   disableDetailAddress,
 }) => {
   const [provinces, setProvinces] = useState<Province[]>([]);
@@ -173,7 +175,7 @@ const AddressForm: React.FC<AddressFormProps> = ({
               .toLowerCase()
               .includes(input.toLowerCase())
           }
-          disabled={!selectedProvince}
+          disabled={!selectedProvince || disableWard}
         >
           {communes.map((c) => (
             <Option key={c.code} value={c.code} label={c.name}>

@@ -20,7 +20,7 @@ const initialState: OrderState = {
 
 // Tính phí vận chuyển
 export const calculateShippingFee = createAsyncThunk(
-  'orders/calculate-shipping-fee',
+  'order/calculateShippingFee',
   async (
     {
       weight,
@@ -53,11 +53,11 @@ export const calculateShippingFee = createAsyncThunk(
 );
 
 // Lấy Status Enum
-export const getStatusesEnum = createAsyncThunk(
-  'orders/statuses',
+export const getOrderStatuses = createAsyncThunk(
+  'order/getStatuses',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await orderAPI.getStatusesEnum();
+      const response = await orderAPI.getOrderStatuses();
       return response;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Lấy thông tin trạng thái đơn hàng thất bại');
@@ -66,11 +66,11 @@ export const getStatusesEnum = createAsyncThunk(
 );
 
 // Lấy Status Enum
-export const getPaymentMethodsEnum = createAsyncThunk(
-  'orders/payment-methods',
+export const getOrderPaymentMethods = createAsyncThunk(
+  'order/getPaymentMethods',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await orderAPI.getPaymentMethodsEnum();
+      const response = await orderAPI.getOrderPaymentMethods();
       return response;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Lấy thông tin phương thức thanh toán thất bại');
@@ -78,11 +78,11 @@ export const getPaymentMethodsEnum = createAsyncThunk(
   }
 );
 
-export const createOrderForUser = createAsyncThunk(
-  "orders/create/by-user",
+export const createUserOrder = createAsyncThunk(
+  'order/createUserOrder',
   async (order: Order, { rejectWithValue }) => {
     try {
-      const response = await orderAPI.createOrderForUser(order);
+      const response = await orderAPI.createUserOrder(order);
       return response;
     } catch (err: any) {
       return rejectWithValue(err.response?.data || err.message);
@@ -90,11 +90,11 @@ export const createOrderForUser = createAsyncThunk(
   }
 );
 
-export const createOrderForManager = createAsyncThunk(
-  "orders/create/by-manager",
+export const createManagerOrder = createAsyncThunk(
+  'order/createManagerOrder',
   async (order: Order, { rejectWithValue }) => {
     try {
-      const response = await orderAPI.createOrderForManager(order);
+      const response = await orderAPI.createManagerOrder(order);
       return response;
     } catch (err: any) {
       return rejectWithValue(err.response?.data || err.message);
@@ -108,7 +108,7 @@ export const checkVNPayPayment = createAsyncThunk<
   string,
   { rejectValue: any }
 >(
-  'payment/check-vnpay',
+  'order/checkVNPayPayment',
   async (query, { rejectWithValue }) => {
     try {
       const data = await orderAPI.checkVNPayPayment(query);
@@ -119,7 +119,7 @@ export const checkVNPayPayment = createAsyncThunk<
   }
 );
 
-export const getOrdersByUser = createAsyncThunk<
+export const getUserOrders = createAsyncThunk<
   OrderResponse,
   {
     page: number,
@@ -136,7 +136,7 @@ export const getOrdersByUser = createAsyncThunk<
   },
   { rejectValue: string }
 >(
-  'orders/by-user',
+  'order/getUserOrders',
   async ({ page, limit, searchText, payer, status, paymentStatus, paymentMethod, cod, sort, startDate, endDate }, thunkAPI) => {
     try {
       // Build query param
@@ -154,7 +154,7 @@ export const getOrdersByUser = createAsyncThunk<
       if (startDate) params.append("startDate", startDate);
       if (endDate) params.append("endDate", endDate);
 
-      const data = await orderAPI.getOrdersByUser(params.toString());
+      const data = await orderAPI.getUserOrders(params.toString());
       return data;
     } catch (err: any) {
       return thunkAPI.rejectWithValue(err.response?.data?.message || 'Lỗi khi lấy danh sách đơn hàng của cửa hàng');
@@ -163,11 +163,11 @@ export const getOrdersByUser = createAsyncThunk<
 );
 
 // Lấy Payer Enum
-export const getPayersEnum = createAsyncThunk(
-  'orders/payers',
+export const getOrderPayers = createAsyncThunk(
+  'order/getPayers',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await orderAPI.getPayersEnum();
+      const response = await orderAPI.getOrderPayers();
       return response;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Lấy thông tin người thanh toán đơn hàng thất bại');
@@ -176,11 +176,11 @@ export const getPayersEnum = createAsyncThunk(
 );
 
 // Lấy Payment Status Enum
-export const getPaymentStatusesEnum = createAsyncThunk(
-  'orders/payment-statuses',
+export const getOrderPaymentStatuses = createAsyncThunk(
+  'order/getPaymentStatuses',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await orderAPI.getPaymentStatusesEnum();
+      const response = await orderAPI.getOrderPaymentStatuses();
       return response;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Lấy thông tin trạng thái thanh toán đơn hàng thất bại');
@@ -188,11 +188,11 @@ export const getPaymentStatusesEnum = createAsyncThunk(
   }
 );
 
-export const cancelOrderForUser = createAsyncThunk(
-  "orders/cancel/by-user",
+export const cancelUserOrder = createAsyncThunk(
+  'order/cancelUserOrder',
   async (orderId: number, { rejectWithValue }) => {
     try {
-      const response = await orderAPI.cancelOrderForUser(orderId);
+      const response = await orderAPI.cancelUserOrder(orderId);
       return response;
     } catch (err: any) {
       return rejectWithValue(err.response?.data.message || "Hủy đơn hàng thất bại");
@@ -206,7 +206,7 @@ export const getOrderByTrackingNumber = createAsyncThunk<
   string,
   { rejectValue: string }
 >(
-  'orders/by-tracking-number',
+  'order/getByTrackingNumber',
   async (trackingNumber, { rejectWithValue }) => {
     try {
       const data = await orderAPI.getOrderByTrackingNumber(trackingNumber);
@@ -222,7 +222,7 @@ export const createVNPayURL = createAsyncThunk<
   number,
   { rejectValue: any }
 >(
-  'payment/create-url',
+  'order/createVNPayURL',
   async (orderId, { rejectWithValue }) => {
     try {
       const data = await orderAPI.createVNPayURL(orderId);
@@ -233,11 +233,11 @@ export const createVNPayURL = createAsyncThunk<
   }
 );
 
-export const updateOrder = createAsyncThunk(
-  "orders/edit",
+export const updateUserOrder = createAsyncThunk(
+  'order/updateUserOrder',
   async (order: Order, { rejectWithValue }) => {
     try {
-      const response = await orderAPI.updateOrder(order);
+      const response = await orderAPI.updateUserOrder(order);
       return response;
     } catch (err: any) {
       return rejectWithValue(err.response?.data || err.message);
@@ -245,11 +245,11 @@ export const updateOrder = createAsyncThunk(
   }
 );
 
-export const updateOrderStatusToPending = createAsyncThunk(
-  "orders/to-pending",
+export const setOrderToPending = createAsyncThunk(
+  'order/setToPending',
   async (payload: { orderId: number }, { rejectWithValue }) => {
     try {
-      const response = await orderAPI.updateOrderStatusToPending(payload.orderId);
+      const response = await orderAPI.setOrderToPending(payload.orderId);
       return response;
     } catch (err: any) {
       return rejectWithValue(err.response?.data || err.message);
@@ -257,7 +257,7 @@ export const updateOrderStatusToPending = createAsyncThunk(
   }
 );
 
-export const getOrdersByOffice = createAsyncThunk<
+export const getOrdersByOfficeId = createAsyncThunk<
   OrderResponse,
   {
     officeId: number;
@@ -277,7 +277,7 @@ export const getOrdersByOffice = createAsyncThunk<
   },
   { rejectValue: string }
 >(
-  'orders/by-office',
+  'order/getByOfficeId',
   async ({ officeId, page, limit, searchText, payer, status, paymentStatus, paymentMethod, cod, startDate, endDate, senderWard, recipientWard, sort }, thunkAPI) => {
     try {
       // Build query param
@@ -297,7 +297,7 @@ export const getOrdersByOffice = createAsyncThunk<
       if (senderWard) params.append("senderWard", senderWard.toString());
       if (recipientWard) params.append("recipientWard", recipientWard.toString());
 
-      const data = await orderAPI.getOrdersByOffice(officeId, params.toString());
+      const data = await orderAPI.getOrdersByOfficeId(officeId, params.toString());
       return data;
     } catch (err: any) {
       return thunkAPI.rejectWithValue(err.response?.data?.message || 'Lỗi khi lấy danh sách đơn hàng của bưu cục');
@@ -305,14 +305,14 @@ export const getOrdersByOffice = createAsyncThunk<
   }
 );
 
-export const confirmOrderAndAssignToOffice = createAsyncThunk(
-  'orders/confirm',
+export const confirmAndAssignOrder = createAsyncThunk(
+  'order/confirmAndAssign',
   async (
     { orderId, officeId }: { orderId: number; officeId: number },
     { rejectWithValue }
   ) => {
     try {
-      const response = await orderAPI.confirmOrderAndAssignToOffice(orderId, officeId);
+      const response = await orderAPI.confirmAndAssignOrder(orderId, officeId);
       return response;
     } catch (error: any) {
       return rejectWithValue(
@@ -322,14 +322,26 @@ export const confirmOrderAndAssignToOffice = createAsyncThunk(
   }
 );
 
-export const cancelOrderForManager = createAsyncThunk(
-  "orders/cancel/by-manager",
+export const cancelManagerOrder = createAsyncThunk(
+  'order/cancelManagerOrder',
   async (orderId: number, { rejectWithValue }) => {
     try {
-      const response = await orderAPI.cancelOrderForManager(orderId);
+      const response = await orderAPI.cancelManagerOrder(orderId);
       return response;
     } catch (err: any) {
       return rejectWithValue(err.response?.data.message || "Hủy đơn hàng thất bại");
+    }
+  }
+);
+
+export const updateManagerOrder = createAsyncThunk(
+  'order/updateManagerOrder',
+  async (order: Order, { rejectWithValue }) => {
+    try {
+      const response = await orderAPI.updateManagerOrder(order);
+      return response;
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data || err.message);
     }
   }
 );
@@ -365,74 +377,57 @@ const orderSlice = createSlice({
 
     // Get Statuses
     builder
-      .addCase(getStatusesEnum.pending, (state) => {
+      .addCase(getOrderPaymentMethods.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(getStatusesEnum.fulfilled, (state, action) => {
+      .addCase(getOrderPaymentMethods.fulfilled, (state, action) => {
         state.loading = false;
         if (action.payload.success && action.payload.statuses) {
           state.statuses = action.payload.statuses;
         }
       })
-      .addCase(getStatusesEnum.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      });
-
-    // Get Payment Methods 
-    builder
-      .addCase(getPaymentMethodsEnum.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(getPaymentMethodsEnum.fulfilled, (state, action) => {
-        state.loading = false;
-        if (action.payload.success && action.payload.paymentMethods) {
-          state.paymentMethods = action.payload.paymentMethods;
-        }
-      })
-      .addCase(getPaymentMethodsEnum.rejected, (state, action) => {
+      .addCase(getOrderPaymentMethods.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
 
     // Create Order
     builder
-      .addCase(createOrderForUser.pending, (state) => {
+      .addCase(createUserOrder.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(createOrderForUser.fulfilled, (state) => {
+      .addCase(createUserOrder.fulfilled, (state) => {
         state.loading = false;
       })
-      .addCase(createOrderForUser.rejected, (state, action) => {
+      .addCase(createUserOrder.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
 
 
-      // Create Order
+    // Create Order
     builder
-      .addCase(createOrderForManager.pending, (state) => {
+      .addCase(createManagerOrder.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(createOrderForManager.fulfilled, (state) => {
+      .addCase(createManagerOrder.fulfilled, (state) => {
         state.loading = false;
       })
-      .addCase(createOrderForManager.rejected, (state, action) => {
+      .addCase(createManagerOrder.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
 
     // Get Orders By User
     builder
-      .addCase(getOrdersByUser.pending, (state) => {
+      .addCase(getUserOrders.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(getOrdersByUser.fulfilled, (state, action) => {
+      .addCase(getUserOrders.fulfilled, (state, action) => {
         state.loading = false;
         if (action.payload.success) {
           state.orders = action.payload.orders || [];
@@ -441,55 +436,55 @@ const orderSlice = createSlice({
           state.limit = action.payload.limit || 10;
         }
       })
-      .addCase(getOrdersByUser.rejected, (state, action) => {
+      .addCase(getUserOrders.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
 
     // Get Payers
     builder
-      .addCase(getPayersEnum.pending, (state) => {
+      .addCase(getOrderPayers.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(getPayersEnum.fulfilled, (state, action) => {
+      .addCase(getOrderPayers.fulfilled, (state, action) => {
         state.loading = false;
         if (action.payload.success && action.payload.payers) {
           state.payers = action.payload.payers;
         }
       })
-      .addCase(getPayersEnum.rejected, (state, action) => {
+      .addCase(getOrderPayers.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
 
     // Get Payment Statuses
     builder
-      .addCase(getPaymentStatusesEnum.pending, (state) => {
+      .addCase(getOrderPaymentStatuses.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(getPaymentStatusesEnum.fulfilled, (state, action) => {
+      .addCase(getOrderPaymentStatuses.fulfilled, (state, action) => {
         state.loading = false;
         if (action.payload.success && action.payload.paymentStatuses) {
           state.paymentStatuses = action.payload.paymentStatuses;
         }
       })
-      .addCase(getPaymentStatusesEnum.rejected, (state, action) => {
+      .addCase(getOrderPaymentStatuses.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
 
     // Cancel Order
     builder
-      .addCase(cancelOrderForUser.pending, (state) => {
+      .addCase(cancelUserOrder.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(cancelOrderForUser.fulfilled, (state) => {
+      .addCase(cancelUserOrder.fulfilled, (state) => {
         state.loading = false;
       })
-      .addCase(cancelOrderForUser.rejected, (state, action) => {
+      .addCase(cancelUserOrder.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
@@ -546,39 +541,39 @@ const orderSlice = createSlice({
 
     // Update Order
     builder
-      .addCase(updateOrder.pending, (state) => {
+      .addCase(updateUserOrder.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(updateOrder.fulfilled, (state) => {
+      .addCase(updateUserOrder.fulfilled, (state) => {
         state.loading = false;
       })
-      .addCase(updateOrder.rejected, (state, action) => {
+      .addCase(updateUserOrder.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
 
     // Update Order Status To Pending
     builder
-      .addCase(updateOrderStatusToPending.pending, (state) => {
+      .addCase(setOrderToPending.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(updateOrderStatusToPending.fulfilled, (state) => {
+      .addCase(setOrderToPending.fulfilled, (state) => {
         state.loading = false;
       })
-      .addCase(updateOrderStatusToPending.rejected, (state, action) => {
+      .addCase(setOrderToPending.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
 
     // Get Orders By Office
     builder
-      .addCase(getOrdersByOffice.pending, (state) => {
+      .addCase(getOrdersByOfficeId.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(getOrdersByOffice.fulfilled, (state, action) => {
+      .addCase(getOrdersByOfficeId.fulfilled, (state, action) => {
         state.loading = false;
         if (action.payload.success) {
           state.orders = action.payload.orders || [];
@@ -587,17 +582,17 @@ const orderSlice = createSlice({
           state.limit = action.payload.limit || 10;
         }
       })
-      .addCase(getOrdersByOffice.rejected, (state, action) => {
+      .addCase(getOrdersByOfficeId.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
 
     builder
-      .addCase(confirmOrderAndAssignToOffice.pending, (state) => {
+      .addCase(confirmAndAssignOrder.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(confirmOrderAndAssignToOffice.fulfilled, (state, action) => {
+      .addCase(confirmAndAssignOrder.fulfilled, (state, action) => {
         state.loading = false;
 
         // Cập nhật order trong danh sách orders
@@ -626,21 +621,35 @@ const orderSlice = createSlice({
           }
         }
       })
-      .addCase(confirmOrderAndAssignToOffice.rejected, (state, action) => {
+      .addCase(confirmAndAssignOrder.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
 
-      // Cancel Order
+    // Cancel Order
     builder
-      .addCase(cancelOrderForManager.pending, (state) => {
+      .addCase(cancelManagerOrder.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(cancelOrderForManager.fulfilled, (state) => {
+      .addCase(cancelManagerOrder.fulfilled, (state) => {
         state.loading = false;
       })
-      .addCase(cancelOrderForManager.rejected, (state, action) => {
+      .addCase(cancelManagerOrder.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+      // Update Order
+    builder
+      .addCase(updateManagerOrder.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateManagerOrder.fulfilled, (state) => {
+        state.loading = false;
+      })
+      .addCase(updateManagerOrder.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

@@ -31,7 +31,7 @@ const paymentController = {
             if (vnp_ResponseCode === "00") {
                 // Thanh toán thành công
                 const orderId = vnp_TxnRef;
-                const result = await orderService.updatePaymentStatus(orderId);
+                const result = await orderService.updatePaymentStatus(orderId, "Paid");
 
                 return res.json({ success: true, message: "Thanh toán thành công" });
             } else {

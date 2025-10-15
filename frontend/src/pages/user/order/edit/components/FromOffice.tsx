@@ -18,16 +18,6 @@ const FromOffice: React.FC<Props> = ({ form, status, selectedOffice, offices, on
     form.setFieldsValue({ senderOfficeId: selectedOffice?.id });
   }, [selectedOffice, form]);
 
-  // Nếu không phải draft thì không cho edit
-  if (status !== "draft") {
-    return (
-      <Card style={styles.customCard}>
-        <div style={styles.cardTitleEdit}>Bưu cục gửi</div>
-        <div>{selectedOffice?.name || "Chưa có bưu cục"}</div>
-      </Card>
-    );
-  }
-
   return (
     <Card style={styles.customCard}>
       <div style={styles.cardTitleEdit}>Bưu cục gửi</div>

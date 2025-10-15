@@ -66,23 +66,31 @@ let initApiRoutes = (app) => {
     router.get("/services/get-active", serviceTypeController.getActiveServiceTypes);
 
     // Order Routes
-    router.get("/orders/calculate-shipping-fee", orderController.calculateShippingFee);
-    router.get('/orders/statuses', verifyToken, orderController.getStatusesEnum);
-    router.get('/orders/payment-methods', verifyToken, orderController.getPaymentMethodsEnum);
-    router.post('/orders/create/by-user', verifyToken, orderController.createOrderForUser);
-    router.post('/orders/create/by-manager', verifyToken, orderController.createOrderForManager);
-    router.get('/orders/by-user', verifyToken, orderController.getOrdersByUser);
-    router.get('/orders/payers', verifyToken, orderController.getPayersEnum);
-    router.get('/orders/payment-statuses', verifyToken, orderController.getPaymentStatusesEnum);
-    router.put('/orders/cancel/by-user', verifyToken, orderController.cancelOrderForUser);
-    router.put('/orders/cancel/by-manager', verifyToken, orderController.cancelOrderForManager);
-    router.get('/orders/:trackingNumber', verifyToken, orderController.getOrderByTrackingNumber);
-    router.put('/orders/edit', verifyToken, orderController.updateOrder);
-    router.put('/orders/to-pending', verifyToken, orderController.updateOrderStatusToPending);
-    router.get('/orders/by-office/:officeId', verifyToken, orderController.getOrdersByOffice);
-    router.put('/orders/confirm', verifyToken, orderController.confirmOrderAndAssignToOffice);
-    router.post("/orders", verifyToken, orderController.createOrder);
+    // ======================= Public =======================
+    router.get("/public/orders/calculate-shipping-fee", orderController.calculateShippingFee);
+
+    // ======================= Protected =======================
+    router.get('/protected/orders/statuses', verifyToken, orderController.getOrderStatuses);
+    router.get('/protected/orders/payment-methods', verifyToken, orderController.getOrderPaymentMethods); 
+    router.get('/protected/orders/payers', verifyToken, orderController.getOrderPayers);
+    router.get('/protected/orders/payment-statuses', verifyToken, orderController.getOrderPaymentStatuses);
+    router.get('/protected/orders/:trackingNumber', verifyToken, orderController.getOrderByTrackingNumber);
+
+    // ======================= USER =======================
+    router.put('/user/orders', verifyToken, orderController.updateUserOrder);
+    router.put('/user/orders/cancel', verifyToken, orderController.cancelUserOrder);
+    router.post('/user/orders', verifyToken, orderController.createUserOrder);
+    router.get('/user/orders', verifyToken, orderController.getUserOrders);
+    router.put('/user/orders/pending', verifyToken, orderController.setOrderToPending);
+
+    // ======================= Manager =======================
+    router.put('/manager/orders/cancel', verifyToken, orderController.cancelManagerOrder);
+    router.put('/manager/orders/confirm', verifyToken, orderController.confirmAndAssignOrder);
+    router.get('/manager/orders/:officeId', verifyToken, orderController.getOrdersByOfficeId);
+    router.post('/manager/orders', verifyToken, orderController.createManagerOrder);
+    router.put('/manager/orders', verifyToken, orderController.updateManagerOrder);
     
+    router.post("/orders", verifyToken, orderController.createOrder);
     // Promotion validation for orders
     router.post("/orders/validate-promotion", promotionController.validatePromotionCode);
     

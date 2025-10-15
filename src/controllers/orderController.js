@@ -25,10 +25,10 @@ const orderController = {
   },
 
   // Get Statuses Enum
-  async getStatusesEnum(req, res) {
+  async getOrderStatuses(req, res) {
     try {
       const userId = req.user.id;
-      const result = await orderService.getStatusesEnum(userId);
+      const result = await orderService.getOrderStatuses(userId);
       return res.status(200).json(result);
     } catch (error) {
       console.error('Get Statuses Enum error:', error);
@@ -40,10 +40,10 @@ const orderController = {
   },
 
   // Get Payment Methods Enum
-  async getPaymentMethodsEnum(req, res) {
+  async getOrderPaymentMethods(req, res) {
     try {
       const userId = req.user.id;
-      const result = await orderService.getPaymentMethodsEnum(userId);
+      const result = await orderService.getOrderPaymentMethods(userId);
       return res.status(200).json(result);
     } catch (error) {
       console.error('Get Payment Methods Enum error:', error);
@@ -54,11 +54,11 @@ const orderController = {
     }
   },
 
-  async createOrderForUser(req, res) {
+  async createUserOrder(req, res) {
     try {
       const userId = req.user.id;
       const order = req.body;
-      const result = await orderService.createOrderForUser(userId, order);
+      const result = await orderService.createUserOrder(userId, order);
 
       if (!result.success) {
         return res.status(400).json(result);
@@ -74,7 +74,7 @@ const orderController = {
     }
   },
 
-  async getOrdersByUser(req, res) {
+  async getUserOrders(req, res) {
     try {
       const userId = req.user.id;
       const page = parseInt(req.query.page) || 1;
@@ -92,7 +92,7 @@ const orderController = {
         endDate: req.query.endDate || undefined,
       };
 
-      const result = await orderService.getOrdersByUser(userId, page, limit, filters);
+      const result = await orderService.getUserOrders(userId, page, limit, filters);
 
       if (!result.success) {
         return res.status(400).json(result);
@@ -109,10 +109,10 @@ const orderController = {
   },
 
   // Get Payment Statuses Enum
-  async getPaymentStatusesEnum(req, res) {
+  async getOrderPaymentStatuses(req, res) {
     try {
       const userId = req.user.id;
-      const result = await orderService.getPaymentStatusesEnum(userId);
+      const result = await orderService.getOrderPaymentStatuses(userId);
       return res.status(200).json(result);
     } catch (error) {
       console.error('Get Payment Statuses Enum error:', error);
@@ -124,10 +124,10 @@ const orderController = {
   },
 
   // Get Payers Enum
-  async getPayersEnum(req, res) {
+  async getOrderPayers(req, res) {
     try {
       const userId = req.user.id;
-      const result = await orderService.getPayersEnum(userId);
+      const result = await orderService.getOrderPayers(userId);
       return res.status(200).json(result);
     } catch (error) {
       console.error('Get Payers Enum error:', error);
@@ -139,11 +139,11 @@ const orderController = {
   },
 
   // Cancel Order
-  async cancelOrderForUser(req, res) {
+  async cancelUserOrder(req, res) {
     try {
       const userId = req.user.id;
       const { orderId } = req.body;
-      const result = await orderService.cancelOrderForUser(userId, orderId);
+      const result = await orderService.cancelUserOrder(userId, orderId);
       return res.status(200).json(result);
     } catch (error) {
       console.error("Cancel Order error:", error);
@@ -170,12 +170,12 @@ const orderController = {
     }
   },
 
-  async updateOrder(req, res) {
+  async updateUserOrder(req, res) {
     try {
       const userId = req.user.id;
       const order = req.body;
       console.log("order", order);
-      const result = await orderService.updateOrder(userId, order);
+      const result = await orderService.updateUserOrder(userId, order);
 
       if (!result.success) {
         return res.status(400).json(result);
@@ -191,11 +191,11 @@ const orderController = {
     }
   },
 
-  async updateOrderStatusToPending(req, res) {
+  async setOrderToPending(req, res) {
     try {
       const userId = req.user.id;
       const { orderId } = req.body;
-      const result = await orderService.updateOrderStatusToPending(userId, orderId);
+      const result = await orderService.setOrderToPending(userId, orderId);
 
       if (!result.success) {
         return res.status(400).json(result);
@@ -213,7 +213,7 @@ const orderController = {
 
   // ==================== Manager ====================================//
 
-  async getOrdersByOffice(req, res) {
+  async getOrdersByOfficeId(req, res) {
     try {
       const userId = req.user.id;
       const officeId = parseInt(req.params.officeId);
@@ -236,7 +236,7 @@ const orderController = {
         recipientWard: parseInt(req.query.recipientWard) || undefined,
       };
 
-      const result = await orderService.getOrdersByOffice(userId, officeId, page, limit, filters);
+      const result = await orderService.getOrdersByOfficeId(userId, officeId, page, limit, filters);
 
       if (!result.success) {
         return res.status(400).json(result);
@@ -252,11 +252,11 @@ const orderController = {
     }
   }, 
 
-  async confirmOrderAndAssignToOffice(req, res) {
+  async confirmAndAssignOrder(req, res) {
     try {
       const userId = req.user.id;
       const { orderId, officeId } = req.body;
-      const result = await orderService.confirmOrderAndAssignToOffice(userId, orderId, officeId);
+      const result = await orderService.confirmAndAssignOrder(userId, orderId, officeId);
 
       if (!result.success) {
         return res.status(400).json(result);
@@ -272,11 +272,11 @@ const orderController = {
     }
   },
   
-  async createOrderForManager(req, res) {
+  async createManagerOrder(req, res) {
     try {
       const userId = req.user.id;
       const order = req.body;
-      const result = await orderService.createOrderForManager(userId, order);
+      const result = await orderService.createManagerOrder(userId, order);
 
       if (!result.success) {
         return res.status(400).json(result);
@@ -292,17 +292,37 @@ const orderController = {
     }
   },
 
-  async cancelOrderForManager(req, res) {
+  async cancelManagerOrder(req, res) {
     try {
       const userId = req.user.id;
       const { orderId } = req.body;
-      const result = await orderService.cancelOrderForManager(userId, orderId);
+      const result = await orderService.cancelManagerOrder(userId, orderId);
       return res.status(200).json(result);
     } catch (error) {
       console.error("Cancel Order error:", error);
       return res.status(500).json({
         success: false,
         message: "Lỗi server khi hủy đơn hàng",
+      });
+    }
+  },
+
+  async updateManagerOrder(req, res) {
+    try {
+      const userId = req.user.id;
+      const order = req.body;
+      const result = await orderService.updateManagerOrder(userId, order);
+
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+
+      return res.status(201).json(result);
+    } catch (error) {
+      console.error("Update Manager Order error:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Lỗi server khi cập nhật đơn hàng bởi quản lý",
       });
     }
   },

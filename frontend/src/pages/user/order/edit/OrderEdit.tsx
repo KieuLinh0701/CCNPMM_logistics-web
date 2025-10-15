@@ -5,7 +5,7 @@ import axios from "axios";
 import { Button, Col, Form, InputNumber, message, Modal, Row, Tooltip } from "antd";
 import { AppDispatch, RootState } from "../../../../store/store";
 import { City, Ward } from "../../../../types/location";
-import { getOrderByTrackingNumber, getPayersEnum, getPaymentMethodsEnum, updateOrder } from "../../../../store/orderSlice";
+import { getOrderByTrackingNumber, getOrderPayers, getOrderPaymentMethods, updateUserOrder } from "../../../../store/orderSlice";
 
 import Header from "./components/Header";
 import Actions from "./components/Actions";
@@ -238,7 +238,7 @@ const OrderEdit: React.FC = () => {
                 onOk: async () => {
                     try {
                         // Gọi API 
-                        const response = await dispatch(updateOrder(updatedOrder)).unwrap();
+                        const response = await dispatch(updateUserOrder(updatedOrder)).unwrap();
 
                         if (response.success) {
                             handleEditSuccess();
@@ -377,8 +377,8 @@ const OrderEdit: React.FC = () => {
 
     useEffect(() => {
         dispatch(getActiveServiceTypes());
-        dispatch(getPayersEnum());
-        dispatch(getPaymentMethodsEnum());
+        dispatch(getOrderPayers());
+        dispatch(getOrderPaymentMethods());
     }, [dispatch]);
 
     // Khi các giá trị này thay đổi thì tính shipping fee

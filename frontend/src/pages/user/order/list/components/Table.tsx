@@ -90,8 +90,8 @@ const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, onCancel,
         );
       },
     },
+    { title: "Phí dịch vụ (VNĐ)", dataIndex: "totalFee", key: "totalFee", align: "center" },
     { title: "Gía trị đơn (VNĐ)", dataIndex: "orderValue", key: "orderValue", align: "center" },
-    { title: "Phí vận chuyển (VNĐ)", dataIndex: "shippingFee", key: "shippingFee", align: "center" },
     { title: "COD (VNĐ)", dataIndex: "cod", key: "cod", align: "center" },
     { title: "Khối lượng (Kg)", dataIndex: "weight", key: "weight", align: "center" },
     {

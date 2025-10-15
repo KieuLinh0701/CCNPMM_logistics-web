@@ -49,7 +49,7 @@ const SearchFilters: React.FC<Props> = ({
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <Input
               style={{ flex: 1, minWidth: 200, height: 36 }}
-              placeholder="Tìm theo mã đơn, tên/số điện thoại người gửi, tên/số điện thoại người nhận"
+              placeholder="Tìm theo mã đơn, tên/số điện thoại người gửi, tên/số điện thoại người nhận, ghi chú"
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               allowClear

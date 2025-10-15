@@ -5,7 +5,7 @@ import axios from "axios";
 import { Col, Form, message, Row } from "antd";
 import { AppDispatch, RootState } from "../../../../store/store";
 import { City, Ward } from "../../../../types/location";
-import { getPayersEnum, getPaymentMethodsEnum, createOrderForManager, updateOrder } from "../../../../store/orderSlice";
+import { getOrderPayers, getOrderPaymentMethods, createManagerOrder } from "../../../../store/orderSlice";
 
 import Header from "./components/Header";
 import Actions from "./components/Actions";
@@ -191,12 +191,11 @@ const OrderCreateManager: React.FC = () => {
                 notes: notes || "",
                 shippingFee: shippingFee,
                 toOffice: selectedOffice || undefined,
-                status: "picked_up",
             } as Order;
 
             console.log("newOrder", orderData);
 
-            const response = await dispatch(createOrderForManager(orderData)).unwrap();
+            const response = await dispatch(createManagerOrder(orderData)).unwrap();
 
             if (response.success && response.order) {
                 handleOrderSuccess(response.order, orderData);
@@ -223,7 +222,6 @@ const OrderCreateManager: React.FC = () => {
         setSelectedOffice(null);
         setLocalOffices([]);
 
-        // Nếu có ward thì gửi luôn cả hai, backend tự fallback
         const params = {
             codeCity: recipientData.cityCode,
             ...(recipientData.wardCode && recipientData.wardCode !== 0 && { codeWard: recipientData.wardCode }),
@@ -240,6 +238,14 @@ const OrderCreateManager: React.FC = () => {
                 } else {
                     setIsHasOfficerRecipient(true);
                     setLocalOffices(fetchedOffices);
+                    if (selectedOffice) {
+                        const matchedOffice = fetchedOffices.find(
+                            office => office.id === selectedOffice?.id
+                        );
+                        setSelectedOffice(matchedOffice || null);
+                    } else {
+                        setSelectedOffice(null);
+                    }
                 }
             })
             .catch(() => {
@@ -250,8 +256,8 @@ const OrderCreateManager: React.FC = () => {
 
     useEffect(() => {
         dispatch(getActiveServiceTypes());
-        dispatch(getPayersEnum());
-        dispatch(getPaymentMethodsEnum());
+        dispatch(getOrderPayers());
+        dispatch(getOrderPaymentMethods());
     }, [dispatch]);
 
     // Tính shipping fee khi có đủ thông tin

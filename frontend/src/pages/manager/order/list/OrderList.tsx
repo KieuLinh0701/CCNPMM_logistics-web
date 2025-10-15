@@ -4,13 +4,13 @@ import { useNavigate } from "react-router-dom";
 import { Modal, Tag, Row, Col, message } from "antd";
 import dayjs from "dayjs";
 import {
-  getStatusesEnum,
-  getPayersEnum,
-  getPaymentMethodsEnum,
-  getPaymentStatusesEnum,
-  getOrdersByOffice,
-  confirmOrderAndAssignToOffice,
-  cancelOrderForManager,
+  getOrderStatuses,
+  getOrderPayers,
+  getOrderPaymentMethods,
+  getOrderPaymentStatuses,
+  getOrdersByOfficeId,
+  confirmAndAssignOrder,
+  cancelManagerOrder,
 } from "../../../../store/orderSlice";
 import { useAppDispatch, useAppSelector } from "../../../../hooks/redux";
 import SearchFilters from "./components/SearchFilters";
@@ -78,13 +78,15 @@ const OrderListManager = () => {
       payload.endDate = dateRange[1].endOf("day").toISOString();
     }
 
-    dispatch(getOrdersByOffice(payload));
+    dispatch(getOrdersByOfficeId(payload));
   };
 
   const handleViewOrderDetail = (trackingNumber: string) => {
   };
 
   const handleEditOrder = (trackingNumber: string) => {
+    if (!user) return;
+    navigate(`/${user.role}/orders/edit/${trackingNumber}`);
   };
 
   // Hàm xử lý khi nhấn nút "Duyệt"
@@ -112,7 +114,7 @@ const OrderListManager = () => {
         console.log('Đang xử lý order id:', selectedOrder.id);
         console.log('Đã chọn office:', officeId);
 
-        const result = await dispatch(confirmOrderAndAssignToOffice({
+        const result = await dispatch(confirmAndAssignOrder({
           orderId: selectedOrder.id,
           officeId
         })).unwrap();
@@ -161,7 +163,7 @@ const OrderListManager = () => {
       },
       onOk: async () => {
         try {
-          const resultAction = await dispatch(cancelOrderForManager(orderId)).unwrap();
+          const resultAction = await dispatch(cancelManagerOrder(orderId)).unwrap();
           if (resultAction.success) {
             message.success(resultAction.message || "Hủy đơn hàng thành công");
             fetchOrders(currentPage);
@@ -177,10 +179,10 @@ const OrderListManager = () => {
 
 
   useEffect(() => {
-    dispatch(getPaymentMethodsEnum());
-    dispatch(getStatusesEnum());
-    dispatch(getPayersEnum());
-    dispatch(getPaymentStatusesEnum());
+    dispatch(getOrderPaymentMethods());
+    dispatch(getOrderStatuses());
+    dispatch(getOrderPayers());
+    dispatch(getOrderPaymentStatuses());
     if (!office && user?.id !== undefined) {
       dispatch(getByUserId(user.id));
     }

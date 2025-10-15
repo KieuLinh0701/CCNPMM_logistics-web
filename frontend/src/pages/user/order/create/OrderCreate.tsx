@@ -5,7 +5,7 @@ import axios from "axios";
 import { Button, Col, Form, InputNumber, message, Modal, Row, Tooltip } from "antd";
 import { AppDispatch, RootState } from "../../../../store/store";
 import { City, Ward } from "../../../../types/location";
-import { getPayersEnum, getPaymentMethodsEnum, createOrderForUser, createVNPayURL } from "../../../../store/orderSlice";
+import { getOrderPayers, getOrderPaymentMethods, createUserOrder, createVNPayURL } from "../../../../store/orderSlice";
 
 import Header from "./components/Header";
 import Actions from "./components/Actions";
@@ -279,7 +279,7 @@ const OrderCreate: React.FC = () => {
                 fromOffice: selectedOffice || undefined,
             } as Order;
 
-            const response = await dispatch(createOrderForUser(orderData)).unwrap();
+            const response = await dispatch(createUserOrder(orderData)).unwrap();
 
             if (response.success && response.order) {
                 handleOrderSuccess(response.order, status, orderData);
@@ -418,8 +418,8 @@ const OrderCreate: React.FC = () => {
 
     useEffect(() => {
         dispatch(getActiveServiceTypes());
-        dispatch(getPayersEnum());
-        dispatch(getPaymentMethodsEnum());
+        dispatch(getOrderPayers());
+        dispatch(getOrderPaymentMethods());
     }, [dispatch]);
 
     // Tính shipping fee khi có đủ thông tin

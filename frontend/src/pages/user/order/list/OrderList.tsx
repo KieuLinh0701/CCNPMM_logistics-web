@@ -5,12 +5,12 @@ import { Modal, message, Tag, Row, Col } from "antd";
 import dayjs from "dayjs";
 import { useAppDispatch, useAppSelector } from "../../../../hooks/redux";
 import {
-  cancelOrderForUser,
-  getOrdersByUser,
-  getPayersEnum,
-  getPaymentMethodsEnum,
-  getPaymentStatusesEnum,
-  getStatusesEnum,
+  cancelUserOrder,
+  getUserOrders,
+  getOrderPayers,
+  getOrderPaymentMethods,
+  getOrderPaymentStatuses,
+  getOrderStatuses,
 } from "../../../../store/orderSlice";
 import OrderActions from "./components/Actions";
 import * as XLSX from "xlsx";
@@ -62,7 +62,7 @@ const OrderList = () => {
       payload.startDate = dateRange[0].startOf("day").toISOString();
       payload.endDate = dateRange[1].endOf("day").toISOString();
     }
-    dispatch(getOrdersByUser(payload));
+    dispatch(getUserOrders(payload));
   };
 
   // --- Cancel Order ---
@@ -88,7 +88,7 @@ const OrderList = () => {
       },
       onOk: async () => {
         try {
-          const resultAction = await dispatch(cancelOrderForUser(orderId)).unwrap();
+          const resultAction = await dispatch(cancelUserOrder(orderId)).unwrap();
           if (resultAction.success) {
             message.success(resultAction.message || "Hủy đơn hàng thành công");
             fetchOrders(currentPage);
@@ -183,10 +183,10 @@ const OrderList = () => {
   }, []);
 
   useEffect(() => {
-    dispatch(getPaymentMethodsEnum());
-    dispatch(getStatusesEnum());
-    dispatch(getPayersEnum());
-    dispatch(getPaymentStatusesEnum());
+    dispatch(getOrderPaymentMethods());
+    dispatch(getOrderStatuses());
+    dispatch(getOrderPayers());
+    dispatch(getOrderPaymentStatuses());
     fetchOrders();
   }, [dispatch]);
 

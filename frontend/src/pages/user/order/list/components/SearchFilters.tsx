@@ -46,7 +46,7 @@ const SearchFilters: React.FC<Props> = ({
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <Input
               style={{ flex: 1, height: 36 }}
-              placeholder="Tìm theo mã đơn, tên khách hàng, số điện thoại khách hàng"
+              placeholder="Tìm theo mã đơn, tên khách hàng, số điện thoại khách hàng và ghi chú"
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               allowClear
@@ -68,8 +68,8 @@ const SearchFilters: React.FC<Props> = ({
               <Option value="codLow">COD thấp nhất</Option>
               <Option value="orderValueHigh">Giá trị đơn cao nhất</Option>
               <Option value="orderValueLow">Giá trị đơn thấp nhất</Option>
-              <Option value="feeHigh">Phí vận chuyển cao nhất</Option>
-              <Option value="feeLow">Phí vận chuyển thấp nhất</Option>
+              <Option value="feeHigh">Phí dịch vụ cao nhất</Option>
+              <Option value="feeLow">Phí dịch vụ thấp nhất</Option>
               <Option value="weightHigh">Khối lượng cao nhất</Option>
               <Option value="weightLow">Khối lượng thấp nhất</Option>
             </Select>

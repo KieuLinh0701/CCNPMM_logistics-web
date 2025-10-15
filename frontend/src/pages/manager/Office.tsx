@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Typography, Row, Col, Space, Tag, Modal, Form, Input, TimePicker, Select, message } from 'antd';
+import { Button, Typography, Row, Col, Space, Tag, Modal, Form, Input, TimePicker, Select, message, InputNumber } from 'antd';
 import {
   EditOutlined, PhoneOutlined, MailOutlined, EnvironmentOutlined, IdcardOutlined,
   LinkOutlined, ClockCircleOutlined, BankOutlined, CheckCircleOutlined, CloseCircleOutlined, ToolOutlined
@@ -78,53 +78,29 @@ const Office = () => {
     }
   };
 
-  const showModal = () => {
-    if (office) {
-      form.resetFields();
-      form.setFieldsValue({
-        name: office.name,
-        phoneNumber: office.phoneNumber,
-        email: office.email,
-        address: office.address,
-        cityName,
-        wardName,
-        openingTime: office.openingTime ? dayjs(office.openingTime, "HH:mm") : null,
-        closingTime: office.closingTime ? dayjs(office.closingTime, "HH:mm") : null,
-        type: office.type,
-        status: office.status
-      });
+  const showModal = async () => {
+    if (!office) return;
 
-      if (office.latitude && office.longitude) {
-        setMarkerPosition([office.latitude, office.longitude]);
-      }
-    }
-    setIsModalOpen(true);
-  };
+    form.resetFields();
 
-  // Map marker drag component
-  const DraggableMarker: React.FC = () => {
-    const [position, setPosition] = useState(markerPosition);
-
-    useMapEvents({
-      click(e) {
-        setPosition([e.latlng.lat, e.latlng.lng]);
-        setMarkerPosition([e.latlng.lat, e.latlng.lng]);
+    form.setFieldsValue({
+      name: office.name,
+      phoneNumber: office.phoneNumber,
+      email: office.email,
+      longitude: office.longitude || undefined,
+      latitude: office.latitude || undefined,
+      openingTime: office.openingTime ? dayjs(office.openingTime, "HH:mm") : null,
+      closingTime: office.closingTime ? dayjs(office.closingTime, "HH:mm") : null,
+      type: office.type,
+      status: office.status,
+      office: {
+        province: office.codeCity,   
+        commune: office.codeWard,    // code của ward
+        address: office.address
       }
     });
 
-    return (
-      <Marker
-        draggable
-        eventHandlers={{
-          dragend: (e) => {
-            const latLng = e.target.getLatLng();
-            setPosition([latLng.lat, latLng.lng]);
-            setMarkerPosition([latLng.lat, latLng.lng]);
-          },
-        }}
-        position={position}
-      />
-    );
+    setIsModalOpen(true);
   };
 
   const handleOk = async () => {
@@ -141,8 +117,8 @@ const Office = () => {
         address: values.office.address,
         codeCity: values.office.province,
         codeWard: values.office.commune,
-        latitude: markerPosition[0],
-        longitude: markerPosition[1],
+        latitude: values.office.latitude,
+        longitude: values.office.longitude,
         openingTime: values.openingTime?.format("HH:mm:ss"),
         closingTime: values.closingTime?.format("HH:mm:ss"),
         type: values.type,
@@ -218,7 +194,7 @@ const Office = () => {
         </div>
 
         <Modal
-          title={<span style={{ color: '#1C3D90', fontWeight: 'bold', fontSize: '18px', display: 'flex', justifyContent: 'center' }}>Chỉnh sửa thông tin bưu cục</span>}
+          title={<span style={{ color: '#1C3D90', fontWeight: 'bold', fontSize: '18px', display: 'flex', justifyContent: 'left' }}>Chỉnh sửa thông tin bưu cục</span>}
           open={isModalOpen}
           onOk={handleOk}
           onCancel={handleCancel}
@@ -234,7 +210,39 @@ const Office = () => {
             <Form.Item name="name" label="Tên bưu cục" rules={[{ required: true, message: 'Nhập tên bưu cục!' }]}><Input /></Form.Item>
             <Form.Item name="phoneNumber" label="Số điện thoại" rules={[{ required: true, message: 'Nhập số điện thoại!' }]}><Input /></Form.Item>
             <Form.Item name="email" label="Email" rules={[{ required: true, message: 'Nhập email' }]}><Input /></Form.Item>
-            <AddressForm form={form} initialCity={office?.codeCity} initialWard={office?.codeWard} initialDetail={office?.address} prefix="office"/>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="longitude"
+                  label="Kinh độ"
+                  rules={[{ required: true, message: 'Nhập kinh độ bưu cục!' }]}
+                >
+                  <InputNumber
+                    placeholder="Nhập kinh độ"
+                    min={-180}
+                    max={180}
+                    step={0.000001}
+                    style={{ width: '100%' }}
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="latitude"
+                  label="Vĩ độ"
+                  rules={[{ required: true, message: 'Nhập vĩ độ bưu cục!' }]}
+                >
+                  <InputNumber
+                    placeholder="Nhập vĩ độ"
+                    min={-90}
+                    max={90}
+                    step={0.000001}
+                    style={{ width: '100%' }}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+            <AddressForm form={form} prefix="office" />
             <Form.Item name="openingTime" label="Giờ mở cửa"><TimePicker format="HH:mm" style={{ width: '100%' }} /></Form.Item>
             <Form.Item name="closingTime" label="Giờ đóng cửa"><TimePicker format="HH:mm" style={{ width: '100%' }} /></Form.Item>
             <Form.Item name="type" label="Loại bưu cục">
@@ -247,18 +255,6 @@ const Office = () => {
                 <Option value="Maintenance">Bảo trì</Option>
               </Select>
             </Form.Item>
-
-            {/* Map chỉnh tọa độ */}
-            <div style={{ marginTop: 16 }}>
-              <Text><LinkOutlined /> <b>Kéo marker để chỉnh tọa độ:</b></Text>
-              <MapContainer center={markerPosition} zoom={15} style={{ height: 300, width: '100%', marginTop: 8 }}>
-                <TileLayer
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                />
-                <DraggableMarker />
-              </MapContainer>
-            </div>
           </Form>
         </Modal>
       </Col>

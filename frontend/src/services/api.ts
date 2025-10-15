@@ -536,7 +536,7 @@ export const orderAPI = {
   calculateShippingFee: async (weight: number, serviceTypeId: number, senderCodeCity: number, recipientCodeCity: number
   ): Promise<OrderResponse> => {
     const response = await api.get<OrderResponse>(
-      '/orders/calculate-shipping-fee',
+      '/public/orders/calculate-shipping-fee',
       {
         params: { weight, serviceTypeId, senderCodeCity, recipientCodeCity, },
       }
@@ -545,102 +545,68 @@ export const orderAPI = {
   },
 
   // Get Statuses Enum
-  getStatusesEnum: async (): Promise<OrderResponse> => {
-    const response = await api.get<OrderResponse>('/orders/statuses');
+  getOrderStatuses: async (): Promise<OrderResponse> => {
+    const response = await api.get<OrderResponse>('/protected/orders/statuses');
     return response.data;
   },
 
   // Get Payment Methods Enum
-  getPaymentMethodsEnum: async (): Promise<OrderResponse> => {
-    const response = await api.get<OrderResponse>('/orders/payment-methods');
+  getOrderPaymentMethods: async (): Promise<OrderResponse> => {
+    const response = await api.get<OrderResponse>('/protected/orders/payment-methods');
     return response.data;
   },
 
-  // Create new order
-  createOrderForUser: async (orderData: Order): Promise<OrderResponse> => {
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error("Không tìm thấy token xác thực");
-
-    try {
-      const response = await api.post<OrderResponse>(
-        '/orders/create/by-user',
-        orderData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Lỗi khi tạo đơn hàng');
-    }
-  },
-
-  // Create new order
-  createOrderForManager: async (orderData: Order): Promise<OrderResponse> => {
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error("Không tìm thấy token xác thực");
-
-    try {
-      const response = await api.post<OrderResponse>(
-        'orders/create/by-manager',
-        orderData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Lỗi khi tạo đơn hàng');
-    }
-  },
-
-  getOrdersByUser: async (query: string): Promise<OrderResponse> => {
-    const res = await api.get<OrderResponse>(`/orders/by-user?${query}`);
-    return res.data;
-  },
-
   // Get Payers Enum
-  getPayersEnum: async (): Promise<OrderResponse> => {
-    const response = await api.get<OrderResponse>('/orders/payers');
+  getOrderPayers: async (): Promise<OrderResponse> => {
+    const response = await api.get<OrderResponse>('/protected/orders/payers');
     return response.data;
   },
 
   // Get Payment Statuses Enum
-  getPaymentStatusesEnum: async (): Promise<OrderResponse> => {
-    const response = await api.get<OrderResponse>('/orders/payment-statuses');
+  getOrderPaymentStatuses: async (): Promise<OrderResponse> => {
+    const response = await api.get<OrderResponse>('/protected/orders/payment-statuses');
     return response.data;
   },
 
-  cancelOrderForUser: async (orderId: number): Promise<OrderResponse> => {
-    const res = await api.put<OrderResponse>(`/orders/cancel/by-user`, { orderId });
-    return res.data;
-  },
-
-  cancelOrderForManager: async (orderId: number): Promise<OrderResponse> => {
-    const res = await api.put<OrderResponse>(`/orders/cancel/by-manager`, { orderId });
-    return res.data;
-  },
-
   getOrderByTrackingNumber: async (trackingNumber: string): Promise<OrderResponse> => {
-    const res = await api.get<OrderResponse>(`/orders/${trackingNumber}`);
+    const res = await api.get<OrderResponse>(`/protected/orders/${trackingNumber}`);
     return res.data;
   },
 
-  createVNPayURL: async (orderId: number): Promise<{ paymentUrl: string }> => {
-    const res = await api.post<{ paymentUrl: string }>(`/payment/create-url`, { orderId });
-    return res.data;
-  },
-
-  // Check trạng thái thanh toán VNPay
-  checkVNPayPayment: async (query: string): Promise<any> => {
-    const res = await api.get<any>(`/payment/check-vnpay${query}`);
+  getUserOrders: async (query: string): Promise<OrderResponse> => {
+    const res = await api.get<OrderResponse>(`/user/orders?${query}`);
     return res.data;
   },
 
   // Create new order
-  updateOrder: async (orderData: Order): Promise<OrderResponse> => {
+  createUserOrder: async (orderData: Order): Promise<OrderResponse> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("Không tìm thấy token xác thực");
+
+    try {
+      const response = await api.post<OrderResponse>(
+        '/user/orders',
+        orderData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi tạo đơn hàng');
+    }
+  },
+
+  cancelUserOrder: async (orderId: number): Promise<OrderResponse> => {
+    const res = await api.put<OrderResponse>(`/user/orders/cancel`, { orderId });
+    return res.data;
+  },
+
+  updateUserOrder: async (orderData: Order): Promise<OrderResponse> => {
     const token = localStorage.getItem('token');
     if (!token) throw new Error("Không tìm thấy token xác thực");
 
     try {
       const response = await api.put<OrderResponse>(
-        '/orders/edit',
+        '/user/orders',
         orderData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -650,13 +616,13 @@ export const orderAPI = {
     }
   },
 
-  updateOrderStatusToPending: async (orderId: number): Promise<OrderResponse> => {
+  setOrderToPending: async (orderId: number): Promise<OrderResponse> => {
     const token = localStorage.getItem('token');
     if (!token) throw new Error("Không tìm thấy token xác thực");
 
     try {
       const response = await api.put<OrderResponse>(
-        '/orders/to-pending',
+        '/user/orders/pending',
         { orderId },
         {
           headers: {
@@ -671,18 +637,23 @@ export const orderAPI = {
     }
   },
 
-  getOrdersByOffice: async (officeId: number, query: string): Promise<OrderResponse> => {
-    const res = await api.get<OrderResponse>(`/orders/by-office/${officeId}?${query}`);
+  getOrdersByOfficeId: async (officeId: number, query: string): Promise<OrderResponse> => {
+    const res = await api.get<OrderResponse>(`/manager/orders/${officeId}?${query}`);
     return res.data;
   },
 
-  confirmOrderAndAssignToOffice: async (orderId: number, officeId: number): Promise<OrderResponse> => {
+  cancelManagerOrder: async (orderId: number): Promise<OrderResponse> => {
+    const res = await api.put<OrderResponse>(`/manager/orders/cancel`, { orderId });
+    return res.data;
+  },
+
+  confirmAndAssignOrder: async (orderId: number, officeId: number): Promise<OrderResponse> => {
     const token = localStorage.getItem('token');
     if (!token) throw new Error("Không tìm thấy token xác thực");
 
     try {
       const response = await api.put<OrderResponse>(
-        `/orders/confirm`,
+        `/manager/orders/confirm`,
         { orderId, officeId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -690,6 +661,50 @@ export const orderAPI = {
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Lỗi khi xác nhận đơn hàng');
     }
+  },
+
+  // Create new order
+  createManagerOrder: async (orderData: Order): Promise<OrderResponse> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("Không tìm thấy token xác thực");
+
+    try {
+      const response = await api.post<OrderResponse>(
+        '/manager/orders',
+        orderData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi tạo đơn hàng');
+    }
+  },
+
+  updateManagerOrder: async (orderData: Order): Promise<OrderResponse> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("Không tìm thấy token xác thực");
+
+    try {
+      const response = await api.put<OrderResponse>(
+        '/manager/orders',
+        orderData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Lỗi khi cập nhật đơn hàng của manager');
+    }
+  },
+
+  createVNPayURL: async (orderId: number): Promise<{ paymentUrl: string }> => {
+    const res = await api.post<{ paymentUrl: string }>(`/payment/create-url`, { orderId });
+    return res.data;
+  },
+
+  // Check trạng thái thanh toán VNPay
+  checkVNPayPayment: async (query: string): Promise<any> => {
+    const res = await api.get<any>(`/payment/check-vnpay${query}`);
+    return res.data;
   },
 }
 

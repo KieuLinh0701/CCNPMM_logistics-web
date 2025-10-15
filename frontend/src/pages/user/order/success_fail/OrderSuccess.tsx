@@ -8,7 +8,7 @@ import OrderInfo from './components/OrderInfo';
 import OrderCustomerInfo from './components/CustomerInfo';
 import OrderPaymentInfo from './components/PaymentInfo';
 import { AppDispatch } from '../../../../store/store';
-import { cancelOrderForUser, checkVNPayPayment, createVNPayURL, getOrderByTrackingNumber } from '../../../../store/orderSlice';
+import { cancelUserOrder, checkVNPayPayment, createVNPayURL, getOrderByTrackingNumber } from '../../../../store/orderSlice';
 import { Order } from '../../../../types/order';
 import { City, Ward } from '../../../../types/location';
 import OrderHeader from './components/Header';
@@ -90,7 +90,7 @@ const OrderSuccess: React.FC = () => {
       onOk: async () => {
         try {
           if (!order || typeof order.id !== 'number') return;
-          const resultAction = await dispatch(cancelOrderForUser(order.id)).unwrap();
+          const resultAction = await dispatch(cancelUserOrder(order.id)).unwrap();
           if (resultAction.success) {
             message.success("Hủy đơn hàng thành công");
             // Cập nhật lại trạng thái order trong component

@@ -185,7 +185,17 @@ const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, role, off
         const canApprove = record.status === "pending";
         const canCancel = ["pending", "picked_up", "confirmed"].includes(record.status);
 
-        // Kiểm tra điều kiện thanh toán (nếu không phải tiền mặt mà chưa trả)
+        // ✅ Điều kiện hiển thị nút Sửa
+        const canEdit =
+          (
+            ["confirmed", "picked_up"].includes(record.status) &&
+            record.fromOffice?.id === officeId
+          ) ||
+          (
+            record.status === "in_transit" &&
+            record.toOffice?.id === officeId
+          );
+
         const hasPaymentIssue =
           record.paymentMethod !== "Cash" && record.paymentStatus === "Unpaid";
 
@@ -201,17 +211,21 @@ const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, role, off
               Xem
             </Button>
 
-            {/* Nút Sửa */}
-            <Button
-              type="link"
-              icon={<EditOutlined />}
-              size="small"
-              onClick={() => onEdit(record.trackingNumber)}
-            >
-              Sửa
-            </Button>
+            {/* ✅ Nút Sửa chỉ hiện đúng điều kiện */}
+            {!canApprove && (
+              <Button
+                type="link"
+                icon={<EditOutlined />}
+                size="small"
+                disabled={!canEdit}
+                onClick={() => onEdit(record.trackingNumber)}
+                style={{ width: 60, textAlign: "left" }}
+              >
+                Sửa
+              </Button>
+            )}
 
-            {/* Nút Xác nhận (chỉ hiện khi status là pending) */}
+            {/* Nút Xác nhận */}
             {canApprove && (
               <Button
                 type="link"
@@ -219,8 +233,9 @@ const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, role, off
                 size="small"
                 disabled={hasPaymentIssue}
                 onClick={() => onApprove(record)}
+                style={{ width: 60, textAlign: "left" }}
               >
-                Xác nhận
+                Duyệt
               </Button>
             )}
 
@@ -231,12 +246,13 @@ const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, role, off
               size="small"
               disabled={!canCancel}
               onClick={() => oncancel(record.id)}
+              style={{ width: 60, textAlign: "left" }}
             >
               Hủy
             </Button>
           </Space>
         );
-      },
+      }
     }
   ];
 

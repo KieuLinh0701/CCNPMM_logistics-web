@@ -64,6 +64,7 @@ import OfficeSearch from './pages/tracking/officeSearch/OfficeSearch';
 import ShippingRatesBody from './pages/info/shippingRate/shippingRatesBody';
 import OrderCreate from './pages/user/order/create/OrderCreate';
 import OrderCreateManager from './pages/manager/order/create/OrderCreate';
+import OrderEditManager from './pages/manager/edit/OrderEdit';
 
 const App: React.FC = () => {
   const user = JSON.parse(localStorage.getItem('user') || 'null');
@@ -117,6 +118,7 @@ const App: React.FC = () => {
               <Route path="employees/list" element={<EmployeePage />} />
               <Route path="orders" element={<OrderListManager />} />
               <Route path="orders/create" element={<OrderCreateManager />} />
+              <Route path="orders/edit/:trackingNumber" element={<OrderEditManager />} />
               <Route path="vehicles" element={<Vehicles />} />
               <Route path="supports" element={<SupportManager />} />
             </Route>

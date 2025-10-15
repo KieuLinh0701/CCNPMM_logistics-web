@@ -210,7 +210,7 @@ const OrderInfo: React.FC<Props> = ({
                 <InputNumber
                   style={{ width: "100%" }}
                   placeholder="Ví dụ: 20000"
-                  disabled={false}
+                  disabled={!isDraft}
                   onChange={handleCodChange}
                 />
               </Form.Item>

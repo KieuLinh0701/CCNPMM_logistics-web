@@ -267,7 +267,7 @@ const orderService = {
   },
 
   // Get Status Enum
-  async getStatusesEnum(userId) {
+  async getOrderStatuses(userId) {
     try {
       // Lấy User đang thực hiện
       const user = await db.User.count({
@@ -293,7 +293,7 @@ const orderService = {
   },
 
   // Get Payment Methods Enum
-  async getPaymentMethodsEnum(userId) {
+  async getOrderPaymentMethods(userId) {
     try {
       // Lấy User đang thực hiện
       const user = await db.User.count({
@@ -319,7 +319,7 @@ const orderService = {
   },
 
   // Create Order
-  async createOrderForUser(userId, orderData) {
+  async createUserOrder(userId, orderData) {
     const t = await db.sequelize.transaction();
 
     try {
@@ -473,9 +473,9 @@ const orderService = {
           createdBy: createdBy,
           createdByType: createdByType,
           totalFee: Math.ceil(
-            Math.max(((shippingFee || 0) - (discountAmount || 0)), 0) * 1.1 +
-            (orderValue ? orderValue * 0.005 : 0) +
-            (codAmount ? codAmount * 0.02 : 0)
+            Math.max(((orderData.shippingFee || 0) - (orderData.discountAmount || 0)), 0) * 1.1 +
+            (orderData.orderValue ? orderData.orderValue * 0.005 : 0) +
+            (orderData.codAmount ? orderData.codAmount * 0.02 : 0)
           )
         },
         { transaction: t }
@@ -543,7 +543,7 @@ const orderService = {
     }
   },
 
-  async getOrdersByUser(userId, page, limit, filters) {
+  async getUserOrders(userId, page, limit, filters) {
     try {
       // 1. Kiểm tra user có tồn tại không
       const user = await db.User.findOne({ where: { id: userId } });
@@ -572,6 +572,7 @@ const orderService = {
           { trackingNumber: { [Op.like]: `%${searchText}%` } },
           { recipientName: { [Op.like]: `%${searchText}%` } },
           { recipientPhone: { [Op.like]: `%${searchText}%` } },
+          { notes: { [Op.like]: `%${searchText}%` } },
         ];
       }
 
@@ -679,7 +680,7 @@ const orderService = {
   },
 
   // Get Payment Statuses Enum
-  async getPaymentStatusesEnum(userId) {
+  async getOrderPaymentStatuses(userId) {
     try {
       // Lấy User đang thực hiện
       const user = await db.User.count({
@@ -705,7 +706,7 @@ const orderService = {
   },
 
   // Get Payers Enum
-  async getPayersEnum(userId) {
+  async getOrderPayers(userId) {
     try {
       // Lấy User đang thực hiện
       const user = await db.User.count({
@@ -731,7 +732,7 @@ const orderService = {
   },
 
   // Cancel Order
-  async cancelOrderForUser(userId, orderId) {
+  async cancelUserOrder(userId, orderId) {
     const t = await db.sequelize.transaction();
     try {
       // 1. Kiểm tra user tồn tại
@@ -830,7 +831,18 @@ const orderService = {
       const { Op } = db.Sequelize;
 
       // 1. Kiểm tra user tồn tại
-      const user = await db.User.findByPk(userId);
+      const user = await db.User.findByPk(userId, {
+        include: [
+          {
+            model: db.Employee,
+            as: "employee",
+            include: [
+              { model: db.Office, as: "office" }
+            ]
+          }
+        ]
+      });
+
       if (!user) {
         return { success: false, message: "Người dùng không tồn tại" };
       }
@@ -838,14 +850,24 @@ const orderService = {
       // 2. Clean trackingNumber
       const cleanTrackingNumber = trackingNumber.trim().toUpperCase();
 
-      // 3. Tìm order (không phân biệt hoa thường + trim)
+      // 3. Xác định điều kiện tìm kiếm dựa trên role
+      const whereCondition = {
+        trackingNumber: { [Op.like]: `%${cleanTrackingNumber}%` }
+      };
+
+      if (user.role === "user") {
+        // Customer chỉ xem đơn của mình
+        whereCondition.userId = userId;
+      } else if (user.role === "manager") {
+        // Manager chỉ xem đơn gửi đến bưu cục của họ
+        whereCondition.toOfficeId = user.employee.office.id;
+        whereCondition.fromOfficeId = user.employee.office.id;
+      }
+      // Admin không cần thêm điều kiện, xem tất cả
+
+      // 4. Tìm order
       const order = await db.Order.findOne({
-        where: {
-          trackingNumber: {
-            [Op.like]: `%${cleanTrackingNumber}%`
-          },
-          userId
-        },
+        where: whereCondition,
         include: [
           {
             model: db.OrderProduct,
@@ -863,7 +885,7 @@ const orderService = {
       if (!order) {
         return {
           success: false,
-          message: "Không tìm thấy đơn hàng với mã vận đơn này hoặc đơn hàng không thuộc về bạn"
+          message: "Không tìm thấy đơn hàng với mã vận đơn này hoặc bạn không có quyền xem"
         };
       }
 
@@ -879,7 +901,7 @@ const orderService = {
   },
 
   // Update Payment Status
-  async updatePaymentStatus(orderId) {
+  async updatePaymentStatus(orderId, status) {
     const t = await db.sequelize.transaction();
     try {
       // 1. Tìm order theo id 
@@ -893,14 +915,14 @@ const orderService = {
       }
 
       // 3. Cập nhật trạng thái -> Paid
-      order.paymentStatus = "Paid";
+      order.paymentStatus = status;
       await order.save({ transaction: t });
 
       await t.commit();
 
       return {
         success: true,
-        message: "Cập nhật trạng thái đã thanh toán cho đơn hàng thành công",
+        message: "Cập nhật trạng thái cho đơn hàng thành công",
         order,
       };
     } catch (error) {
@@ -910,17 +932,17 @@ const orderService = {
       console.error("Update Payment Status error:", error);
       return {
         success: false,
-        message: error.message || "Lỗi server khi cập nhật trạng thái đã thanh toán cho đơn hàng",
+        message: error.message || "Lỗi server khi cập nhật trạng thái cho đơn hàng",
       };
     }
   },
 
   // Update Order
-  async updateOrder(userId, orderData) {
+  async updateUserOrder(userId, orderData) {
     const t = await db.sequelize.transaction();
 
     try {
-      // 1. Kiểm tra order tồn tại
+      // 1️⃣ Lấy order hiện tại
       const existingOrder = await db.Order.findOne({
         where: { id: orderData.id },
         include: [
@@ -932,344 +954,249 @@ const orderService = {
           { model: db.Promotion, as: "promotion" },
           { model: db.ServiceType, as: "serviceType" },
         ],
-        transaction: t
+        transaction: t,
       });
 
       if (!existingOrder) {
         return { success: false, message: "Đơn hàng không tồn tại" };
       }
 
-      // 2. Kiểm tra quyền sửa đơn hàng
+      // 2️⃣ Kiểm tra quyền người dùng
       if (existingOrder.userId !== null && existingOrder.userId !== userId) {
         return { success: false, message: "Bạn không có quyền sửa đơn hàng này" };
       }
 
-      // 3. Validate dựa trên trạng thái hiện tại
-      const validationResult = this.validateOrderUpdate(existingOrder, orderData);
-      if (!validationResult.success) {
-        return validationResult;
+      const { status } = existingOrder;
+
+      // 3️⃣ Validate logic thay đổi theo trạng thái
+      const validation = (() => {
+        if (status === "draft") return { success: true };
+
+        if (status === "pending") {
+          if (orderData.senderCityCode && orderData.senderCityCode !== existingOrder.senderCityCode)
+            return { success: false, message: "Không thể thay đổi tỉnh thành người gửi" };
+          if (orderData.recipientCityCode && orderData.recipientCityCode !== existingOrder.recipientCityCode)
+            return { success: false, message: "Không thể thay đổi tỉnh thành người nhận" };
+          if (orderData.orderValue && orderData.orderValue !== existingOrder.orderValue)
+            return { success: false, message: "Không thể thay đổi giá trị đơn hàng" };
+          if (orderData.codAmount && orderData.codAmount !== existingOrder.codAmount)
+            return { success: false, message: "Không thể thay đổi COD đơn hàng" };
+          if (orderData.paymentMethod && orderData.paymentMethod !== existingOrder.paymentMethod) {
+            if (existingOrder.paymentStatus !== "Unpaid")
+              return { success: false, message: "Chỉ có thể thay đổi phương thức thanh toán khi chưa thanh toán" };
+            if (orderData.payer === "Customer" && orderData.paymentMethod !== "Cash")
+              return { success: false, message: "Người nhận chỉ được thanh toán bằng tiền mặt" };
+          }
+          return { success: true };
+        }
+
+        if (status === "confirmed") {
+          const allowedFields = [
+            "recipientName",
+            "recipientPhone",
+            "recipientWardCode",
+            "recipientDetailAddress",
+            "notes",
+          ];
+
+          if (orderData.recipientCityCode && orderData.recipientCityCode !== existingOrder.recipientCityCode)
+            return { success: false, message: "Không thể thay đổi tỉnh thành người nhận" };
+
+          const disallowed = Object.keys(orderData).filter(
+            (key) => orderData[key] !== existingOrder[key] && !allowedFields.includes(key)
+          );
+
+          if (disallowed.length > 0)
+            return {
+              success: false,
+              message: `Không thể thay đổi các trường: ${disallowed.join(", ")} khi đơn ở trạng thái confirmed`,
+            };
+
+          return { success: true };
+        }
+
+        return { success: false, message: `Không thể cập nhật đơn hàng ở trạng thái: ${status}` };
+      })();
+
+      if (!validation.success) return validation;
+
+      // 4️⃣ Kiểm tra vùng hoạt động nếu đổi thành phố (draft)
+      if (status === "draft") {
+        const senderCityChanged = orderData.senderCityCode !== existingOrder.senderCityCode;
+        const recipientCityChanged = orderData.recipientCityCode !== existingOrder.recipientCityCode;
+
+        if (senderCityChanged || recipientCityChanged) {
+          const senderOffice = await db.Office.findOne({
+            where: { codeCity: orderData.senderCityCode },
+            transaction: t,
+          });
+          const recipientOffice = await db.Office.findOne({
+            where: { codeCity: orderData.recipientCityCode },
+            transaction: t,
+          });
+
+          if (!senderOffice && !recipientOffice)
+            return { success: false, message: "Cả người gửi và người nhận đều nằm ngoài khu vực phục vụ" };
+          if (!senderOffice)
+            return { success: false, message: "Địa chỉ người gửi nằm ngoài khu vực phục vụ" };
+          if (!recipientOffice)
+            return { success: false, message: "Địa chỉ người nhận nằm ngoài khu vực phục vụ" };
+        }
       }
 
-      // Kiểm tra xem thành phố người gửi, nhận mới có nằm trong khu vực hoạt động chưa
-      const senderCityChanged = orderData.senderCityCode !== existingOrder.senderCityCode;
-      const recipientCityChanged = orderData.recipientCityCode !== existingOrder.recipientCityCode;
+      // 5️⃣ Chuẩn bị dữ liệu update theo trạng thái
+      const updateData = (() => {
+        const u = {};
+        if (status === "draft") {
+          for (const key in orderData) {
+            if (!["id", "trackingNumber", "userId"].includes(key)) u[key] = orderData[key];
+          }
 
-      if (existingOrder.status === 'draft' && (senderCityChanged || recipientCityChanged)) {
-        const senderOffice = await db.Office.findOne({
-          where: { codeCity: orderData.senderCityCode },
-          transaction: t,
-        });
-        const recipientOffice = await db.Office.findOne({
-          where: { codeCity: orderData.recipientCityCode },
-          transaction: t,
-        });
+          let totalOrderValue = 0;
+          if (orderData.orderProducts?.length > 0) {
+            for (const p of orderData.orderProducts) totalOrderValue += p.price * p.quantity;
+            if (u.orderValue !== totalOrderValue)
+              throw new Error("Tổng giá trị đơn hàng không khớp với sản phẩm");
+          } else if (!u.orderValue || u.orderValue <= 0) {
+            throw new Error("Giá trị đơn hàng phải lớn hơn 0");
+          }
 
-        // Kiểm tra xem địa chỉ người nhận có thuộc fromOffice
-        const checkSenderOffice = await db.Office.findOne({
-          where: { codeCity: orderData.fromOffice.codeCity },
-          transaction: t,
-        });
+          const shippingFee = u.shippingFee ?? existingOrder.shippingFee ?? 0;
+          const discount = u.discountAmount ?? existingOrder.discountAmount ?? 0;
+          const orderValue = u.orderValue ?? existingOrder.orderValue ?? 0;
+          const cod = u.cod ?? existingOrder.cod ?? 0;
 
-        if (!senderOffice && !recipientOffice) {
-          await t.rollback();
-          return { success: false, message: "Cả người gửi và người nhận đều nằm ngoài khu vực phục vụ" };
+          u.totalFee = Math.ceil(
+            Math.max(shippingFee - discount, 0) * 1.1 +
+            (orderValue ? orderValue * 0.005 : 0) +
+            (cod ? cod * 0.02 : 0)
+          );
+          return u;
         }
-        if (!senderOffice) {
-          await t.rollback();
-          return { success: false, message: "Địa chỉ người gửi nằm ngoài khu vực phục vụ" };
-        }
-        if (!recipientOffice) {
-          await t.rollback();
-          return { success: false, message: "Địa chỉ người nhận nằm ngoài khu vực phục vụ" };
-        }
-        if (!checkSenderOffice) {
-          await t.rollback();
-          return { success: false, message: "Địa chỉ người nhận không thuộc bưu cục đến đã chọn" };
-        }
-      }
 
-      // 4. Chuẩn bị data update
-      const updateData = this.prepareUpdateData(existingOrder, orderData);
+        if (status === "pending") {
+          [
+            "senderName",
+            "senderPhone",
+            "senderWardCode",
+            "senderDetailAddress",
+            "recipientName",
+            "recipientPhone",
+            "recipientWardCode",
+            "recipientDetailAddress",
+            "notes",
+            "paymentMethod",
+            "payer",
+          ].forEach((f) => orderData[f] !== undefined && (u[f] = orderData[f]));
+          return u;
+        }
 
-      // 5. Cập nhật order products nếu có với xử lý stock và soldQuantity của product
-      if (orderData.orderProducts && this.canUpdateProducts(existingOrder.status)) {
+        if (status === "confirmed") {
+          [
+            "recipientName",
+            "recipientPhone",
+            "recipientWardCode",
+            "recipientDetailAddress",
+            "notes",
+          ].forEach((f) => orderData[f] !== undefined && (u[f] = orderData[f]));
+          return u;
+        }
 
-        // 5.1. HOÀN TÁC SOLDQUANTITY VÀ STOCK CỦA SẢN PHẨM CŨ
+        return {};
+      })();
+
+      // 6️⃣ Xử lý sản phẩm (chỉ draft)
+      if (status === "draft" && orderData.orderProducts) {
+        // Hoàn trả tồn kho cũ
         if (existingOrder.orderProducts?.length > 0) {
-          for (const oldProduct of existingOrder.orderProducts) {
-            const product = await db.Product.findByPk(oldProduct.productId, { transaction: t });
+          for (const old of existingOrder.orderProducts) {
+            const product = await db.Product.findByPk(old.productId, { transaction: t });
             if (product) {
-              // Hoàn trả stock và giảm soldQuantity
-              await product.increment('stock', { by: oldProduct.quantity, transaction: t });
-              await product.decrement('soldQuantity', { by: oldProduct.quantity, transaction: t });
+              await product.increment("stock", { by: old.quantity, transaction: t });
+              await product.decrement("soldQuantity", { by: old.quantity, transaction: t });
             }
           }
         }
 
-        // 5.2. Xóa products cũ
-        await db.OrderProduct.destroy({
-          where: { orderId: orderData.id },
-          transaction: t
-        });
+        await db.OrderProduct.destroy({ where: { orderId: orderData.id }, transaction: t });
 
-        // 5.3. KIỂM TRA TỒN KHO CHO SẢN PHẨM MỚI
-        if (orderData.orderProducts.length > 0) {
-          for (const p of orderData.orderProducts) {
-            if (!p.product?.id || p.quantity < 1 || p.price < 0)
-              throw new Error("Thông tin sản phẩm không hợp lệ");
+        // Kiểm tra tồn kho cho sản phẩm mới
+        for (const p of orderData.orderProducts) {
+          if (!p.product?.id || p.quantity < 1 || p.price < 0)
+            throw new Error("Thông tin sản phẩm không hợp lệ");
 
-            // Kiểm tra tồn kho trước khi cập nhật
-            const product = await db.Product.findByPk(p.product.id, { transaction: t });
-            if (!product) throw new Error(`Sản phẩm với ID ${p.product.id} không tồn tại`);
-            if (product.stock < p.quantity)
-              throw new Error(`Sản phẩm "${product.name}" không đủ tồn kho. Chỉ còn ${product.stock} sản phẩm`);
-          }
+          const product = await db.Product.findByPk(p.product.id, { transaction: t });
+          if (!product)
+            throw new Error(`Sản phẩm ID ${p.product.id} không tồn tại`);
+          if (product.stock < p.quantity)
+            throw new Error(`Sản phẩm "${product.name}" chỉ còn ${product.stock} sản phẩm`);
+        }
 
-          // 5.4. Thêm products mới và CẬP NHẬT STOCK, SOLDQUANTITY
-          const orderProducts = orderData.orderProducts.map((p) => ({
+        // Thêm mới và cập nhật tồn kho
+        await db.OrderProduct.bulkCreate(
+          orderData.orderProducts.map((p) => ({
             orderId: orderData.id,
             productId: p.product.id,
             quantity: p.quantity,
             price: p.price,
-          }));
-          await db.OrderProduct.bulkCreate(orderProducts, { transaction: t });
+          })),
+          { transaction: t }
+        );
 
-          // 5.5. CẬP NHẬT SOLDQUANTITY VÀ STOCK CHO SẢN PHẨM MỚI
-          for (const p of orderData.orderProducts) {
-            const product = await db.Product.findByPk(p.product.id, { transaction: t });
-            if (product) {
-              await product.increment('soldQuantity', { by: p.quantity, transaction: t });
-              await product.decrement('stock', { by: p.quantity, transaction: t });
-            }
+        for (const p of orderData.orderProducts) {
+          const product = await db.Product.findByPk(p.product.id, { transaction: t });
+          if (product) {
+            await product.increment("soldQuantity", { by: p.quantity, transaction: t });
+            await product.decrement("stock", { by: p.quantity, transaction: t });
           }
         }
       }
 
-      // 6. Cập nhật order
-      await db.Order.update(updateData, {
-        where: { id: orderData.id },
-        transaction: t
-      });
+      // 7️⃣ Cập nhật đơn hàng
+      await db.Order.update(updateData, { where: { id: orderData.id }, transaction: t });
 
-      // 7. Cập nhật promotion nếu có
+      // 8️⃣ Cập nhật promotion nếu có
       if (orderData.promotion?.id && orderData.promotion.id !== existingOrder.promotion.id) {
-        const promotion = await db.Promotion.findByPk(orderData.promotion.id, {
-          transaction: t,
-        });
-
+        const promotion = await db.Promotion.findByPk(orderData.promotion.id, { transaction: t });
         if (promotion) {
-          // Validate promotion
           const now = new Date();
           if (
             promotion.status === "active" &&
             promotion.startDate <= now &&
             promotion.endDate >= now &&
-            (promotion.minOrderValue === null || orderData.orderValue >= promotion.minOrderValue) &&
-            (promotion.usageLimit === null || promotion.usedCount < promotion.usageLimit)
+            (!promotion.minOrderValue || orderData.orderValue >= promotion.minOrderValue) &&
+            (!promotion.usageLimit || promotion.usedCount < promotion.usageLimit)
           ) {
-            updateData.promotionId = promotion.id;
-            updateData.discountAmount = orderData.discountAmount || 0;
+            await db.Order.update(
+              {
+                promotionId: promotion.id,
+                discountAmount: orderData.discountAmount || 0,
+              },
+              { where: { id: orderData.id }, transaction: t }
+            );
 
-            // Tăng usedCount
-            promotion.usedCount += 1;
-            await promotion.save({ transaction: t });
+            await promotion.increment("usedCount", { by: 1, transaction: t });
 
-            // Giảm usedCount của promotion cũ 
-            if (existingOrder.promotion.id) {
-              const oldPromotion = await db.Promotion.findByPk(existingOrder.promotion.id, {
-                transaction: t,
-              });
-              if (oldPromotion && oldPromotion.usedCount > 0) {
-                oldPromotion.usedCount -= 1;
-                await oldPromotion.save({ transaction: t });
-              }
+            if (existingOrder.promotion?.id) {
+              const old = await db.Promotion.findByPk(existingOrder.promotion.id, { transaction: t });
+              if (old && old.usedCount > 0)
+                await old.decrement("usedCount", { by: 1, transaction: t });
             }
           }
         }
       }
 
       await t.commit();
-
-      return {
-        success: true,
-        message: "Cập nhật đơn hàng thành công",
-      };
-
+      return { success: true, message: "Cập nhật đơn hàng thành công" };
     } catch (error) {
-      if (!t.finished) {
-        await t.rollback();
-      }
+      if (!t.finished) await t.rollback();
       console.error("Update Order error:", error);
-      return {
-        success: false,
-        message: error.message || "Lỗi server khi cập nhật đơn hàng",
-      };
+      return { success: false, message: error.message || "Lỗi server khi cập nhật đơn hàng" };
     }
-  },
-
-  // Helper function: Validate order update based on status
-  validateOrderUpdate(existingOrder, orderData) {
-    const { status } = existingOrder;
-
-    // DRAFT: Cho phép sửa tất cả
-    if (status === 'draft') {
-      return { success: true };
-    }
-
-    // PENDING: Giới hạn quyền sửa
-    if (status === 'pending') {
-      // Không cho phép thay đổi tỉnh thành
-      if (orderData.senderCityCode !== existingOrder.senderCityCode) {
-        return { success: false, message: "Không thể thay đổi tỉnh thành người gửi khi đơn ở trạng thái pending" };
-      }
-      if (orderData.recipientCityCode !== existingOrder.recipientCityCode) {
-        return { success: false, message: "Không thể thay đổi tỉnh thành người nhận khi đơn ở trạng thái pending" };
-      }
-
-      // Validate payment method changes
-      if (orderData.paymentMethod !== existingOrder.paymentMethod) {
-        // Nếu đã thanh toán thì không được đổi payment method
-        if (existingOrder.paymentStatus !== 'Unpaid') {
-          return { success: false, message: "Chỉ có thể thay đổi phương thức thanh toán khi chưa thanh toán" };
-        }
-
-        // Nếu payer là Customer, chỉ được dùng Cash
-        if (orderData.payer === 'Customer' && orderData.paymentMethod !== 'Cash') {
-          return { success: false, message: "Người nhận chỉ được thanh toán bằng tiền mặt" };
-        }
-      }
-
-      return { success: true };
-    }
-
-    // CONFIRMED: Chỉ được sửa recipient (không tỉnh) và note
-    if (status === 'confirmed') {
-      const allowedFields = ['recipientName', 'recipientPhone', 'recipientWardCode', 'recipientDetailAddress', 'notes'];
-      const changedFields = Object.keys(orderData).filter(key =>
-        orderData[key] !== existingOrder[key] && !allowedFields.includes(key)
-      );
-
-      // Kiểm tra không được thay đổi tỉnh recipient
-      if (orderData.recipientCityCode !== existingOrder.recipientCityCode) {
-        return { success: false, message: "Không thể thay đổi tỉnh thành người nhận khi đơn ở trạng thái confirmed" };
-      }
-
-      // Loại bỏ các trường được phép sửa khỏi changedFields
-      const disallowedFields = changedFields.filter(field => !allowedFields.includes(field));
-
-      if (disallowedFields.length > 0) {
-        return {
-          success: false,
-          message: `Không thể thay đổi các trường: ${disallowedFields.join(', ')} khi đơn ở trạng thái confirmed`
-        };
-      }
-
-      return { success: true };
-    }
-
-    // Các status khác: Không cho phép sửa
-    return {
-      success: false,
-      message: `Không thể cập nhật đơn hàng ở trạng thái: ${status}`
-    };
-  },
-
-  // Helper function: Prepare update data based on status
-  prepareUpdateData(existingOrder, orderData) {
-    const { status } = existingOrder;
-    const updateData = {};
-
-    // DRAFT: Cập nhật tất cả trừ id và trackingNumber
-    if (status === 'draft') {
-      Object.keys(orderData).forEach(key => {
-        if (key !== 'id' && key !== 'trackingNumber' && key !== 'userId') {
-          updateData[key] = orderData[key];
-        }
-      });
-
-      let totalOrderValue = 0;
-      if (orderData.orderProducts?.length > 0) {
-        for (const p of orderData.orderProducts) {
-          totalOrderValue += p.price * p.quantity;
-        }
-        if (updateData.orderValue !== totalOrderValue) {
-          throw new Error("Tổng giá trị đơn hàng không khớp với sản phẩm");
-        }
-      } else {
-        if (!updateData.orderValue || updateData.orderValue <= 0) {
-          throw new Error("Gía trị đơn hàng phải lớn hơn 0");
-        }
-      }
-
-      // Tính lại totalFee
-      const shippingFee = updateData.shippingFee ?? existingOrder.shippingFee ?? 0;
-      const discountAmount = updateData.discountAmount ?? existingOrder.discountAmount ?? 0;
-      const orderValue = updateData.orderValue ?? existingOrder.orderValue ?? 0;
-      const codAmount = updateData.cod ?? existingOrder.cod ?? 0;
-
-      updateData.totalFee = Math.ceil(
-        Math.max(((shippingFee || 0) - (discountAmount || 0)), 0) * 1.1 +
-        (orderValue ? orderValue * 0.005 : 0) +
-        (codAmount ? codAmount * 0.02 : 0)
-      );
-
-      return updateData;
-    }
-
-    // PENDING: Chỉ cập nhật các trường được phép
-    if (status === 'pending') {
-      const allowedFields = [
-        'senderName', 'senderPhone', 'senderWardCode', 'senderDetailAddress',
-        'recipientName', 'recipientPhone', 'recipientWardCode', 'recipientDetailAddress',
-        'cod', 'orderValue', 'notes', 'paymentMethod', 'payer'
-      ];
-
-      allowedFields.forEach(field => {
-        if (orderData[field] !== undefined) {
-          updateData[field] = orderData[field];
-        }
-      });
-
-      // Tính lại totalFee nếu orderValue hoặc cod thay đổi
-      if ('orderValue' in orderData || 'cod' in orderData) {
-        const shippingFee = existingOrder.shippingFee ?? 0;
-        const discountAmount = existingOrder.discountAmount ?? 0;
-        const orderValue = updateData.orderValue ?? existingOrder.orderValue ?? 0;
-        const codAmount = updateData.cod ?? existingOrder.cod ?? 0;
-
-        updateData.totalFee = Math.ceil(
-          Math.max(((shippingFee || 0) - (discountAmount || 0)), 0) * 1.1 +
-          (orderValue ? orderValue * 0.005 : 0) +
-          (codAmount ? codAmount * 0.02 : 0)
-        );
-      }
-
-      return updateData;
-    }
-
-    // CONFIRMED: Chỉ cập nhật recipient (không tỉnh) và note
-    if (status === 'confirmed') {
-      const allowedFields = [
-        'recipientName', 'recipientPhone', 'recipientWardCode', 'recipientDetailAddress', 'notes'
-      ];
-
-      allowedFields.forEach(field => {
-        if (orderData[field] !== undefined) {
-          updateData[field] = orderData[field];
-        }
-      });
-      return updateData;
-    }
-
-    return updateData;
-  },
-
-  canUpdateProducts(status) {
-    return status === 'draft';
   },
 
   // Update Order Status to Pending
-  async updateOrderStatusToPending(userId, orderId) {
+  async setOrderToPending(userId, orderId) {
     const t = await db.sequelize.transaction();
 
     try {
@@ -1329,7 +1256,7 @@ const orderService = {
 
   //============== For Manager ======================//
 
-  async getOrdersByOffice(userId, officeId, page, limit, filters) {
+  async getOrdersByOfficeId(userId, officeId, page, limit, filters) {
     try {
       // 0. Kiểm tra user tồn tại và có quyền
       const user = await db.User.findByPk(userId);
@@ -1392,6 +1319,7 @@ const orderService = {
           { recipientPhone: { [Op.like]: `%${searchText}%` } },
           { senderName: { [Op.like]: `%${searchText}%` } },
           { senderPhone: { [Op.like]: `%${searchText}%` } },
+          { notes: { [Op.like]: `%${searchText}%` } },
         ];
 
         // Thêm điều kiện search vào mảng Op.and
@@ -1470,10 +1398,10 @@ const orderService = {
             orderCondition = [["orderValue", "ASC"]];
             break;
           case "feeHigh":
-            orderCondition = [["shippingFee", "DESC"]];
+            orderCondition = [["totalFee", "DESC"]];
             break;
           case "feeLow":
-            orderCondition = [["shippingFee", "ASC"]];
+            orderCondition = [["totalFee", "ASC"]];
             break;
           case "weightHigh":
             orderCondition = [["weight", "DESC"]];
@@ -1536,7 +1464,7 @@ const orderService = {
   },
 
   // Confirm Order and Assign To Office
-  async confirmOrderAndAssignToOffice(userId, orderId, officeId) {
+  async confirmAndAssignOrder(userId, orderId, officeId) {
     const t = await db.sequelize.transaction();
 
     try {
@@ -1669,7 +1597,7 @@ const orderService = {
   },
 
   // Create Order
-  async createOrderForManager(userId, orderData) {
+  async createManagerOrder(userId, orderData) {
     const t = await db.sequelize.transaction();
 
     try {
@@ -1800,7 +1728,7 @@ const orderService = {
           paymentStatus: orderData.paymentStatus,
           notes: orderData.notes,
           userId: orderUserId || null,
-          status: orderData.status || "picked_up",
+          status: "picked_up",
           fromOfficeId: currentUser.employee.office.id,
           toOfficeId: orderData.toOffice?.id,
           createdBy: createdBy,
@@ -1849,7 +1777,7 @@ const orderService = {
     }
   },
 
-  async cancelOrderForManager(userId, orderId) {
+  async cancelManagerOrder(userId, orderId) {
     const t = await db.sequelize.transaction();
     try {
       // 1. Kiểm tra user tồn tại
@@ -1884,7 +1812,7 @@ const orderService = {
       }
 
       // 4. Kiểm tra trạng thái có thể hủy
-      const cancellableStatuses = ["draft", "pending", "confirmed", "picked_up"];
+      const cancellableStatuses = ["pending", "confirmed", "picked_up"];
       if (!cancellableStatuses.includes(order.status)) {
         return { success: false, message: "Không thể hủy đơn ở trạng thái hiện tại" };
       }
@@ -1936,6 +1864,116 @@ const orderService = {
       if (!t.finished) await t.rollback();
       console.error("Cancel Order error:", error);
       return { success: false, message: error.message || "Lỗi server khi hủy đơn hàng" };
+    }
+  },
+
+  // Update order by Manager
+  async updateManagerOrder(managerId, orderData) {
+    const t = await db.sequelize.transaction();
+
+    try {
+      // 1. Lấy thông tin manager + office
+      const manager = await db.Employee.findOne({
+        where: { id: managerId, status: "Active" },
+        include: [{ model: db.Office, as: "office" }],
+        transaction: t,
+      });
+
+      if (!manager) {
+        await t.rollback();
+        return { success: false, message: "Manager không hợp lệ hoặc không hoạt động" };
+      }
+
+      // 2. Lấy order
+      const existingOrder = await db.Order.findOne({
+        where: { id: orderData.id },
+        include: [
+          { model: db.Office, as: "fromOffice" },
+          { model: db.Office, as: "toOffice" },
+          // { model: db.OrderProduct, as: "orderProducts", include: [{ model: db.Product, as: "product" }] },
+        ],
+        transaction: t,
+      });
+
+      if (!existingOrder) {
+        await t.rollback();
+        return { success: false, message: "Đơn hàng không tồn tại" };
+      }
+
+      const { status } = existingOrder;
+
+      // 3. Kiểm tra bưu cục có quyền
+      const isFromOffice = manager.office.id === existingOrder.fromOfficeId;
+      const isToOffice = manager.office.id === existingOrder.toOfficeId;
+
+      if (!["confirmed", "picked_up", "in_transit"].includes(status)) {
+        await t.rollback();
+        return { success: false, message: "Không thể sửa đơn hàng ở trạng thái hiện tại" };
+      }
+
+      if (
+        (["confirmed", "picked_up"].includes(status) && !isFromOffice) ||
+        (status === "in_transit" && !isToOffice)
+      ) {
+        await t.rollback();
+        return { success: false, message: "Bạn không có quyền sửa đơn hàng này" };
+      }
+
+      // 4. Xác định các field được phép sửa
+      let allowedFields = [];
+      switch (status) {
+        case "confirmed":
+          allowedFields = [
+            "senderName", "senderPhone", "senderWardCode", "senderDetailAddress",
+            "recipientName", "recipientPhone", "recipientWardCode", "recipientDetailAddress",
+            "fromOfficeId", "toOfficeId", "notes"
+          ];
+          break;
+        case "picked_up":
+          allowedFields = [
+            "recipientName", "recipientPhone", "recipientWardCode", "recipientDetailAddress",
+            "toOfficeId", "notes"
+          ];
+          break;
+        case "in_transit":
+          allowedFields = [
+            "recipientName", "recipientPhone", "recipientWardCode", "recipientDetailAddress",
+            "notes"
+          ];
+          break;
+      }
+
+      // 5. Validate không cho đổi tỉnh
+      if (orderData.senderCityCode && orderData.senderCityCode !== existingOrder.senderCityCode) {
+        await t.rollback();
+        return { success: false, message: "Không thể thay đổi tỉnh thành người gửi" };
+      }
+      if (orderData.recipientCityCode && orderData.recipientCityCode !== existingOrder.recipientCityCode) {
+        await t.rollback();
+        return { success: false, message: "Không thể thay đổi tỉnh thành người nhận" };
+      }
+
+      // 7. Chuẩn bị updateData
+      const updateData = {};
+      for (const key of allowedFields) {
+        if (orderData[key] !== undefined) {
+          updateData[key] = orderData[key];
+        }
+      }
+
+      // 8. Cập nhật
+      await db.Order.update(updateData, {
+        where: { id: orderData.id },
+        transaction: t,
+      });
+
+      await t.commit();
+      return { success: true, message: "Cập nhật đơn hàng thành công" };
+
+    } catch (error) {
+      if (!t.finished) await t.rollback();
+      console.error("Update Manager Order error:", error);
+      return { success: false, message: error.message || "Lỗi khi cập nhật đơn hàng" };
     }
   },
 
