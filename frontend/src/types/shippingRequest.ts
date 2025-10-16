@@ -6,18 +6,20 @@ export interface ShippingRequest {
   id: number;
   order: Order;
   office: Office;
-  requestType: 'Complaint' | 'DeliveryReminder' | 'ChangeOrderInfo' | 'Inquiry';
+  requestType: 'Complaint' | 'DeliveryReminder' | 'ChangeOrderInfo' | 'Inquiry' | 'PickupReminder';
   requestContent: string;
   status: 'Pending' | 'Processing' | 'Resolved' | 'Rejected' | 'Cancelled';
   response: string;
   createdAt: Date;
   user?: User;
+  handler?: User;
   contactName?: string;
   contactEmail?: string;
   contactPhoneNumber?: string;
   contactCityCode?: number;
   contactWardCode?: number;
   contactDetailAddress?: string;
+  responseAt?: Date;
 }
 
 export interface ShippingRequestResponse {

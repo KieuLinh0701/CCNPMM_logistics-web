@@ -68,7 +68,7 @@ const shippingRequestController = {
 
   async createRequest(req, res) {
     try {
-      const userId = req.user ? req.user.id : null; // kiểm tra user có đăng nhập không
+      const userId = req.user ? req.user.id : null; 
       const { trackingNumber, requestContent, requestType, contactName, contactPhoneNumber, contactEmail, contactCityCode, contactWardCode, contactDetailAddress } = req.body;
 
       const data = {
@@ -163,6 +163,26 @@ const shippingRequestController = {
 
     } catch (error) {
       console.error('Get Vehicles By Office error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi server'
+      });
+    }
+  },
+
+  async updateRequestByManager(req, res) {
+    try {
+      const userId = req.user.id;
+
+      const { id } = req.params;
+
+      const { status, response } = req.body;
+
+      const result = await shippingRequestService.updateRequestByManager(userId, id, response, status);
+
+      return res.status(200).json(result);
+    } catch (error) {
+      console.error('Update Request By Manager error:', error);
       return res.status(500).json({
         success: false,
         message: 'Lỗi server'

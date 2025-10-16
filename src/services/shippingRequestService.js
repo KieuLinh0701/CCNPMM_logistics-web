@@ -1,4 +1,19 @@
 import db from '../models';
+import { translateOrderStatus } from '../utils/orderUtils';
+import { translateShippingRequestStatus, translateShippingRequestType } from '../utils/shippingRequestUtils';
+import { Op } from "sequelize";
+
+async function getManagersByOffice(officeId) {
+  if (!officeId) return [];
+  return await db.User.findAll({
+    include: [{
+      model: db.Employee,
+      as: 'employee',
+      where: { officeId, status: 'Active' }
+    }],
+    where: { role: 'manager' }
+  });
+}
 
 const shippingRequestService = {
 
@@ -62,32 +77,10 @@ const shippingRequestService = {
       const user = await db.User.findOne({ where: { id: userId } });
       if (!user) return { success: false, message: 'Người dùng không tồn tại' };
 
-      // Lấy tất cả orders của user
-      const userOrders = await db.Order.findAll({
-        where: { userId },
-        attributes: ['id']
-      });
-
-      const orderIds = userOrders.map(order => order.id);
-
-      if (orderIds.length === 0) {
-        return {
-          success: true,
-          message: 'Người dùng chưa có đơn hàng nào',
-          requests: [],
-          total: 0,
-          page,
-          limit,
-        };
-      }
-
-      // Điều kiện where cho ShippingRequest
-      let whereCondition = {
-        orderId: { [Op.in]: orderIds }
-      };
-
       // Lọc dữ liệu
       const { searchText, requestType, status, startDate, endDate, sort } = filters || {};
+
+      let whereCondition = { userId };
 
       // Tìm kiếm theo trackingNumber của Order
       if (searchText) {
@@ -104,9 +97,12 @@ const shippingRequestService = {
         whereCondition.status = status;
       }
 
-      // Lọc theo ngày tạo
+      // Lọc theo ngày tạo và ngày phản hồi
       if (startDate && endDate) {
-        whereCondition.createdAt = { [Op.between]: [startDate, endDate] };
+        whereCondition[Op.or] = [
+          { createdAt: { [Op.between]: [startDate, endDate] } },
+          { responseAt: { [Op.between]: [startDate, endDate] } }
+        ];
       }
 
       // Sắp xếp
@@ -149,7 +145,8 @@ const shippingRequestService = {
   async createRequest(data) {
     const t = await db.sequelize.transaction();
     try {
-      const { userId,
+      const {
+        userId,
         trackingNumber,
         requestContent,
         requestType,
@@ -161,7 +158,7 @@ const shippingRequestService = {
         contactDetailAddress
       } = data;
 
-      // Kiểm tra user nếu có
+      // ================== 1. Kiểm tra user ==================
       let user = null;
       if (userId) {
         user = await db.User.findOne({ where: { id: userId } });
@@ -170,14 +167,29 @@ const shippingRequestService = {
         }
       }
 
-      // Kiểm tra loại yêu cầu hợp lệ
-      const validRequestTypes = ['Complaint', 'DeliveryReminder', 'ChangeOrderInfo', 'Inquiry'];
+      // ================== 2. Kiểm tra loại request hợp lệ ==================
+      const validRequestTypes = ['Complaint', 'DeliveryReminder', 'ChangeOrderInfo', 'Inquiry', 'PickupReminder'];
       if (!requestType || !validRequestTypes.includes(requestType)) {
         return { success: false, message: "Loại yêu cầu không hợp lệ" };
       }
 
-      // Kiểm tra nội dung yêu cầu
-      if (requestType !== 'DeliveryReminder') {
+      // ================== 3. Kiểm tra quyền tạo request guest/user ==================
+      const guestAllowedTypes = ['Inquiry', 'Complaint'];
+      if (!userId) {
+        if (!guestAllowedTypes.includes(requestType)) {
+          return {
+            success: false,
+            message: `Khách hàng không phải user chỉ có thể tạo yêu cầu loại: ${guestAllowedTypes.join(', ')}`
+          };
+        }
+        const trackingRequiredTypes = ['ChangeOrderInfo', 'DeliveryReminder', 'PickupReminder'];
+        if (trackingRequiredTypes.includes(requestType) && (!trackingNumber || trackingNumber.trim() === '')) {
+          return { success: false, message: "Loại yêu cầu này bắt buộc phải có mã đơn hàng" };
+        }
+      }
+
+      // ================== 4. Kiểm tra nội dung ==================
+      if (requestType !== 'DeliveryReminder' && requestType !== 'PickupReminder') {
         if (!requestContent || requestContent.trim().length === 0) {
           return { success: false, message: "Nội dung yêu cầu không được để trống" };
         }
@@ -186,12 +198,12 @@ const shippingRequestService = {
         return { success: false, message: "Nội dung yêu cầu không được vượt quá 1000 ký tự" };
       }
 
-      // Xử lý order nếu trackingNumber có
+      // ================== 5. Xử lý order nếu trackingNumber có ==================
       let order = null;
       let orderId = null;
       let officeId = null;
-
       const canTrackingNumberBeEmpty = ['Inquiry', 'Complaint'].includes(requestType);
+
       if (trackingNumber && trackingNumber.trim() !== '') {
         order = await db.Order.findOne({
           where: { trackingNumber: trackingNumber.trim(), userId: userId || undefined }
@@ -203,19 +215,33 @@ const shippingRequestService = {
 
         orderId = order.id;
 
+        // Kiểm tra trạng thái hợp lệ theo loại request
+        const allowedStatusPerRequestType = {
+          ChangeOrderInfo: ['confirmed', 'in_transit', 'picked_up'],
+          DeliveryReminder: ['picked_up', 'in_transit'],
+          PickupReminder: ['pending', 'confirmed'],
+          Complaint: ['picked_up', 'returned', 'in_transit', 'delivered', 'returning', 'delivering'],
+          Inquiry: [],
+        };
+
+        const allowedStatuses = allowedStatusPerRequestType[requestType];
+        if (allowedStatuses.length > 0 && !allowedStatuses.includes(order.status)) {
+          return {
+            success: false,
+            message: `Loại yêu cầu ${translateShippingRequestType(requestType)} không phù hợp khi đơn hàng đang ở trạng thái ${translateOrderStatus(order.status)}`
+          };
+        }
+
         // Check trùng lặp request
         const existingRequest = await db.ShippingRequest.findOne({
           where: { orderId, requestType, status: ['Pending', 'Processing'] }
         });
 
         if (existingRequest) {
-          return {
-            success: false,
-            message: 'Đã có yêu cầu tương tự cho đơn hàng này đang được xử lý'
-          };
+          return { success: false, message: 'Đã có yêu cầu tương tự cho đơn hàng này đang được xử lý' };
         }
 
-        // Logic gán office như trước
+        // Logic gán office
         const orderWithOffice = await db.Order.findOne({
           where: { id: orderId },
           include: [
@@ -228,24 +254,29 @@ const shippingRequestService = {
           const orderStatus = order.status;
           switch (requestType) {
             case 'ChangeOrderInfo':
-              if (['draft', 'pending', 'confirmed', 'picked_up'].includes(orderStatus)) {
+              if (['confirmed', 'picked_up'].includes(orderStatus)) {
                 officeId = orderWithOffice.fromOffice?.id;
               } else if (orderStatus === 'in_transit') {
                 officeId = orderWithOffice.toOffice?.id;
               }
               break;
             case 'DeliveryReminder':
-              if (['pending', 'confirmed', 'picked_up'].includes(orderStatus)) {
+              if (['picked_up'].includes(orderStatus)) {
                 officeId = orderWithOffice.fromOffice?.id;
               } else if (orderStatus === 'in_transit') {
                 officeId = orderWithOffice.toOffice?.id;
               }
               break;
             case 'Complaint':
-              if (orderStatus === 'picked_up') {
+              if (['picked_up', 'returned'].includes(orderStatus)) {
                 officeId = orderWithOffice.fromOffice?.id;
-              } else if (['in_transit', 'delivered', 'returned'].includes(orderStatus)) {
+              } else if (['in_transit', 'delivered', 'returning', 'delivering'].includes(orderStatus)) {
                 officeId = orderWithOffice.toOffice?.id;
+              }
+              break;
+            case 'PickupReminder':
+              if (['pending', 'confirmed'].includes(orderStatus)) {
+                officeId = orderWithOffice.fromOffice?.id;
               }
               break;
           }
@@ -254,7 +285,7 @@ const shippingRequestService = {
         return { success: false, message: "Mã đơn hàng là bắt buộc cho loại yêu cầu này" };
       }
 
-      // Tạo request
+      // ================== 6. Tạo request ==================
       const newRequest = await db.ShippingRequest.create({
         orderId,
         officeId,
@@ -272,6 +303,22 @@ const shippingRequestService = {
 
       await t.commit();
 
+      // ================== 7. Gửi notification ==================
+      if (officeId) {
+        const managers = await getManagersByOffice(officeId);
+        const notifications = managers.map(u => ({
+          userId: u.id,
+          title: `Yêu cầu ${translateShippingRequestType(newRequest.requestType)} đã được gửi`,
+          message: `Có yêu cầu mới cần xử lý.`,
+          type: 'ShippingRequest',
+          relatedId: newRequest.id,
+          relatedType: 'ShippingRequest'
+        }));
+        if (notifications.length > 0) {
+          await db.Notification.bulkCreate(notifications);
+        }
+      }
+
       return { success: true, message: "Tạo yêu cầu thành công", request: newRequest };
     } catch (error) {
       await t.rollback();
@@ -281,70 +328,63 @@ const shippingRequestService = {
   },
 
   async updateRequest(userId, requestId, requestContent) {
-    const t = await db.sequelize.transaction();
     try {
-      const user = await db.User.findOne({ where: { id: userId } });
-      if (!user) {
-        return { success: false, message: 'Người dùng không tồn tại' };
-      }
+      const result = await db.sequelize.transaction(async (t) => {
+        const user = await db.User.findOne({ where: { id: userId }, transaction: t });
+        if (!user) throw new Error('Người dùng không tồn tại');
 
-      const shippingRequest = await db.ShippingRequest.findOne({
-        where: { id: requestId },
-        include: [{
-          model: db.Order,
-          as: 'order',
-          attributes: ['id', 'trackingNumber', 'status', 'userId'],
-          required: true
-        }]
+        const shippingRequest = await db.ShippingRequest.findOne({
+          where: { id: requestId },
+          include: [{
+            model: db.Order,
+            as: 'order',
+            attributes: ['id', 'trackingNumber', 'status', 'userId'],
+            required: true
+          }],
+          transaction: t
+        });
+
+        if (!shippingRequest || shippingRequest.order.userId !== userId) throw new Error('Yêu cầu không tồn tại hoặc bạn không có quyền sửa');
+
+        if (shippingRequest.status !== 'Pending') throw new Error('Chỉ có thể cập nhật yêu cầu khi trạng thái là đang chờ xử lý');
+
+        // Kiểm tra requestContent, validation
+        if (requestContent !== undefined && requestContent !== null) {
+          if (!['DeliveryReminder', 'PickupReminder'].includes(shippingRequest.requestType)) {
+            if (!requestContent.trim()) throw new Error("Nội dung yêu cầu không được để trống");
+          }
+          if (requestContent.length > 1000) throw new Error("Nội dung yêu cầu không được vượt quá 1000 ký tự");
+          if (requestContent.trim() === shippingRequest.requestContent) throw new Error("Không có thay đổi nào để cập nhật");
+        }
+
+        const updateData = {};
+        if (requestContent !== undefined && requestContent !== null) updateData.requestContent = requestContent.trim();
+        if (Object.keys(updateData).length === 0) throw new Error("Không có dữ liệu nào để cập nhật");
+
+        await shippingRequest.update(updateData, { transaction: t });
+
+        return shippingRequest;
       });
 
-      // Kiểm tra quyền sở hữu thông qua Order
-      if (!shippingRequest || shippingRequest.order.userId !== userId) {
-        return { success: false, message: 'Yêu cầu không tồn tại hoặc bạn không có quyền sửa' };
+      // gửi notification ngoài transaction
+      if (result.officeId) {
+        const users = await getManagersByOffice(result.officeId);
+
+        const notifications = users.map(u => ({
+          userId: u.id,
+          title: `Yêu cầu ${translateShippingRequestType(result.requestType)} đã được cập nhật`,
+          message: `Một yêu cầu chưa được xử lý đã được người dùng cập nhật nội dung.`,
+          type: 'ShippingRequest',
+          relatedId: result.id,
+          relatedType: 'ShippingRequest'
+        }));
+
+        if (notifications.length > 0) await db.Notification.bulkCreate(notifications);
       }
-
-      if (shippingRequest.status !== 'Pending') {
-        return {
-          success: false,
-          message: 'Chỉ có thể cập nhật yêu cầu khi trạng thái là đang chờ xử lý'
-        };
-      }
-
-      if (requestContent !== undefined && requestContent !== null) {
-        if (shippingRequest.requestType !== 'DeliveryReminder') {
-          if (!requestContent.trim() || requestContent.trim().length === 0) {
-            return { success: false, message: "Nội dung yêu cầu không được để trống" };
-          }
-        }
-
-        if (requestContent.length > 1000) {
-          return { success: false, message: "Nội dung yêu cầu không được vượt quá 1000 ký tự" };
-        }
-
-        if (requestContent.trim() === shippingRequest.requestContent) {
-          return { success: false, message: "Không có thay đổi nào để cập nhật" };
-        }
-      }
-
-      const updateData = {};
-      if (requestContent !== undefined && requestContent !== null) {
-        updateData.requestContent = requestContent.trim();
-      }
-
-      if (Object.keys(updateData).length === 0) {
-        return { success: false, message: "Không có dữ liệu nào để cập nhật" };
-      }
-
-      await shippingRequest.update(updateData, { transaction: t });
-      await t.commit();
 
       const updatedRequest = await db.ShippingRequest.findOne({
         where: { id: requestId },
-        include: [{
-          model: db.Order,
-          as: 'order',
-          attributes: ['trackingNumber']
-        }]
+        include: [{ model: db.Order, as: 'order', attributes: ['trackingNumber'] }]
       });
 
       return {
@@ -352,10 +392,10 @@ const shippingRequestService = {
         message: "Cập nhật nội dung yêu cầu thành công",
         request: updatedRequest
       };
+
     } catch (error) {
-      await t.rollback();
       console.error("Update Shipping Request error:", error);
-      return { success: false, message: "Lỗi server khi cập nhật yêu cầu" };
+      return { success: false, message: error.message || "Lỗi server khi cập nhật yêu cầu" };
     }
   },
 
@@ -371,11 +411,18 @@ const shippingRequestService = {
       // 2. Tìm ShippingRequest kèm Order để kiểm tra ownership
       const shippingRequest = await db.ShippingRequest.findOne({
         where: { id: requestId },
-        include: [{
-          model: db.Order,
-          as: 'order',
-          where: { userId }
-        }],
+        include: [
+          {
+            model: db.Order,
+            as: 'order',
+            where: { userId }
+          },
+          {
+            model: db.Office,
+            as: 'office',
+            attributes: ['id']
+          }
+        ],
         transaction: t
       });
 
@@ -390,7 +437,7 @@ const shippingRequestService = {
       if (shippingRequest.status !== "Pending") {
         return {
           success: false,
-          message: "Chỉ có thể hủy yêu cầu ở trạng thái 'Pending'"
+          message: `Chỉ có thể hủy yêu cầu ở trạng thái ${translateShippingRequestStatus(shippingRequest.status)}`
         };
       }
 
@@ -400,6 +447,23 @@ const shippingRequestService = {
       }, { transaction: t });
 
       await t.commit();
+
+      if (shippingRequest.officeId) {
+        const users = await getManagersByOffice(shippingRequest.officeId);
+
+        const notifications = users.map(u => ({
+          userId: u.id,
+          title: `Yêu cầu ${translateShippingRequestType(shippingRequest.requestType)} đã bị hủy`,
+          message: `Một yêu cầu chưa xử lý đã bị hủy.`,
+          type: 'ShippingRequest',
+          relatedId: shippingRequest.id,
+          relatedType: 'ShippingRequest'
+        }));
+
+        if (notifications.length > 0) {
+          await db.Notification.bulkCreate(notifications);
+        }
+      }
 
       return {
         success: true,
@@ -418,6 +482,8 @@ const shippingRequestService = {
       };
     }
   },
+
+  // ===================== Manager ==============================
 
   // Get Requests By Office - cho manager
   async listOfficeRequests(userId, officeId, page, limit, filters) {
@@ -454,7 +520,7 @@ const shippingRequestService = {
         where: {
           userId: userId,
           officeId: officeId,
-          status: 'Active' // Chỉ kiểm tra nhân viên đang active
+          status: 'Active'
         },
         include: [{
           model: db.Office,
@@ -467,20 +533,36 @@ const shippingRequestService = {
         return { success: false, message: 'Bạn không thuộc văn phòng này hoặc không có quyền truy cập' };
       }
 
-      // Điều kiện where cho ShippingRequest - chỉ thay đổi phần này
       let whereCondition = {
-        officeId: officeId, // Thay orderId bằng officeId
+        officeId: officeId,
         status: {
-          [Op.not]: 'Cancelled' // KHÔNG lấy các request đã hủy
+          [Op.not]: 'Cancelled'
         }
       };
 
-      // Lọc dữ liệu - GIỮ NGUYÊN như listUserRequests
+      // Lọc dữ liệu 
       const { searchText, requestType, status, startDate, endDate, sort } = filters || {};
 
-      // Tìm kiếm theo trackingNumber của Order
       if (searchText) {
-        whereCondition['$order.trackingNumber$'] = { [Op.like]: `%${searchText}%` };
+        const words = searchText.trim().split(/\s+/);
+
+        whereCondition[Op.or] = [
+          { '$order.trackingNumber$': { [Op.like]: `%${searchText}%` } },
+          { '$user.phoneNumber$': { [Op.like]: `%${searchText}%` } },
+          { '$user.email$': { [Op.like]: `%${searchText}%` } },
+          { contactName: { [Op.like]: `%${searchText}%` } },
+          { contactPhoneNumber: { [Op.like]: `%${searchText}%` } },
+          { contactEmail: { [Op.like]: `%${searchText}%` } },
+          {
+            // Tìm tất cả từ trong firstName hoặc lastName
+            [Op.and]: words.map(word => ({
+              [Op.or]: [
+                { '$user.firstName$': { [Op.like]: `%${word}%` } },
+                { '$user.lastName$': { [Op.like]: `%${word}%` } },
+              ]
+            }))
+          }
+        ];
       }
 
       // Lọc theo loại request
@@ -493,12 +575,15 @@ const shippingRequestService = {
         whereCondition.status = status;
       }
 
-      // Lọc theo ngày tạo
+      // Lọc theo ngày tạo và ngày phản hồi
       if (startDate && endDate) {
-        whereCondition.createdAt = { [Op.between]: [startDate, endDate] };
+        whereCondition[Op.or] = [
+          { createdAt: { [Op.between]: [startDate, endDate] } },
+          { responseAt: { [Op.between]: [startDate, endDate] } }
+        ];
       }
 
-      // Sắp xếp - GIỮ NGUYÊN
+      // Sắp xếp
       let order = [['createdAt', 'DESC']];
       if (sort === 'newest') {
         order = [['createdAt', 'DESC']];
@@ -506,7 +591,7 @@ const shippingRequestService = {
         order = [['createdAt', 'ASC']];
       }
 
-      // Query ShippingRequests với include Order - GIỮ NGUYÊN
+      // Query ShippingRequests với include Order 
       const requestsResult = await db.ShippingRequest.findAndCountAll({
         where: whereCondition,
         include: [
@@ -514,6 +599,10 @@ const shippingRequestService = {
             model: db.Order,
             as: 'order',
             attributes: ['id', 'trackingNumber']
+          },
+          {
+            model: db.User,
+            as: 'user',
           },
         ],
         order,
@@ -532,6 +621,116 @@ const shippingRequestService = {
     } catch (error) {
       console.error('Get Requests By Office error:', error);
       return { success: false, message: 'Lỗi server' };
+    }
+  },
+
+  async updateRequestByManager(managerId, requestId, response, status) {
+    const t = await db.sequelize.transaction();
+    try {
+      // Kiểm tra trạng thái đầu vào
+      if (!status) {
+        return { success: false, message: "Trạng thái là bắt buộc" };
+      }
+
+      // Kiểm tra Manager có hợp lệ không
+      const manager = await db.Employee.findOne({
+        where: { userId: managerId, status: "Active" },
+        include: [{ model: db.Office, as: "office" }],
+      });
+
+      if (!manager) {
+        return { success: false, message: "Chỉ quản lý đang hoạt động mới có thể cập nhật yêu cầu" };
+      }
+
+      // Tìm yêu cầu cần cập nhật
+      const request = await db.ShippingRequest.findOne({
+        where: {
+          id: requestId,
+          officeId: manager.officeId,
+        },
+      });
+
+      if (!request) {
+        return { success: false, message: "Không tìm thấy yêu cầu hoặc không thuộc bưu cục của bạn" };
+      }
+
+      // Kiểm tra logic chuyển trạng thái hợp lệ
+      const validTransitions = {
+        Pending: ["Processing", "Resolved", "Rejected"],
+        Processing: ["Resolved"],
+        Resolved: [],
+        Rejected: [],
+        Cancelled: [],
+      };
+
+      if (!validTransitions[request.status].includes(status)) {
+        return {
+          success: false,
+          message: `Không thể chuyển trạng thái từ ${request.status} sang ${status}`,
+        };
+      }
+
+      // Cập nhật nội dung
+      request.status = status;
+      if (response) request.response = response;
+      request.handlerId = manager.id;
+      request.responseAt = new Date();
+
+      await request.save({ transaction: t });
+
+      // Gửi thông báo tới người dùng tạo yêu cầu
+      if (request.userId) {
+        const notification = await db.Notification.create(
+          {
+            userId: request.userId,
+            title: `Cập nhật yêu cầu ${translateShippingRequestType(request.requestType)}`,
+            message: `Yêu cầu của bạn hiện đã được cập nhật sang trạng thái "${translateShippingRequestStatus(status)}".`,
+            type: "ShippingRequest",
+            relatedId: request.id,
+            relatedType: "ShippingRequest",
+          },
+          { transaction: t }
+        );
+
+        // websocket server
+        // io.to(`user_${request.userId}`).emit('notification', notification);
+      }
+
+      // Nếu muốn thông báo cho các manager khác cùng office
+      const otherManagers = await db.User.findAll({
+        include: [{
+          model: db.Employee,
+          as: 'employee',
+          where: { officeId: manager.officeId, status: 'Active' }
+        }],
+        where: { role: 'manager', id: { [db.Sequelize.Op.ne]: managerId } }
+      });
+
+      const notifications = otherManagers.map(u => ({
+        userId: u.id,
+        title: `Yêu cầu ${translateShippingRequestType(request.requestType)} đã được xử lý`,
+        message: `Một manager khác đã cập nhật trạng thái yêu cầu tại bưu cục của bạn.`,
+        type: 'ShippingRequest',
+        relatedId: request.id,
+        relatedType: 'ShippingRequest'
+      }));
+
+      if (notifications.length > 0) {
+        await db.Notification.bulkCreate(notifications);
+      }
+
+
+      await t.commit();
+
+      return {
+        success: true,
+        message: "Cập nhật yêu cầu thành công",
+        request,
+      };
+    } catch (error) {
+      await t.rollback();
+      console.error("Update Shipping Request error:", error);
+      return { success: false, message: "Lỗi server khi cập nhật yêu cầu" };
     }
   },
 

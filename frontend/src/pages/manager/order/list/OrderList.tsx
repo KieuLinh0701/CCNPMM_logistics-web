@@ -20,8 +20,6 @@ import { City, Ward } from "../../../../types/location";
 import { getByUserId, getOfficesByArea } from "../../../../store/officeSlice";
 import { Order } from "../../../../types/order";
 import OfficeSelectionModal from "./components/OfficeSelectionModal";
-import { RootState } from "../../../../store/store";
-import { useSelector } from "react-redux";
 
 const OrderListManager = () => {
   const navigate = useNavigate();
@@ -203,6 +201,8 @@ const OrderListManager = () => {
       .then((res) => setProvinceList(res.data))
       .catch((err) => console.error(err));
 
+      console.log("province", provinceList);
+
     // Fetch wards
     axios
       .get<{ code: number; name: string }[]>("https://provinces.open-api.vn/api/v2/w/")
@@ -284,6 +284,13 @@ const OrderListManager = () => {
       />
       {selectedOrder && <OfficeSelectionModal
         open={isOfficeSelectionModalVisible}
+        recipient={{
+          detailAddress: selectedOrder.recipientDetailAddress,
+          wardCode: selectedOrder.recipientWardCode,
+          cityCode: selectedOrder.recipientCityCode,
+        }}
+        wardList={wardList}
+        provinceList={provinceList}
         offices={offices}
         trackingNumber={selectedOrder.trackingNumber}
         onConfirm={handleConfirm}

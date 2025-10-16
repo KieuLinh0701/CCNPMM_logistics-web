@@ -249,13 +249,16 @@ let initApiRoutes = (app) => {
     router.post('/vehicles/import/:id', verifyToken, vehicleController.importVehicles);
 
     // Requests Routes
-    router.get('/requests', verifyToken, shippingRequestController.listUserRequests);
-    router.get('/requests/types', verifyToken, shippingRequestController.getRequestTypes);
-    router.get('/requests/statuses', verifyToken, shippingRequestController.getRequestStatuses);
-    router.put('/requests/cancel', verifyToken, shippingRequestController.cancelRequest);
-    router.post('/requests', verifyToken, shippingRequestController.createRequest);
-    router.put('/requests/:id', verifyToken, shippingRequestController.updateRequest);
-    router.get('/requests/office/:officeId', verifyToken, shippingRequestController.listOfficeRequests);
+    router.get('/protected/requests/types', verifyToken, shippingRequestController.getRequestTypes);
+    router.get('/protected/requests/statuses', verifyToken, shippingRequestController.getRequestStatuses);
+
+    router.get('/user/requests', verifyToken, shippingRequestController.listUserRequests);
+    router.put('/user/requests/cancel', verifyToken, shippingRequestController.cancelRequest);
+    router.post('/user/requests', verifyToken, shippingRequestController.createRequest);
+    router.put('/user/requests/:id', verifyToken, shippingRequestController.updateRequest);
+    
+    router.get('/manager/requests/:officeId', verifyToken, shippingRequestController.listOfficeRequests);
+    router.put('/manager/requests/:id', verifyToken, shippingRequestController.updateRequestByManager);
 
     // VNPAY
     router.use("/payment", payment);

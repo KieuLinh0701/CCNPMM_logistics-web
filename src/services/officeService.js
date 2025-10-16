@@ -229,7 +229,7 @@ const officeService = {
   async getOfficesByArea(codeCity, codeWard) {
     console.log("codeWard ", codeWard);
     try {
-      const whereClause = {};
+      const whereClause = { status: 'Active' };
       if (codeCity != null) whereClause.codeCity = codeCity;
       if (codeWard != null) whereClause.codeWard = codeWard;
 

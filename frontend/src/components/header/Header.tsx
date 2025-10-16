@@ -97,7 +97,7 @@ const Header: React.FC<HeaderProps> = () => {
             }}/>
             <Text style={{ color: "#fff" }}>
               {user?.firstName && user?.lastName
-                ? `${capitalize(user.lastName)} ${capitalize(user.firstName)}`
+                ? `${capitalize(user.firstName)} ${capitalize(user.lastName)}`
                 : "User"}
             </Text>
           </Space>

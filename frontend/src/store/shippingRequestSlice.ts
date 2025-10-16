@@ -15,7 +15,7 @@ const initialState: ShippingRequestState = {
 };
 
 export const getRequestTypes = createAsyncThunk(
-  'requests/get-types',
+  'requests/getTypes',
   async (_, { rejectWithValue }) => {
     try {
       const response = await requestAPI.getRequestTypes();
@@ -27,7 +27,7 @@ export const getRequestTypes = createAsyncThunk(
 );
 
 export const getRequestStatuses = createAsyncThunk(
-  'requests/get-statuses',
+  'requests/getStatuses',
   async (_, { rejectWithValue }) => {
     try {
       const response = await requestAPI.getRequestStatuses();
@@ -52,7 +52,7 @@ export const listUserRequests = createAsyncThunk<
   },
   { rejectValue: string }
 >(
-  'requests',
+  'requests/listUserRequests',
   async ({ page, limit, searchText, type, status, sort, startDate, endDate }, thunkAPI) => {
     try {
       // Build query param
@@ -81,7 +81,7 @@ export const createRequest = createAsyncThunk<
   Partial<ShippingRequest>,
   { rejectValue: string }
 >(
-  'requests/add',
+  'requests/create',
   async (request, thunkAPI) => {
     try {
       const data = await requestAPI.createRequest(request);
@@ -98,7 +98,7 @@ export const updateRequest = createAsyncThunk<
   { request: Partial<ShippingRequest> },
   { rejectValue: string }
 >(
-  'requests/edit',
+  'requests/update',
   async ({ request }, thunkAPI) => {
     try {
       const data = await requestAPI.updateRequest(request);
@@ -124,7 +124,7 @@ export const listOfficeRequests = createAsyncThunk<
   },
   { rejectValue: string }
 >(
-  'requests/by-office',
+  'requests/listOffice',
   async ({ officeId, page, limit, searchText, type, status, sort, startDate, endDate }, thunkAPI) => {
     try {
       // Build query param
@@ -148,13 +148,31 @@ export const listOfficeRequests = createAsyncThunk<
 );
 
 export const cancelRequest = createAsyncThunk(
-  "requests/cancel",
+  'requests/cancel',
   async (requestId: number, { rejectWithValue }) => {
     try {
       const response = await requestAPI.cancelRequest(requestId);
       return response;
     } catch (err: any) {
       return rejectWithValue(err.response?.data.message || "Hủy yêu cầu thất bại");
+    }
+  }
+);
+
+export const updateRequestByManager = createAsyncThunk<
+  ShippingRequestResponse,
+  { requestId: number; data: { response?: string; status?: string } },
+  { rejectValue: string }
+>(
+  'requests/updateByManager',
+  async ({ requestId, data }, thunkAPI) => {
+    try {
+      const result = await requestAPI.updateRequestByManager(requestId, data);
+      return result;
+    } catch (err: any) {
+      return thunkAPI.rejectWithValue(
+        err.response?.data?.message || 'Lỗi khi cập nhật yêu cầu bởi quản lý'
+      );
     }
   }
 );
@@ -292,6 +310,28 @@ const shippingRequestSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       });
+
+    builder
+      .addCase(updateRequestByManager.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateRequestByManager.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload.success && action.payload.request) {
+          const updated = action.payload.request;
+          const index = state.requests.findIndex((r) => r.id === updated.id);
+          if (index !== -1) {
+            state.requests[index] = updated;
+          }
+          state.request = updated;
+        }
+      })
+      .addCase(updateRequestByManager.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
   },
 });
 

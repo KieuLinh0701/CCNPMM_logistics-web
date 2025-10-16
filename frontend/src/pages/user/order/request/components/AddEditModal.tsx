@@ -72,7 +72,7 @@ const AddEditModal: React.FC<AddEditModalProps> = ({
     !['Inquiry', 'Complaint'].includes(selectedRequestType);
 
   // Kiểm tra có cần content không - BAN ĐẦU KHÔNG BẮT BUỘC
-  const requiresContent = selectedRequestType && selectedRequestType !== 'DeliveryReminder';
+  const requiresContent = selectedRequestType && (selectedRequestType !== 'DeliveryReminder' && selectedRequestType !== 'PickupReminder');
 
   // Render thông báo hướng dẫn
   const renderInstructions = () => {
@@ -82,7 +82,8 @@ const AddEditModal: React.FC<AddEditModalProps> = ({
       Inquiry: 'Yêu cầu hỗ trợ: Có thể để trống mã đơn hàng',
       Complaint: 'Yêu cầu khiếu nại: Có thể để trống mã đơn hàng',
       DeliveryReminder: 'Yêu cầu hối giao hàng: Có thể để trống nội dung',
-      ChangeOrderInfo: 'Yêu cầu thay đổi thông tin: Bắt buộc có mã đơn hàng và nội dung cần thay đổi'
+      ChangeOrderInfo: 'Yêu cầu thay đổi thông tin: Bắt buộc có mã đơn hàng và nội dung cần thay đổi',
+      PickupReminder: 'Yêu cầu hối lấy hàng: Có thể để trống nội dung',
     };
 
     return (
@@ -100,21 +101,21 @@ const AddEditModal: React.FC<AddEditModalProps> = ({
     if (!selectedRequestType) {
       return []; // Không validate khi chưa chọn loại
     }
-    
+
     const rules: Rule[] = [];
-    
+
     if (requiresContent) {
       rules.push({
         required: true,
         message: 'Nhập nội dung yêu cầu!'
       });
     }
-    
+
     rules.push({
       max: 1000,
       message: 'Nội dung không được vượt quá 1000 ký tự!'
     });
-    
+
     return rules;
   };
 
@@ -163,22 +164,6 @@ const AddEditModal: React.FC<AddEditModalProps> = ({
         {renderInstructions()}
 
         <Form.Item
-          label="Mã đơn hàng"
-          name="trackingNumber"
-          rules={[
-            {
-              required: requiresTrackingNumber, 
-              message: 'Nhập mã đơn hàng!'
-            }
-          ]}
-        >
-          <Input
-            disabled={mode === 'edit'}
-            placeholder="Nhập mã đơn hàng..."
-          />
-        </Form.Item>
-
-        <Form.Item
           label="Loại yêu cầu"
           name="requestType"
           rules={[{ required: true, message: 'Chọn loại yêu cầu!' }]}
@@ -197,17 +182,39 @@ const AddEditModal: React.FC<AddEditModalProps> = ({
         </Form.Item>
 
         <Form.Item
+          label="Mã đơn hàng"
+          name="trackingNumber"
+          rules={[
+            ({ getFieldValue }) => ({
+              required: !!getFieldValue('requestType') &&
+                !['Inquiry', 'Complaint'].includes(getFieldValue('requestType')),
+              message: 'Nhập mã đơn hàng!',
+            }),
+          ]}
+        >
+          <Input
+            disabled={mode === 'edit'}
+            placeholder="Nhập mã đơn hàng..."
+          />
+        </Form.Item>
+
+        <Form.Item
           label="Nội dung yêu cầu"
           name="requestContent"
-          rules={getContentRules()} // Sử dụng dynamic rules
+          rules={[
+            ({ getFieldValue }) => {
+              const type = getFieldValue('requestType');
+              return {
+                required: type && !['DeliveryReminder', 'PickupReminder'].includes(type),
+                message: 'Nhập nội dung yêu cầu!',
+              };
+            },
+            { max: 1000, message: 'Nội dung không được vượt quá 1000 ký tự!' },
+          ]}
         >
           <Input.TextArea
             autoSize={{ minRows: 3, maxRows: 6 }}
-            placeholder={
-              selectedRequestType === 'DeliveryReminder' 
-                ? "Nội dung không bắt buộc cho yêu cầu hối giao hàng..."
-                : "Nhập nội dung yêu cầu..."
-            }
+            placeholder="Nhập nội dung yêu cầu..."
             showCount
             maxLength={1000}
           />

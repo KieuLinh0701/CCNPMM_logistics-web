@@ -1,10 +1,11 @@
 import React from 'react';
 import { Table, Button, Space, Tag, Tooltip, message } from 'antd';
-import { CopyOutlined, EyeOutlined, SolutionOutlined } from '@ant-design/icons';
+import { CopyOutlined, EyeOutlined, InfoCircleOutlined, SolutionOutlined } from '@ant-design/icons';
 import { ColumnsType } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
 import { ShippingRequest } from '../../../../../types/shippingRequest';
 import { translateRequestType, translateStatus } from '../../../../../utils/shippingRequestUtils';
+import { City, Ward } from '../../../../../types/location';
 
 interface TableProps {
   data: ShippingRequest[];
@@ -12,6 +13,8 @@ interface TableProps {
   pageSize: number;
   total: number;
   loading?: boolean;
+  wards: Ward[];
+  cities: City[];
   onProcess: (request: ShippingRequest) => void;
   onDetail: (request: ShippingRequest) => void;
   onPageChange: (page: number, pageSize?: number) => void;
@@ -28,6 +31,8 @@ const RequestTable: React.FC<TableProps> = ({
   onDetail,
   onPageChange,
   role,
+  wards,
+  cities,
 }) => {
   const navigate = useNavigate();
 
@@ -51,18 +56,10 @@ const RequestTable: React.FC<TableProps> = ({
 
   const columns: ColumnsType<ShippingRequest> = [
     {
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
-      align: 'center',
-      width: 70,
-    },
-    {
       title: 'Mã đơn hàng',
       dataIndex: ['order', 'trackingNumber'],
       key: 'trackingNumber',
       align: 'center',
-      width: 160,
       render: (text, record) => (
         <Space>
           <Button
@@ -72,27 +69,70 @@ const RequestTable: React.FC<TableProps> = ({
           >
             {text}
           </Button>
-          <Tooltip title="Copy mã đơn hàng">
-            <Button
-              type="text"
-              size="small"
-              icon={<CopyOutlined />}
-              onClick={() => {
-                navigator.clipboard.writeText(text);
-                message.success('Đã copy mã đơn hàng!');
-              }}
-              style={{ color: '#1890ff' }}
-            />
-          </Tooltip>
+          {text && text.trim() !== '' ? (
+            <Tooltip title="Copy mã đơn hàng">
+              <Button
+                type="text"
+                size="small"
+                icon={<CopyOutlined />}
+                onClick={() => {
+                  navigator.clipboard.writeText(text);
+                  message.success('Đã copy mã đơn hàng!');
+                }}
+                style={{ color: '#1890ff' }}
+              />
+            </Tooltip>
+          ) : (
+            <Tag color="default">N/A</Tag>
+          )}
         </Space>
       )
+    },
+    {
+      title: 'Người gửi',
+      key: 'sender',
+      align: 'center',
+      width: 200,
+      render: (_, record) => {
+        const name = record.user
+          ? `${record.user.firstName} ${record.user.lastName}`
+          : record.contactName || 'Khách vãng lai';
+        const phone = record.user?.phoneNumber || record.contactPhoneNumber || '-';
+        const email = record.user?.email || record.contactEmail || '-';
+
+        const cityCode = record.user?.codeCity || record.contactCityCode;
+        const wardCode = record.user?.codeWard || record.contactWardCode;
+        const detail = record.user?.detailAddress || record.contactDetailAddress || '-';
+
+        const cityName = cities.find(c => c.code === cityCode)?.name || '';
+        const wardName = wards.find(w => w.code === wardCode)?.name || '';
+
+        const fullAddress = [detail, wardName, cityName].filter(Boolean).join(', ') || '-';
+
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span>{name}</span>
+            <Tooltip
+              placement="topLeft"
+              title={
+                <div>
+                  <div>SĐT: {phone}</div>
+                  <div>Email: {email}</div>
+                  <div>Địa chỉ: {fullAddress}</div>
+                </div>
+              }
+            >
+              <EyeOutlined style={{ marginLeft: 6, color: '#1890ff', cursor: 'pointer' }} />
+            </Tooltip>
+          </div>
+        );
+      }
     },
     {
       title: 'Loại yêu cầu',
       dataIndex: 'requestType',
       key: 'requestType',
       align: 'center',
-      width: 200,
       render: (type) => translateRequestType(type)
     },
     {
@@ -100,33 +140,39 @@ const RequestTable: React.FC<TableProps> = ({
       dataIndex: 'requestContent',
       key: 'requestContent',
       align: 'center',
-      width: 300,
-      render: (text, record) => (
-        <Tooltip title={text} placement="topLeft">
-          <div
-            style={{
+      width: 250,
+      render: (text) => {
+        if (!text || text.trim() === '') {
+          return <Tag color="default">N/A</Tag>;
+        }
+
+        return (
+          <Tooltip title={text} placement="topLeft">
+            <div style={{
               wordBreak: 'break-word',
               whiteSpace: 'normal',
               display: '-webkit-box',
               WebkitLineClamp: 3,
               WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
-              cursor: 'pointer',
-            }}
-          >
-            {text && text.trim() !== '' ? text : <Tag color="default">Không có nội dung</Tag>}
-          </div>
-        </Tooltip>
-      ),
+              cursor: 'pointer'
+            }}>
+              {text}
+            </div>
+          </Tooltip>
+        );
+      }
     },
     {
       title: 'Phản hồi',
       dataIndex: 'response',
       key: 'response',
       align: 'center',
-      width: 300,
-      render: (response) =>
-        response ? (
+      width: 250,
+      render: (response) => {
+        if (!response) return <Tag color="red">Chưa phản hồi</Tag>;
+
+        return (
           <Tooltip title={response} placement="topLeft">
             <div style={{
               wordBreak: 'break-word',
@@ -140,58 +186,46 @@ const RequestTable: React.FC<TableProps> = ({
               {response}
             </div>
           </Tooltip>
-        ) : (
-          <Tag color="default">Chưa phản hồi</Tag>
-        ),
+        );
+      }
     },
     {
       title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
       align: 'center',
-      width: 120,
       render: (status) => getStatusTag(status)
     },
     {
-      title: 'Ngày tạo',
+      title: 'Thời gian tạo',
       dataIndex: 'createdAt',
       key: 'createdAt',
       align: 'center',
-      width: 150,
+      render: (date) => new Date(date).toLocaleString('vi-VN')
+    },
+    {
+      title: 'Thời gian phản hồi',
+      dataIndex: 'responseAt',
+      key: 'responseAt',
+      align: 'center',
       render: (date) => new Date(date).toLocaleString('vi-VN')
     },
     {
       title: 'Hành động',
       key: 'action',
       align: 'center',
-      width: 150,
       render: (_, record: ShippingRequest) => {
         const canProcess = ["Pending", "Processing"].includes(record.status);
+        const actionLabel = record.status === "Processing" ? "Cập nhật" : "Xử lý";
 
         return (
           <Space>
-            <Button
-              type="link"
-              icon={<EyeOutlined />}
-              size="small"
-              onClick={() => onDetail(record)}
-            >
-              Xem
-            </Button>
-
-            <Button
-              type="link"
-              icon={<SolutionOutlined />}
-              size="small"
-              disabled={!canProcess}
-              onClick={() => onProcess(record)}
-            >
-              Xử lý
-            </Button>
+            <Button type="link" icon={<EyeOutlined />} size="small" onClick={() => onDetail(record)}>Xem</Button>
+            <Button type="link" icon={<SolutionOutlined />} size="small" disabled={!canProcess} onClick={() => onProcess(record)}>{actionLabel}</Button>
           </Space>
         );
       },
-    },
+    }
   ];
 
   const tableData = data.map((p, index) => ({
@@ -199,7 +233,7 @@ const RequestTable: React.FC<TableProps> = ({
     key: String(index + 1 + (currentPage - 1) * pageSize),
   }));
 
-  const totalColumnsWidth = 70 + 160 + 200 + 300 + 300 + 120 + 150 + 150;
+  const totalColumnsWidth = 160 + 200 + 250 + 250 + 120 + 200 + 200 + 150 + 20;
 
   return (
     <>
@@ -222,18 +256,8 @@ const RequestTable: React.FC<TableProps> = ({
           dataSource={tableData}
           rowKey="key"
           loading={loading}
-          pagination={{
-            current: currentPage,
-            pageSize,
-            total,
-            onChange: onPageChange,
-          }}
-          style={{
-            width: '100%',
-          }}
-          scroll={{
-            x: totalColumnsWidth,
-          }}
+          pagination={{ current: currentPage, pageSize, total, onChange: onPageChange }}
+          scroll={{ x: 'max-content' }}
         />
       </div>
     </>

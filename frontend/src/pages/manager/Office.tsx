@@ -95,7 +95,7 @@ const Office = () => {
       status: office.status,
       office: {
         province: office.codeCity,   
-        commune: office.codeWard,    // code của ward
+        commune: office.codeWard,
         address: office.address
       }
     });

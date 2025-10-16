@@ -1,8 +1,6 @@
 import { Op } from 'sequelize';
 import db from '../models';
-import { VNPay, VnpLocale, dateFormat } from 'vnpay';
 import paymentService from './paymentService';
-import { current } from '@reduxjs/toolkit';
 
 function generateTrackingNumber(length = 14) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -1812,7 +1810,7 @@ const orderService = {
       }
 
       // 4. Kiểm tra trạng thái có thể hủy
-      const cancellableStatuses = ["pending", "confirmed", "picked_up"];
+      const cancellableStatuses = ["confirmed", "picked_up"];
       if (!cancellableStatuses.includes(order.status)) {
         return { success: false, message: "Không thể hủy đơn ở trạng thái hiện tại" };
       }

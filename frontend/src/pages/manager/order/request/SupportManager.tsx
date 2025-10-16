@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { Form, message, Modal } from 'antd';
+import { Form, message } from 'antd';
 import dayjs from 'dayjs';
 import SearchFilters from './components/SearchFilters';
-import AddEditModal from './components/AddEditModal';
 import { useAppDispatch, useAppSelector } from '../../../../hooks/redux';
 import RequestTable from './components/Table';
 import { ShippingRequest } from '../../../../types/shippingRequest';
-import { createRequest, cancelRequest, listOfficeRequests, getRequestStatuses, getRequestTypes, updateRequest } from '../../../../store/shippingRequestSlice';
-import DetailModal from './components/DetailModal';
+import { listOfficeRequests, getRequestStatuses, getRequestTypes, updateRequestByManager } from '../../../../store/shippingRequestSlice';
+import RequestModal from './components/RequestModal';
 import { useNavigate } from 'react-router-dom';
 import { getByUserId } from '../../../../store/officeSlice';
+import { City, Ward } from '../../../../types/location';
+import axios from "axios";
 
 const SupportManager: React.FC = () => {
   const navigate = useNavigate();
@@ -18,8 +19,6 @@ const SupportManager: React.FC = () => {
   const { office, loading } = useAppSelector(state => state.office);
 
   const [hover, setHover] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [newRequest, setNewRequest] = useState<Partial<ShippingRequest>>({});
 
   const [searchText, setSearchText] = useState('');
@@ -35,120 +34,79 @@ const SupportManager: React.FC = () => {
   const dispatch = useAppDispatch();
   const { requests = [], total = 0, requestTypes = [], statuses = [] } = useAppSelector((state) => state.request);
 
-  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [requestModalVisible, setRequestModalVisible] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<ShippingRequest | null>(null);
 
-  const [editFromDetailModalVisible, setEditFromDetailModalVisible] = useState(false);
+  const [mode, setMode] = useState<'view' | 'edit'>('view');
 
-  const handleAddRequest = async () => {
-    try {
-      const result = await dispatch(createRequest(newRequest)).unwrap();
-      if (result.success) {
-        message.success(result.message || 'Thêm yêu cầu thành công!');
-        setIsModalOpen(false);
-        setNewRequest({});
-        form.resetFields();
-        fetchRequests(1);
-      } else {
-        message.error(result.message || 'Thêm yêu cầu thất bại!');
-      }
-    } catch (error) {
-      if (error instanceof Error) {
-        message.error(error.message || 'Có lỗi khi thêm yêu cầu!');
-      } else {
-        message.error('Có lỗi khi thêm yêu cầu!');
-      }
+  const [cities, setCities] = useState<City[]>([]);
+  const [wards, setWards] = useState<Ward[]>([]);
+
+  // --- Fetch province/ward ---
+  useEffect(() => {
+    // Fetch provinces
+    axios
+      .get<{ code: number; name: string }[]>("https://provinces.open-api.vn/api/v2/p/")
+      .then((res) => setCities(res.data))
+      .catch((err) => console.error(err));
+
+    // Fetch wards
+    axios
+      .get<{ code: number; name: string }[]>("https://provinces.open-api.vn/api/v2/w/")
+      .then((res) => setWards(res.data))
+      .catch((err) => console.error(err));
+  }, []);
+
+
+  // Handle cập nhật request
+  const handleEdit = async (response: string, status: string) => {
+    if (!selectedRequest) {
+      message.error("Chưa chọn yêu cầu để cập nhật");
+      return;
     }
-  };
 
-  const handleEditRequest = async () => {
-    await form.validateFields();
+    if (!status) {
+      message.error("Vui lòng chọn trạng thái trước khi cập nhật");
+      return;
+    }
+
     try {
-      const result = await dispatch(updateRequest({ request: newRequest }));
+      const result = await dispatch(
+        updateRequestByManager({
+          requestId: selectedRequest.id,
+          data: { response, status },
+        })
+      );
 
-      if (result.payload && typeof result.payload === 'object' && 'success' in result.payload) {
+      if (result.payload && typeof result.payload === "object" && "success" in result.payload) {
         if (result.payload.success) {
-          message.success(result.payload.message || 'Cập nhật yêu cầu thành công!');
-          setIsModalOpen(false);
-          setEditFromDetailModalVisible(false);
+          message.success(result.payload.message || "Cập nhật yêu cầu thành công!");
+          setMode("view");
+          setRequestModalVisible(true);
           setNewRequest({});
           form.resetFields();
           fetchRequests(currentPage);
 
-          if (detailModalVisible && selectedRequest) {
+          if (requestModalVisible && selectedRequest) {
             setSelectedRequest({
               ...selectedRequest,
-              ...newRequest
+              response,
+              status: status as "Pending" | "Processing" | "Resolved" | "Rejected" | "Cancelled",
             });
           }
         } else {
-          message.error(result.payload.message || 'Cập nhật thất bại!');
+          message.error(result.payload.message || "Cập nhật thất bại!");
         }
       } else {
-        message.error('Cập nhật thất bại!');
+        message.error("Cập nhật thất bại!");
       }
     } catch (error) {
-      message.error('Cập nhật thất bại!');
+      message.error("Cập nhật thất bại!");
     }
-  };
-
-  const handleCancelRequest = (requestId: number) => {
-    Modal.confirm({
-      title: "Xác nhận hủy yêu cầu",
-      content: "Bạn có chắc chắn muốn hủy yêu cầu này không?",
-      okText: "Hủy",
-      cancelText: "Không",
-      centered: true,
-      icon: null,
-      okButtonProps: {
-        style: {
-          backgroundColor: "#1C3D90",
-          color: "#fff",
-        },
-      },
-      cancelButtonProps: {
-        style: {
-          backgroundColor: "#e0e0e0",
-          color: "#333",
-        },
-      },
-      onOk: async () => {
-        try {
-          const resultAction = await dispatch(cancelRequest(requestId)).unwrap();
-          if (resultAction.success) {
-            message.success(resultAction.message || "Hủy yêu cầu thành công");
-            fetchRequests(currentPage);
-            if (detailModalVisible && selectedRequest) {
-              setSelectedRequest({
-                ...selectedRequest,
-                status: 'Cancelled'
-              });
-            }
-          } else {
-            message.error(resultAction.message || "Hủy yêu cầu thất bại");
-          }
-        } catch (error: any) {
-          message.error(error.message || "Lỗi server khi hủy yêu cầu");
-        }
-      },
-    });
-  };
-
-  // Handler mở edit từ detail modal
-  const handleEditFromDetail = (request: ShippingRequest) => {
-    setNewRequest(request);
-    setEditFromDetailModalVisible(true);
-    form.setFieldsValue({
-      id: request.id,
-      trackingNumber: request.order?.trackingNumber,
-      requestType: request.requestType,
-      requestContent: request.requestContent,
-    });
   };
 
   const fetchRequests = (page = currentPage, search?: string) => {
     if (!office?.id) {
-      console.log('⚠️ Chưa có officeId, không thể fetch requests');
       return;
     }
 
@@ -197,7 +155,7 @@ const SupportManager: React.FC = () => {
 
   const handleViewDetail = (request: ShippingRequest) => {
     setSelectedRequest(request);
-    setDetailModalVisible(true);
+    setRequestModalVisible(true);
   };
 
   const handleViewOrderDetail = (trackingNumber: string) => {
@@ -207,7 +165,7 @@ const SupportManager: React.FC = () => {
   };
 
   const handleCloseDetail = () => {
-    setDetailModalVisible(false);
+    setRequestModalVisible(false);
     setSelectedRequest(null);
   };
 
@@ -267,11 +225,12 @@ const SupportManager: React.FC = () => {
           currentPage={currentPage}
           pageSize={pageSize}
           total={total}
+          wards={wards}
+          cities={cities}
           onProcess={(request) => {
-            setModalMode('edit');
-            setNewRequest(request);
-            setIsModalOpen(true);
-            form.setFieldsValue(request);
+            setSelectedRequest(request);
+            setMode('edit');
+            setRequestModalVisible(true);
           }}
           onDetail={handleViewDetail}
           onPageChange={(page, size) => {
@@ -283,36 +242,18 @@ const SupportManager: React.FC = () => {
         />
       }
 
-      <AddEditModal
-        open={isModalOpen}
-        mode={modalMode}
-        request={newRequest}
-        requestTypes={requestTypes}
-        onOk={modalMode === 'edit' ? handleEditRequest : handleAddRequest}
-        onCancel={() => setIsModalOpen(false)}
-        onRequestChange={setNewRequest}
-        form={form}
-      />
-
-      {/* Modal edit từ detail */}
-      <AddEditModal
-        open={editFromDetailModalVisible}
-        mode="edit"
-        request={newRequest}
-        requestTypes={requestTypes}
-        onOk={handleEditRequest}
-        onCancel={() => setEditFromDetailModalVisible(false)}
-        onRequestChange={setNewRequest}
-        form={form}
-      />
-
-      <DetailModal
-        open={detailModalVisible}
+      <RequestModal
+        open={requestModalVisible}
         request={selectedRequest}
+        mode={mode}
+        statuses={statuses}
         onClose={handleCloseDetail}
-        onEdit={handleEditFromDetail}
-        onCancel={handleCancelRequest}
+        onUpdate={handleEdit}
+        onEdit={() => setMode('edit')}
+        onCancelEdit={() => setMode('view')}
         onViewOrderDetail={handleViewOrderDetail}
+        wards={wards}
+        cities={cities}
       />
     </div>
   );

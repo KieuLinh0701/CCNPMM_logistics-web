@@ -183,7 +183,7 @@ const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, role, off
       width: 250,
       render: (_, record: Order) => {
         const canApprove = record.status === "pending";
-        const canCancel = ["pending", "picked_up", "confirmed"].includes(record.status);
+        const canCancel = ["picked_up", "confirmed"].includes(record.status);
 
         // ✅ Điều kiện hiển thị nút Sửa
         const canEdit =

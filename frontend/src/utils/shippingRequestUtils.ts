@@ -21,6 +21,8 @@ export const translateRequestType = (type: string): string => {
   switch (type) {
     case 'Complaint':
       return 'Khiếu nại';
+    case 'PickupReminder':
+      return 'Hối lấy hàng';
     case 'DeliveryReminder':
       return 'Hối giao hàng';
     case 'ChangeOrderInfo':

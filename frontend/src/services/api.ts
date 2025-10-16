@@ -794,18 +794,18 @@ export const vehicleAPI = {
 export const requestAPI = {
   // Get Statuses Enum
   getRequestStatuses: async (): Promise<ShippingRequestResponse> => {
-    const response = await api.get<ShippingRequestResponse>('/requests/statuses');
+    const response = await api.get<ShippingRequestResponse>('/protected/requests/statuses');
     return response.data;
   },
 
   // Get Types Enum
   getRequestTypes: async (): Promise<ShippingRequestResponse> => {
-    const response = await api.get<ShippingRequestResponse>('/requests/types');
+    const response = await api.get<ShippingRequestResponse>('/protected/requests/types');
     return response.data;
   },
 
   listUserRequests: async (query: string): Promise<ShippingRequestResponse> => {
-    const res = await api.get<ShippingRequestResponse>(`/requests?${query}`);
+    const res = await api.get<ShippingRequestResponse>(`/user/requests?${query}`);
     return res.data;
   },
 
@@ -817,7 +817,7 @@ export const requestAPI = {
 
     try {
       const response = await api.post<ShippingRequestResponse>(
-        `/requests`,
+        `/user/requests`,
         payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -836,7 +836,7 @@ export const requestAPI = {
 
     try {
       const response = await api.put<ShippingRequestResponse>(
-        `/requests/${id}`,
+        `/user/requests/${id}`,
         payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -847,13 +847,34 @@ export const requestAPI = {
   },
 
   cancelRequest: async (requestId: number): Promise<ShippingRequestResponse> => {
-    const res = await api.put<ShippingRequestResponse>(`/requests/cancel`, { requestId });
+    const res = await api.put<ShippingRequestResponse>(`/user/requests/cancel`, { requestId });
     return res.data;
   },
 
   listOfficeRequests: async (officeId: number, query: string): Promise<ShippingRequestResponse> => {
-    const res = await api.get<ShippingRequestResponse>(`/requests/office/${officeId}?${query}`);
+    const res = await api.get<ShippingRequestResponse>(`/manager/requests/${officeId}?${query}`);
     return res.data;
+  },
+
+  updateRequestByManager: async (
+    requestId: number,
+    data: { response?: string; status?: string }
+  ): Promise<ShippingRequestResponse> => {
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("Không tìm thấy token xác thực");
+
+    try {
+      const response = await api.put<ShippingRequestResponse>(
+        `/manager/requests/${requestId}`,
+        data,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return response.data;
+    } catch (error: any) {
+      throw new Error(
+        error.response?.data?.message || "Lỗi khi cập nhật thông tin yêu cầu"
+      );
+    }
   },
 }
 
