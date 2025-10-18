@@ -377,14 +377,30 @@ const orderSlice = createSlice({
 
     // Get Statuses
     builder
+      .addCase(getOrderStatuses.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getOrderStatuses.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload.success && action.payload.statuses) {
+          state.statuses = action.payload.statuses;
+        }
+      })
+      .addCase(getOrderStatuses.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+    builder
       .addCase(getOrderPaymentMethods.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(getOrderPaymentMethods.fulfilled, (state, action) => {
         state.loading = false;
-        if (action.payload.success && action.payload.statuses) {
-          state.statuses = action.payload.statuses;
+        if (action.payload.success && action.payload.paymentMethods) {
+          state.paymentMethods = action.payload.paymentMethods;
         }
       })
       .addCase(getOrderPaymentMethods.rejected, (state, action) => {
@@ -640,7 +656,7 @@ const orderSlice = createSlice({
         state.error = action.payload as string;
       });
 
-      // Update Order
+    // Update Order
     builder
       .addCase(updateManagerOrder.pending, (state) => {
         state.loading = true;

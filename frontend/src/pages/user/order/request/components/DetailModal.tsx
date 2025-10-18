@@ -41,6 +41,7 @@ const DetailModal: React.FC<DetailModalProps> = ({
             case 'DeliveryReminder': return 'orange';
             case 'ChangeOrderInfo': return 'blue';
             case 'Inquiry': return 'green';
+            case 'PickupReminder': return 'yellow';
             default: return 'default';
         }
     };
@@ -63,7 +64,7 @@ const DetailModal: React.FC<DetailModalProps> = ({
         <Modal
             title={
                 <span style={{ color: '#1C3D90', fontWeight: 'bold', fontSize: '18px' }}>
-                    Chi tiết yêu cầu #{request.id}
+                    Chi tiết yêu cầu
                 </span>
             }
             open={open}
@@ -114,9 +115,6 @@ const DetailModal: React.FC<DetailModalProps> = ({
                 width: '190px',
             }}>
                 {/* Thông tin cơ bản */}
-                <Descriptions.Item label="ID">
-                    <Text strong>#{request.id}</Text>
-                </Descriptions.Item>
 
                 <Descriptions.Item label="Mã đơn hàng">
                     {request.order ? (

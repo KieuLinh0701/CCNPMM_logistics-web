@@ -31,8 +31,8 @@ const HeaderHome: React.FC = () => {
   };
 
   const handleLogout = () => {
-    dispatch(logout()); 
-    navigate("/login"); 
+    dispatch(logout());
+    navigate("/login");
   };
 
   // Tạo menu cho dropdown
@@ -53,12 +53,11 @@ const HeaderHome: React.FC = () => {
     {
       key: "logout",
       label: (
-        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <LogoutOutlined style={{ color: "#ff4d4f" }} />
+        <span style={{ display: "flex", alignItems: "center", gap: 8, background: "transparent", color: "inherit" }}>
+          <LogoutOutlined />
           Logout
         </span>
       ),
-      danger: true,
       onClick: handleLogout,
     },
   ];
@@ -169,7 +168,7 @@ const HeaderHome: React.FC = () => {
                   />
                   <span style={{ color: "#000" }}>
                     {user?.firstName && user?.lastName
-                      ? `${capitalize(user.lastName)} ${capitalize(user.firstName)}`
+                      ? `${user?.firstName} ${user?.lastName}`
                       : "User"}
                   </span>
                 </div>
@@ -263,7 +262,7 @@ const HeaderHome: React.FC = () => {
               <Link to="/info/shipping-rates">Bảng giá</Link>
             </Menu.Item>
           </Menu.ItemGroup>
-          
+
           <Menu.Item key="/promotions"><Link to="/promotions">Khuyến mãi</Link></Menu.Item>
           <Menu.Item key="/info/company"><Link to="/info/company">Về chúng tôi</Link></Menu.Item>
           <Menu.Item key="/info/contact"><Link to="/info/contact">Liên hệ</Link></Menu.Item>

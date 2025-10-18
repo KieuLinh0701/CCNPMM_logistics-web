@@ -10,6 +10,7 @@ import { ShippingRequest } from '../../../../types/shippingRequest';
 import { createRequest, cancelRequest, listUserRequests, getRequestStatuses, getRequestTypes, updateRequest } from '../../../../store/shippingRequestSlice';
 import DetailModal from './components/DetailModal';
 import { useNavigate } from 'react-router-dom';
+import { City, Ward } from '../../../../types/location';
 
 const ShippingRequests: React.FC = () => {
   const navigate = useNavigate();

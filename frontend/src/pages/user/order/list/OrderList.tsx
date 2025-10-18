@@ -188,6 +188,8 @@ const OrderList = () => {
     dispatch(getOrderPayers());
     dispatch(getOrderPaymentStatuses());
     fetchOrders();
+
+    console.log("status", statuses);
   }, [dispatch]);
 
   useEffect(() => { setCurrentPage(1); fetchOrders(1); }, [searchText, filterStatus, filterPayment, filterPayer, filterPaymentStatus, filterCOD, dateRange, filterSort ]);

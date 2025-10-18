@@ -27,6 +27,13 @@ export default (sequelize) => {
         onDelete: 'SET NULL',
         onUpdate: 'CASCADE',
       });
+
+      ShippingRequest.belongsTo(models.User, {
+        foreignKey: 'handlerId',
+        as: 'handler',
+        onDelete: 'SET NULL',
+        onUpdate: 'CASCADE',
+      });
     }
   }
 
@@ -50,10 +57,16 @@ export default (sequelize) => {
         comment: 'ID người tạo yêu cầu (nếu có tài khoản)',
       },
 
+      handlerId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: 'ID người xử lý/ phản hồi yêu cầu',
+      },
+
       requestType: {
-        type: DataTypes.ENUM('Complaint', 'DeliveryReminder', 'ChangeOrderInfo', 'Inquiry'),
+        type: DataTypes.ENUM('Complaint', 'PickupReminder', 'DeliveryReminder', 'ChangeOrderInfo', 'Inquiry'),
         allowNull: false,
-        comment: 'Loại yêu cầu: Khiếu nại, hối giao hàng, đổi thông tin, tư vấn',
+        comment: 'Loại yêu cầu: Khiếu nại, hối lấy hàng, hối giao hàng, đổi thông tin, tư vấn',
       },
 
       requestContent: {
@@ -105,6 +118,11 @@ export default (sequelize) => {
         type: DataTypes.STRING,
         allowNull: true,
         comment: 'Địa chỉ chi tiết người liên hệ',
+      },
+      responseAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: 'Thời gian phản hồi yêu cầu',
       },
     },
     {

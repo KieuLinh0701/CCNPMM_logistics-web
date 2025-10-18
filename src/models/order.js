@@ -90,7 +90,7 @@ export default (sequelize) => {
       },
 
       status: {
-        type: DataTypes.ENUM('draft', 'pending', 'confirmed', 'picked_up', 'in_transit', 'delivered', 'cancelled', 'returned'),
+        type: DataTypes.ENUM('draft', 'pending', 'confirmed', 'picked_up', 'in_transit', 'delivering', 'delivered', 'cancelled', 'returning', 'returned'),
         defaultValue: 'pending',
         comment: 'Trạng thái đơn hàng'
       },

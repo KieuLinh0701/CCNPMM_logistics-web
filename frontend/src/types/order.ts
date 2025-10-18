@@ -39,7 +39,7 @@ export interface Order {
   shippingFee: number;
   totalFee: number;
 
-  status: 'draft' | 'pending' | 'confirmed' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled' | 'returned';
+  status: 'draft' | 'pending' | 'confirmed' | 'picked_up' | 'in_transit' | 'delivering' | 'delivered' | 'cancelled' | 'returning' | 'returned';
 
   deliveredAt?: Date;
 

@@ -58,7 +58,7 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
       <Col span={24}>
         <div style={{ display: 'flex', gap: 8 }}>
           <Input
-            placeholder="Tìm theo mã đơn hàng"
+            placeholder="Tìm theo mã ĐH, tên, email hoặc SĐT người gửi..."
             prefix={<SearchOutlined />}
             value={searchText}
             onChange={(e) => onSearchChange(e.target.value)}
