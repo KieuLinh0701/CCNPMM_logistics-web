@@ -5,6 +5,8 @@ import initWebRoutes from './route/web.js';
 import initApiRoutes from './route/api.js';
 import connectDB from './config/configdb.js';
 import dotenv from 'dotenv';
+import http from 'http';
+import { initSocket } from './socket.js';
 dotenv.config();
 // import db from './models/index.js';
 
@@ -12,6 +14,9 @@ dotenv.config();
 const { VNPay, ignoreLogger, ProductCode, VnpLocale, dateFormat } = require('vnpay')
 
 let app = express();
+
+// Create HTTP server and attach Socket.IO
+const httpServer = http.createServer(app);
 
 // Middleware
 app.use(cors());
@@ -25,6 +30,9 @@ initApiRoutes(app);
 // Connect database
 connectDB();
 
+// Initialize socket server
+initSocket(httpServer);
+
 // (async () => {
 //     try {
 //         await connectDB();  // authenticate
@@ -36,6 +44,6 @@ connectDB();
 
 let port = process.env.PORT || 8088;
 
-app.listen(port, () => {
+httpServer.listen(port, () => {
     console.log("Backend Nodejs is running on the port: " + port);
 });

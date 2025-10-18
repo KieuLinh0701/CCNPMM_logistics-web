@@ -1,5 +1,7 @@
 import orderService from '../services/orderService.js';
 import employeeService from '../services/employeeService.js';
+import notificationService from '../services/notificationService.js';
+import { emitToUser } from '../socket.js';
 import { Op } from 'sequelize';
 
 const shipperController = {
@@ -161,6 +163,43 @@ const shipperController = {
       const { id } = req.params;
       const result = await orderService.claimOrder(userId, id);
       if (!result.success) return res.status(400).json(result);
+
+      // Lấy thông tin employee để có officeId
+      const employee = await employeeService.getEmployeeByUserId(userId);
+      if (employee) {
+        try {
+          console.log('Creating notification for user:', userId, 'office:', employee.officeId);
+          
+          // Tạo orderData từ orderId vì claimOrder không trả về data
+          const orderData = { id: parseInt(id) };
+          console.log('Order data:', orderData);
+          
+          // Tạo thông báo trong database TRƯỚC
+          const notificationResult = await notificationService.notifyOrderAssigned(userId, orderData, employee.officeId);
+          console.log('Notification result:', notificationResult);
+          
+          // Emit realtime notification với dữ liệu từ database
+          if (notificationResult.success) {
+            console.log('Emitting WebSocket notification...');
+            emitToUser(userId, 'notification', {
+              id: notificationResult.data.id,
+              type: notificationResult.data.type,
+              title: notificationResult.data.title,
+              message: notificationResult.data.message,
+              isRead: notificationResult.data.isRead,
+              createdAt: notificationResult.data.createdAt
+            });
+            console.log('WebSocket notification sent');
+          } else {
+            console.log('Failed to create notification:', notificationResult.message);
+          }
+        } catch (error) {
+          console.error('Error in notification process:', error);
+        }
+      } else {
+        console.log('No employee found for user:', userId);
+      }
+
       return res.json({ success: true });
     } catch (error) {
       console.error('Shipper claim order error:', error);
@@ -247,6 +286,35 @@ const shipperController = {
 
       if (!result.success) {
         return res.status(400).json(result);
+      }
+
+      // Emit thông báo thay đổi tuyến đường khi bắt đầu giao hàng
+      if (status === 'in_transit') {
+        try {
+          console.log('Creating route change notification for user:', userId, 'office:', employee.officeId);
+          
+          // Tạo thông báo trong database TRƯỚC
+          const notificationResult = await notificationService.notifyRouteChange(userId, { id }, employee.officeId);
+          console.log('Route notification result:', notificationResult);
+          
+          // Emit realtime notification với dữ liệu từ database
+          if (notificationResult.success) {
+            console.log('Emitting WebSocket route notification...');
+            emitToUser(userId, 'notification', {
+              id: notificationResult.data.id,
+              type: notificationResult.data.type,
+              title: notificationResult.data.title,
+              message: notificationResult.data.message,
+              isRead: notificationResult.data.isRead,
+              createdAt: notificationResult.data.createdAt
+            });
+            console.log('WebSocket route notification sent');
+          } else {
+            console.log('Failed to create route notification:', notificationResult.message);
+          }
+        } catch (error) {
+          console.error('Error in route notification process:', error);
+        }
       }
 
       return res.json({

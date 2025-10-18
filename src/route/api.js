@@ -16,6 +16,7 @@ import promotionController from "../controllers/promotionController.js";
 import payment from "./payment.js";
 import shippingRequestController from "../controllers/shippingRequestController.js";
 import shipperController from "../controllers/shipperController.js";
+import notificationController from "../controllers/notificationController.js";
 import orderController from "../controllers/orderController.js";
 
 let router = express.Router();
@@ -227,6 +228,15 @@ let initApiRoutes = (app) => {
     router.get('/shipper/orders-unassigned', verifyToken, requireRole(['shipper']), shipperController.getUnassignedOrders);
     router.post('/shipper/orders/:id/claim', verifyToken, requireRole(['shipper']), shipperController.claimOrder);
     router.post('/shipper/orders/:id/unclaim', verifyToken, requireRole(['shipper']), shipperController.unclaimOrder);
+
+    // Notification Routes
+    router.get('/notifications', verifyToken, notificationController.getNotifications);
+    router.put('/notifications/:notificationId/read', verifyToken, notificationController.markAsRead);
+    router.put('/notifications/mark-all-read', verifyToken, notificationController.markAllAsRead);
+    router.delete('/notifications/:notificationId', verifyToken, notificationController.deleteNotification);
+    
+    // Admin/Manager create notification
+    router.post('/notifications', verifyToken, requireRole(['admin', 'manager']), notificationController.createNotification);
 
     // Product Routes
     router.get("/products", verifyToken, productController.listUserProducts);
