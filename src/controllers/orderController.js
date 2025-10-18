@@ -250,7 +250,7 @@ const orderController = {
         message: "Lỗi server khi tạo đơn hàng",
       });
     }
-  }, 
+  },
 
   async confirmAndAssignOrder(req, res) {
     try {
@@ -271,7 +271,7 @@ const orderController = {
       });
     }
   },
-  
+
   async createManagerOrder(req, res) {
     try {
       const userId = req.user.id;
@@ -323,6 +323,29 @@ const orderController = {
       return res.status(500).json({
         success: false,
         message: "Lỗi server khi cập nhật đơn hàng bởi quản lý",
+      });
+    }
+  },
+
+  async getUserOrdersDashboard(req, res) {
+    try {
+      const userId = req.user.id;
+
+      const startDate = req.query.startDate || undefined;
+      const endDate = req.query.endDate || undefined;
+
+      const result = await orderService.getUserOrdersDashboard(userId, startDate, endDate);
+
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+
+      return res.status(201).json(result);
+    } catch (error) {
+      console.error("Get Orders By User error:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Lỗi server khi tạo đơn hàng",
       });
     }
   },
@@ -419,7 +442,7 @@ const orderController = {
         'senderName', 'senderPhone', 'recipientName', 'recipientPhone',
         'weight', 'serviceTypeId', 'shippingFee'
       ];
-      
+
       for (const field of requiredFields) {
         if (!orderData[field]) {
           return res.status(400).json({

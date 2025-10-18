@@ -140,6 +140,27 @@ const productController = {
     }
   },
 
+  async getUserProductsDashboard(req, res) {
+    try {
+      const userId = req.user.id;
+
+      const startDate = req.query.startDate || undefined;
+      const endDate = req.query.endDate || undefined;
+
+      const result = await productService.getUserProductsDashboard(userId, startDate, endDate);
+
+      return res.status(200).json(result);
+    } catch (error) {
+      console.error('Get User Products Dashboard error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi server'
+      });
+    }
+  },
+
+  // ========================= Admin ============================
+
   // List products (phục vụ admin)
   async list(req, res) {
     try {

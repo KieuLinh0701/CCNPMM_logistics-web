@@ -17,6 +17,11 @@ export default (sequelize) => {
         foreignKey: 'productId',
         as: 'orders',
       });
+
+      Product.hasMany(models.OrderProduct, {
+        as: 'orderProducts',
+        foreignKey: 'productId',
+      });
     }
   }
 

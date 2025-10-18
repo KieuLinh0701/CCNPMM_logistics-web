@@ -4,7 +4,7 @@ import { Office, OfficeResponse } from '../types/office';
 import { Employee, EmployeeCheckResult, EmployeeResponse } from '../types/employee';
 import { ServiceTypeResponse } from '../types/serviceType';
 import { Order, OrderResponse } from '../types/order';
-import { ImportProductsResponse, product, ProductResponse } from '../types/product';
+import { ImportProductsResponse, product, ProductAnalyticsReponse, ProductResponse } from '../types/product';
 import { PromotionResponse } from '../types/promotion';
 import { ImportVehiclesResponse, Vehicle, VehicleResponse } from '../types/vehicle';
 import { ShippingRequest, ShippingRequestResponse } from '../types/shippingRequest';
@@ -457,18 +457,18 @@ export const serviceTypeAPI = {
 export const productAPI = {
   // Get Statuses Enum
   getProductStatuses: async (): Promise<ProductResponse> => {
-    const response = await api.get<ProductResponse>('/products/statuses');
+    const response = await api.get<ProductResponse>('/protected/products/statuses');
     return response.data;
   },
 
   // Get Types Enum
   getProductTypes: async (): Promise<ProductResponse> => {
-    const response = await api.get<ProductResponse>('/products/types');
+    const response = await api.get<ProductResponse>('/protected/products/types');
     return response.data;
   },
 
   listUserProducts: async (query: string): Promise<ProductResponse> => {
-    const res = await api.get<ProductResponse>(`/products?${query}`);
+    const res = await api.get<ProductResponse>(`/user/products?${query}`);
     return res.data;
   },
 
@@ -480,7 +480,7 @@ export const productAPI = {
 
     try {
       const response = await api.post<ProductResponse>(
-        `/products/add`,
+        `/user/products/add`,
         payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -499,7 +499,7 @@ export const productAPI = {
 
     try {
       const response = await api.put<ProductResponse>(
-        `/products/${id}`,
+        `/user/products/${id}`,
         payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -516,7 +516,7 @@ export const productAPI = {
 
     try {
       const response = await api.post<ImportProductsResponse>(
-        `/products/import`,
+        `/user/products/import`,
         { products },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -527,7 +527,12 @@ export const productAPI = {
   },
 
   listActiveUserProducts: async (query: string): Promise<ProductResponse> => {
-    const res = await api.get<ProductResponse>(`/products/get-active?${query}`);
+    const res = await api.get<ProductResponse>(`/user/products/get-active?${query}`);
+    return res.data;
+  },
+
+  getUserProductsDashboard: async (query: string): Promise<ProductAnalyticsReponse> => {
+    const res = await api.get<ProductAnalyticsReponse>(`/user/products/dashboard?${query}`);
     return res.data;
   },
 }
@@ -635,6 +640,11 @@ export const orderAPI = {
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Lỗi khi cập nhật trạng thái đơn hàng thành đang xử lý');
     }
+  },
+
+  getUserOrdersDashboard: async (query: string): Promise<OrderResponse> => {
+    const res = await api.get<OrderResponse>(`/user/orders/dashboard?${query}`);
+    return res.data;
   },
 
   getOrdersByOfficeId: async (officeId: number, query: string): Promise<OrderResponse> => {
