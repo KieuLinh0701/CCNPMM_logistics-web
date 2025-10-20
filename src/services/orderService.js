@@ -1252,6 +1252,41 @@ const orderService = {
     }
   },
 
+  async getUserOrdersDashboard(userId, startDate, endDate) {
+    try {
+      // 1. Kiểm tra user tồn tại
+      const user = await db.User.findOne({ where: { id: userId } });
+      if (!user) {
+        return { success: false, message: "Người dùng không tồn tại" };
+      }
+
+      // 2. Build where condition chỉ cần ngày
+      const whereCondition = { userId };
+
+      if (startDate && endDate) {
+        whereCondition.createdAt = {
+          [db.Sequelize.Op.between]: [new Date(startDate), new Date(endDate)],
+        };
+      }
+
+      // 3. Query, chỉ lấy những trường cần thiết để chart
+      const ordersResult = await db.Order.findAll({
+        where: whereCondition,
+        attributes: ['id', 'status', 'createdAt'], 
+        order: [['createdAt', 'ASC']],
+      });
+
+      return {
+        success: true,
+        message: "Lấy đơn hàng cho dashboard thành công",
+        orders: ordersResult,
+      };
+    } catch (error) {
+      console.error("Get Orders Dashboard error:", error);
+      return { success: false, message: "Lỗi server khi lấy đơn hàng dashboard" };
+    }
+  },
+
   //============== For Manager ======================//
 
   async getOrdersByOfficeId(userId, officeId, page, limit, filters) {

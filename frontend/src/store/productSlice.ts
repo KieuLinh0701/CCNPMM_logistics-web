@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { productAPI } from '../services/api';
-import { ImportProductResult, ImportProductsResponse, product, ProductResponse, ProductState } from '../types/product';
+import { ImportProductResult, ImportProductsResponse, product, ProductAnalyticsReponse, ProductResponse, ProductState } from '../types/product';
 
 const initialState: ProductState = {
   product: null,
@@ -18,6 +18,13 @@ const initialState: ProductState = {
   createdProducts: [],
   failedProducts: [],
   nextCursor: null,
+  outOfStockProducts: 0,
+  activeProducts: 0,
+  inactiveProducts: 0,
+  productByType: [],
+  soldByDate: [],
+  topSelling: [],
+  topReturned: [],
 };
 
 // Lấy Danh sách sản phẩm của cửa hàng
@@ -158,6 +165,31 @@ export const listActiveUserProducts = createAsyncThunk<
       return data;
     } catch (err: any) {
       return thunkAPI.rejectWithValue(err.response?.data?.message || 'Lỗi khi lấy danh sách sản phẩm của cửa hàng');
+    }
+  }
+);
+
+export const getUserProductsDashboard = createAsyncThunk<
+  ProductAnalyticsReponse,
+  {
+    startDate?: string;
+    endDate?: string;
+  },
+  { rejectValue: string }
+>(
+  'products/getUserProductsDashboard',
+  async ({ startDate, endDate }, thunkAPI) => {
+    try {
+      // Build query param
+      const params = new URLSearchParams({
+      });
+      if (startDate) params.append("startDate", startDate);
+      if (endDate) params.append("endDate", endDate);
+
+      const data = await productAPI.getUserProductsDashboard(params.toString());
+      return data;
+    } catch (err: any) {
+      return thunkAPI.rejectWithValue(err.response?.data?.message || 'Lỗi');
     }
   }
 );
@@ -321,6 +353,28 @@ const productSlice = createSlice({
         }
       })
       .addCase(listActiveUserProducts.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+    builder
+      .addCase(getUserProductsDashboard.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getUserProductsDashboard.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload.success) {
+          state.outOfStockProducts = action.payload.outOfStockProducts || 0;
+          state.activeProducts = action.payload.activeProducts || 0;
+          state.inactiveProducts = action.payload.inactiveProducts || 0;
+          state.productByType = action.payload.productByType || [];
+          state.soldByDate = action.payload.soldByDate || [];
+          state.topSelling = action.payload.topSelling || [];
+          state.topReturned = action.payload.topReturned || [];
+        }
+      })
+      .addCase(getUserProductsDashboard.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

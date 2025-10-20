@@ -1,6 +1,6 @@
 import db from '../models';
 
-const { Op, fn, col } = require("sequelize");
+const { Op, fn, col, literal } = require("sequelize");
 
 const productService = {
 
@@ -287,7 +287,7 @@ const productService = {
         where: {
           userId,
           name: trimmedName,
-          id: { [db.Sequelize.Op.ne]: productId } // không so sánh với chính sản phẩm đang update
+          id: { [db.Sequelize.Op.ne]: productId }
         },
         transaction: t
       });
@@ -306,7 +306,7 @@ const productService = {
         price,
         type,
         status,
-        stock: parseInt(stock) || 0  // update stock
+        stock: parseInt(stock) || 0
       }, { transaction: t });
 
       await t.commit();
@@ -413,16 +413,13 @@ const productService = {
             { transaction: t }
           );
 
-          namesInFile.add(trimmedName.toLowerCase()); // thêm vào set
-
-          const plainProduct = newProduct.toJSON();
-          plainProduct.totalSold = 0;
+          namesInFile.add(trimmedName.toLowerCase());
 
           importedResults.push({
             name: trimmedName,
             success: true,
             message: "Thêm sản phẩm thành công",
-            product: plainProduct,
+            product: newProduct,
           });
         } catch (err) {
           console.error(`Import product "${trimmedName}" error:`, err);
@@ -503,6 +500,109 @@ const productService = {
     }
   },
 
+  async getUserProductsDashboard(userId, startDate, endDate) {
+    try {
+      // Thống kê sản phẩm
+      const outOfStockProducts = await db.Product.count({ where: { userId, stock: 0 } });
+      const activeProducts = await db.Product.count({ where: { userId, status: 'Active' } });
+      const inactiveProducts = await db.Product.count({ where: { userId, status: 'Inactive' } });
+
+      const replacements = { userId };
+      let dateCondition = '';
+      if (startDate && endDate) {
+        replacements.startDate = startDate;
+        replacements.endDate = endDate;
+        dateCondition = 'AND o.createdAt BETWEEN :startDate AND :endDate';
+      }
+
+      // Gom sản phẩm bán theo ngày
+      const soldByDate = await db.sequelize.query(
+        `
+      SELECT 
+        DATE(o.createdAt) AS date,
+        SUM(op.quantity) AS total
+      FROM Orders o
+      JOIN OrderProducts op ON o.id = op.orderId
+      WHERE o.userId = :userId
+        ${dateCondition}
+        AND o.status NOT IN ('cancelled', 'draft', 'returning', 'returned')
+      GROUP BY DATE(o.createdAt)
+      ORDER BY DATE(o.createdAt) ASC;
+      `,
+        { replacements, type: db.Sequelize.QueryTypes.SELECT }
+      );
+
+      // Top 5 sản phẩm bán chạy nhất
+      const topSelling = await db.sequelize.query(
+        `
+      SELECT
+        p.id,
+        p.name,
+        COALESCE(SUM(op.quantity), 0) AS total
+      FROM Products p
+      JOIN OrderProducts op ON p.id = op.productId
+      JOIN Orders o ON o.id = op.orderId
+      WHERE o.userId = :userId
+        ${dateCondition}
+        AND o.status NOT IN ('cancelled', 'draft', 'returning', 'returned')
+      GROUP BY p.id, p.name
+      ORDER BY total DESC
+      LIMIT 5;
+      `,
+        { replacements, type: db.Sequelize.QueryTypes.SELECT }
+      );
+
+      // Top 5 sản phẩm có tỷ lệ hoàn cao nhất
+      const topReturned = await db.sequelize.query(
+        `
+     SELECT 
+        p.id,
+        p.name,
+        COALESCE(SUM(op.quantity), 0) AS total
+      FROM Products p
+      JOIN OrderProducts op ON p.id = op.productId
+      JOIN Orders o ON o.id = op.orderId
+      WHERE o.userId = :userId
+        ${dateCondition}
+        AND o.status IN ('returning', 'returned')
+      GROUP BY p.id, p.name
+      ORDER BY total DESC
+      LIMIT 5;
+      `,
+        { replacements, type: db.Sequelize.QueryTypes.SELECT }
+      );
+
+      const productByType = await db.sequelize.query(
+        `
+        SELECT 
+          p.type,
+          COUNT(p.id) AS total
+        FROM Products p
+        WHERE p.userId = :userId
+        GROUP BY p.type
+        ORDER BY total DESC;
+        `,
+        { replacements, type: db.Sequelize.QueryTypes.SELECT }
+      );
+
+      // Trả kết quả về
+      return {
+        success: true,
+        outOfStockProducts,
+        activeProducts,
+        inactiveProducts,
+        productByType,
+        soldByDate,
+        topSelling,
+        topReturned,
+      };
+    } catch (error) {
+      console.error('getUserProductsDashboard error:', error);
+      return { success: false, message: 'Lỗi khi lấy dữ liệu thống kê sản phẩm' };
+    }
+  },
+
+  // ======================= Admin ============================================
   // List products with pagination and search (from origin/dat)
   async list(params) {
     try {

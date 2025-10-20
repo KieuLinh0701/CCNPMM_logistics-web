@@ -13,6 +13,17 @@ export interface product {
   soldQuantity: number;
 }
 
+export interface ProductAnalyticsReponse {
+  success: boolean;
+  outOfStockProducts: number;
+  activeProducts: number;
+  inactiveProducts: number;
+  productByType: {type: string, total: number}[];
+  soldByDate: {date: Date, total: number}[];
+  topSelling: {id: number, name: string, total: number}[];
+  topReturned: {id: number, name: string, total: number}[];
+}
+
 export interface ImportProductResult {
   name: string;        
   success: boolean;    
@@ -53,10 +64,20 @@ export interface ProductState {
   limit: number;
   types: string[];
   statuses: string[];
+
   importResults?: ImportProductResult[] | null;
   totalImported?: number;
   totalFailed?: number;
   createdProducts?: string[];
   failedProducts?: { name: string; message: string }[];
+
+  outOfStockProducts?: number;
+  activeProducts?: number;
+  inactiveProducts?: number;
+  productByType: {type: string, total: number}[] | null;
+  soldByDate?: {date: Date, total: number}[] | null;
+  topSelling?: {id: number, name: string, total: number}[] | null;
+  topReturned?: {id: number, name: string, total: number}[] | null;
+
   nextCursor?: number | null;
 }

@@ -27,6 +27,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -45,13 +46,13 @@
   line-height: 64px;
 }
 
-.ant-menu-horizontal > .ant-menu-item,
-.ant-menu-horizontal > .ant-menu-submenu {
+.ant-menu-horizontal>.ant-menu-item,
+.ant-menu-horizontal>.ant-menu-submenu {
   border-bottom: none;
 }
 
-.ant-menu-horizontal > .ant-menu-item:hover,
-.ant-menu-horizontal > .ant-menu-submenu:hover {
+.ant-menu-horizontal>.ant-menu-item:hover,
+.ant-menu-horizontal>.ant-menu-submenu:hover {
   border-bottom: 2px solid #1890ff;
 }
 
@@ -62,7 +63,7 @@
     height: 100vh;
     z-index: 999;
   }
-  
+
   .ant-layout-content {
     margin-left: 0 !important;
   }
@@ -71,10 +72,22 @@
 /* Ẩn thanh cuộn ngang */
 .ant-table-content {
   overflow-x: auto !important;
-  scrollbar-width: none; /* Firefox */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 .ant-table-content::-webkit-scrollbar {
-  display: none; /* Chrome, Safari */
+  display: none;
 }
 
+.recharts-wrapper:focus,
+.recharts-surface:focus,
+.recharts-responsive-container:focus,
+.recharts-wrapper>div:focus {
+  outline: none !important;
+}
+
+.ant-segmented-item-selected {
+  background-color: #1C3D90 !important;
+  color: #fff !important;
+}

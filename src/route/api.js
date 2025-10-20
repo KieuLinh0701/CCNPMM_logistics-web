@@ -83,6 +83,7 @@ let initApiRoutes = (app) => {
     router.post('/user/orders', verifyToken, orderController.createUserOrder);
     router.get('/user/orders', verifyToken, orderController.getUserOrders);
     router.put('/user/orders/pending', verifyToken, orderController.setOrderToPending);
+    router.get('/user/orders/dashboard', verifyToken, orderController.getUserOrdersDashboard);
 
     // ======================= Manager =======================
     router.put('/manager/orders/cancel', verifyToken, orderController.cancelManagerOrder);
@@ -239,13 +240,15 @@ let initApiRoutes = (app) => {
     router.post('/notifications', verifyToken, requireRole(['admin', 'manager']), notificationController.createNotification);
 
     // Product Routes
-    router.get("/products", verifyToken, productController.listUserProducts);
-    router.get('/products/types', verifyToken, productController.getProductTypes);
-    router.get('/products/statuses', verifyToken, productController.getProductStatuses);
-    router.post('/products/add', verifyToken, productController.createProduct);
-    router.put("/products/:id", verifyToken, productController.updateProduct);
-    router.post('/products/import', verifyToken, productController.importProducts);
-    router.get("/products/get-active", verifyToken, productController.listActiveUserProducts);
+    
+    router.get('/protected/products/types', verifyToken, productController.getProductTypes);
+    router.get('/protected/products/statuses', verifyToken, productController.getProductStatuses);
+    router.get('/user/products', verifyToken, productController.listUserProducts);
+    router.post('/user/products/add', verifyToken, productController.createProduct);
+    router.put('/user/products/:id', verifyToken, productController.updateProduct);
+    router.post('/user/products/import', verifyToken, productController.importProducts);
+    router.get('/user/products/get-active', verifyToken, productController.listActiveUserProducts);
+    router.get('/user/products/dashboard', verifyToken, productController.getUserProductsDashboard);
 
     // Promotion Routes
     router.get("/promotions/get-active", promotionController.getActivePromotions);

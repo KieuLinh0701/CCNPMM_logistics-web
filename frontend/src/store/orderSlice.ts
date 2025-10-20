@@ -217,6 +217,31 @@ export const getOrderByTrackingNumber = createAsyncThunk<
   }
 );
 
+export const getUserOrdersDashboard = createAsyncThunk<
+  OrderResponse,
+  {
+    startDate?: string;
+    endDate?: string;
+  },
+  { rejectValue: string }
+>(
+  'order/getUserOrdersDashboard',
+  async ({ startDate, endDate }, thunkAPI) => {
+    try {
+      // Build query param
+      const params = new URLSearchParams({
+      });
+      if (startDate) params.append("startDate", startDate);
+      if (endDate) params.append("endDate", endDate);
+
+      const data = await orderAPI.getUserOrdersDashboard(params.toString());
+      return data;
+    } catch (err: any) {
+      return thunkAPI.rejectWithValue(err.response?.data?.message || 'Lỗi khi lấy danh sách đơn hàng của cửa hàng');
+    }
+  }
+);
+
 export const createVNPayURL = createAsyncThunk<
   OrderResponse,
   number,
@@ -453,6 +478,22 @@ const orderSlice = createSlice({
         }
       })
       .addCase(getUserOrders.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+    builder
+      .addCase(getUserOrdersDashboard.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getUserOrdersDashboard.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload.success) {
+          state.orders = action.payload.orders || [];
+        }
+      })
+      .addCase(getUserOrdersDashboard.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

@@ -34,7 +34,6 @@ import Office from './pages/manager/Office';
 import Warehouse from './pages/manager/Warehouse';
 import EmployeePage from './pages/manager/EmployeeForm';
 import CreateOrder from './pages/manager/CreateOrder';
-import UserDashboard from './pages/user/Dashboard';
 import UserLayout from './layouts/UserLayout';
 import OrderList from './pages/user/order/list/OrderList';
 import OrderDetail from './pages/user/order/detail/OrderDetail';
@@ -64,6 +63,7 @@ import ShippingRatesBody from './pages/info/shippingRate/shippingRatesBody';
 import OrderCreate from './pages/user/order/create/OrderCreate';
 import OrderCreateManager from './pages/manager/order/create/OrderCreate';
 import OrderEditManager from './pages/manager/edit/OrderEdit';
+import UserDashboard from './pages/user/dashboard/Dashboard';
 
 const App: React.FC = () => {
   const user = JSON.parse(localStorage.getItem('user') || 'null');

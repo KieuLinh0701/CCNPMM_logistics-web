@@ -17,7 +17,6 @@ import * as XLSX from "xlsx";
 import { Order } from "../../../../types/order";
 import SearchFilters from "./components/SearchFilters";
 import OrderTable from "./components/Table";
-import { useStyleRegister } from "antd/es/theme/internal";
 
 const OrderList = () => {
   const navigate = useNavigate();
@@ -188,8 +187,6 @@ const OrderList = () => {
     dispatch(getOrderPayers());
     dispatch(getOrderPaymentStatuses());
     fetchOrders();
-
-    console.log("status", statuses);
   }, [dispatch]);
 
   useEffect(() => { setCurrentPage(1); fetchOrders(1); }, [searchText, filterStatus, filterPayment, filterPayer, filterPaymentStatus, filterCOD, dateRange, filterSort ]);
