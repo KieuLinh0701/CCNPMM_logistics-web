@@ -25,6 +25,7 @@ import AdminFees from './pages/admin/Fees';
 import AdminReports from './pages/admin/Reports';
 import AdminVehicles from './pages/admin/Vehicles';
 import PromotionManagement from './pages/admin/PromotionManagement';
+import FinancialManagement from './pages/admin/FinancialManagement';
 import ManagerDashboard from './pages/manager/Dashboard';
 import ManagerLayout from './layouts/ManagerLayout';
 import { PrivateRoute } from './components/PrivateRoute';
@@ -105,6 +106,7 @@ const App: React.FC = () => {
               <Route path="fees" element={<AdminFees />} />
               <Route path="promotions" element={<PromotionManagement />} />
               <Route path="reports" element={<AdminReports />} />
+              <Route path="financial" element={<FinancialManagement />} />
               <Route path="vehicles" element={<AdminVehicles />} />
               <Route path="profile" element={<Profile />} />
             </Route>

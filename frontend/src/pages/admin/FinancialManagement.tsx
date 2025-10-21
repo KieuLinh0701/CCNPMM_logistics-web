@@ -8,39 +8,37 @@ import {
   Select,
   Button,
   Table,
+  Tag,
   Space,
   Typography,
+  Divider,
   message,
   Spin,
-  Tabs,
-  Progress
+  Tabs
 } from 'antd';
 import {
+  DollarOutlined,
+  ShoppingCartOutlined,
+  TruckOutlined,
+  PercentageOutlined,
   BarChartOutlined,
   PieChartOutlined,
-  LineChartOutlined,
   FileExcelOutlined,
-  FilePdfOutlined,
-  ShoppingCartOutlined,
-  ShopOutlined,
-  TeamOutlined,
-  CarOutlined,
-  DollarOutlined,
-  PercentageOutlined
+  FilePdfOutlined
 } from '@ant-design/icons';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import dayjs from 'dayjs';
-import financialAPI, { FinancialStats, ComprehensiveReport } from '../../services/financialService';
+import financialAPI, { FinancialStats, ReconciliationHistory } from '../../services/financialService';
 import { adminAPI } from '../../services/api';
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 const { Title, Text } = Typography;
 
-const Reports: React.FC = () => {
+const FinancialManagement: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [financialStats, setFinancialStats] = useState<FinancialStats | null>(null);
-  const [comprehensiveReport, setComprehensiveReport] = useState<ComprehensiveReport | null>(null);
+  const [reconciliationHistory, setReconciliationHistory] = useState<ReconciliationHistory | null>(null);
   const [offices, setOffices] = useState<any[]>([]);
   
   // Filters
@@ -50,7 +48,7 @@ const Reports: React.FC = () => {
 
   useEffect(() => {
     fetchOffices();
-    fetchData();
+    fetchFinancialStats();
   }, []);
 
   const fetchOffices = async () => {
@@ -62,7 +60,7 @@ const Reports: React.FC = () => {
     }
   };
 
-  const fetchData = async () => {
+  const fetchFinancialStats = async () => {
     try {
       setLoading(true);
       const filters: any = {};
@@ -80,28 +78,47 @@ const Reports: React.FC = () => {
         filters.regionType = regionType;
       }
 
-      const [financialResponse, comprehensiveResponse] = await Promise.all([
-        financialAPI.getFinancialStats(filters),
-        financialAPI.getComprehensiveReport(filters)
-      ]);
-
-      if (financialResponse.success) {
-        setFinancialStats(financialResponse.data);
-      }
-
-      if (comprehensiveResponse.success) {
-        setComprehensiveReport(comprehensiveResponse.data);
+      const response = await financialAPI.getFinancialStats(filters);
+      if (response.success) {
+        setFinancialStats(response.data);
       }
     } catch (error) {
-      console.error('Error fetching data:', error);
-      message.error('Lỗi khi tải dữ liệu báo cáo');
+      console.error('Error fetching financial stats:', error);
+      message.error('Lỗi khi tải thống kê tài chính');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchReconciliationHistory = async () => {
+    try {
+      setLoading(true);
+      const filters: any = { page: 1, limit: 10 };
+      
+      if (dateRange) {
+        filters.startDate = dateRange[0].format('YYYY-MM-DD');
+        filters.endDate = dateRange[1].format('YYYY-MM-DD');
+      }
+      
+      if (selectedOffice) {
+        filters.officeId = selectedOffice;
+      }
+
+      const response = await financialAPI.getReconciliationHistory(filters);
+      if (response.success) {
+        setReconciliationHistory(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching reconciliation history:', error);
+      message.error('Lỗi khi tải lịch sử đối soát');
     } finally {
       setLoading(false);
     }
   };
 
   const handleFilterChange = () => {
-    fetchData();
+    fetchFinancialStats();
+    fetchReconciliationHistory();
   };
 
   const exportToExcel = async () => {
@@ -114,10 +131,11 @@ const Reports: React.FC = () => {
       setLoading(true);
       const blob = await financialAPI.exportToExcel(financialStats);
       
+      // Tạo URL và tải file
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `comprehensive_report_${new Date().toISOString().split('T')[0]}.xlsx`;
+      link.download = `financial_report_${new Date().toISOString().split('T')[0]}.xlsx`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -142,10 +160,11 @@ const Reports: React.FC = () => {
       setLoading(true);
       const blob = await financialAPI.exportToPDF(financialStats);
       
+      // Tạo URL và tải file
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `comprehensive_report_${new Date().toISOString().split('T')[0]}.pdf`;
+      link.download = `financial_report_${new Date().toISOString().split('T')[0]}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -165,61 +184,77 @@ const Reports: React.FC = () => {
   const officeData = financialStats?.officeStats || [];
   const serviceTypeData = financialStats?.serviceTypeStats || [];
 
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658'];
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
   const formatCurrency = (value: number) => `${value.toLocaleString()}đ`;
 
-  const officeColumns = [
+  const reconciliationColumns = [
+    {
+      title: 'Mã đơn hàng',
+      dataIndex: 'trackingNumber',
+      key: 'trackingNumber',
+    },
+    {
+      title: 'Người nhận',
+      key: 'recipient',
+      render: (record: any) => (
+        <Space direction="vertical" size={0}>
+          <Text strong>{record.recipientName}</Text>
+          <Text type="secondary">{record.recipientPhone}</Text>
+        </Space>
+      ),
+    },
     {
       title: 'Bưu cục',
       dataIndex: ['toOffice', 'name'],
       key: 'office',
     },
     {
-      title: 'Số đơn hàng',
-      dataIndex: 'orderCount',
-      key: 'orderCount',
-      render: (value: number) => value.toLocaleString(),
-    },
-    {
-      title: 'Tổng doanh thu',
-      dataIndex: 'totalRevenue',
-      key: 'totalRevenue',
+      title: 'COD',
+      dataIndex: 'cod',
+      key: 'cod',
       render: (value: number) => (
-        <Text strong style={{ color: '#52c41a' }}>
-          {value.toLocaleString()}đ
+        <Text strong style={{ color: value > 0 ? '#52c41a' : '#8c8c8c' }}>
+          {value > 0 ? `${value.toLocaleString()}đ` : 'Không'}
         </Text>
       ),
     },
     {
-      title: 'Tỷ lệ thành công',
-      key: 'successRate',
-      render: (record: any) => {
-        const rate = record.orderCount > 0 ? (record.deliveredCount / record.orderCount) * 100 : 0;
-  return (
-          <Progress
-            percent={Math.round(rate)}
-            size="small"
-            status={rate >= 80 ? 'success' : rate >= 60 ? 'normal' : 'exception'}
-          />
-        );
-      },
+      title: 'Phí vận chuyển',
+      dataIndex: 'shippingFee',
+      key: 'shippingFee',
+      render: (value: number) => `${value.toLocaleString()}đ`,
+    },
+    {
+      title: 'Tổng thu',
+      key: 'totalRevenue',
+      render: (record: any) => (
+        <Text strong style={{ color: '#1890ff' }}>
+          {(record.cod + record.shippingFee - record.discountAmount).toLocaleString()}đ
+        </Text>
+      ),
+    },
+    {
+      title: 'Ngày giao',
+      dataIndex: 'deliveredAt',
+      key: 'deliveredAt',
+      render: (value: string) => dayjs(value).format('DD/MM/YYYY HH:mm'),
     },
   ];
 
   const tabItems = [
     {
       key: 'overview',
-      label: 'Tổng quan hệ thống',
+      label: 'Tổng quan',
       children: (
         <div>
-          {/* System Overview Cards */}
+          {/* Summary Cards */}
           <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
             <Col xs={24} sm={12} lg={6}>
               <Card>
                 <Statistic
                   title="Tổng đơn hàng"
-                  value={comprehensiveReport?.totalOrders || 0}
+                  value={financialStats?.summary.totalOrders || 0}
                   prefix={<ShoppingCartOutlined />}
                   valueStyle={{ color: '#1890ff' }}
                 />
@@ -228,9 +263,10 @@ const Reports: React.FC = () => {
             <Col xs={24} sm={12} lg={6}>
               <Card>
                 <Statistic
-                  title="Số bưu cục"
-                  value={comprehensiveReport?.totalOffices || 0}
-                  prefix={<ShopOutlined />}
+                  title="Tổng doanh thu"
+                  value={financialStats?.summary.totalRevenue || 0}
+                  prefix={<DollarOutlined />}
+                  suffix="đ"
                   valueStyle={{ color: '#52c41a' }}
                 />
               </Card>
@@ -238,54 +274,23 @@ const Reports: React.FC = () => {
             <Col xs={24} sm={12} lg={6}>
               <Card>
                 <Statistic
-                  title="Nhân viên"
-                  value={comprehensiveReport?.totalEmployees || 0}
-                  prefix={<TeamOutlined />}
+                  title="COD đã thu"
+                  value={financialStats?.summary.codCollected || 0}
+                  prefix={<DollarOutlined />}
+                  suffix="đ"
                   valueStyle={{ color: '#faad14' }}
                 />
               </Card>
             </Col>
             <Col xs={24} sm={12} lg={6}>
-    <Card>
+              <Card>
                 <Statistic
-                  title="Phương tiện"
-                  value={comprehensiveReport?.totalVehicles || 0}
-                  prefix={<CarOutlined />}
+                  title="Tỷ lệ thành công"
+                  value={financialStats?.summary.successRate || 0}
+                  prefix={<PercentageOutlined />}
+                  suffix="%"
                   valueStyle={{ color: '#722ed1' }}
                 />
-              </Card>
-            </Col>
-          </Row>
-
-          {/* Performance Metrics */}
-          <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-            <Col xs={24} lg={12}>
-              <Card title="Hiệu suất giao hàng">
-                <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                  <Progress
-                    type="circle"
-                    percent={comprehensiveReport?.successRate || 0}
-                    format={(percent) => `${percent}%`}
-                    size={120}
-                    strokeColor={{
-                      '0%': '#108ee9',
-                      '100%': '#87d068',
-                    }}
-                  />
-                  <div style={{ marginTop: 16 }}>
-                    <Text type="secondary">Tỷ lệ giao hàng thành công</Text>
-                  </div>
-                </div>
-              </Card>
-            </Col>
-            <Col xs={24} lg={12}>
-              <Card title="Tổng doanh thu">
-                <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                  <Title level={2} style={{ color: '#52c41a', margin: 0 }}>
-                    {(comprehensiveReport?.totalRevenue || 0).toLocaleString()}đ
-                  </Title>
-                  <Text type="secondary">Tổng doanh thu trong kỳ</Text>
-                </div>
               </Card>
             </Col>
           </Row>
@@ -293,18 +298,19 @@ const Reports: React.FC = () => {
           {/* Charts */}
           <Row gutter={[16, 16]}>
             <Col xs={24} lg={12}>
-              <Card title="Xu hướng doanh thu theo tháng" extra={<LineChartOutlined />}>
-                <AreaChart width={400} height={300} data={monthlyData}>
+              <Card title="Doanh thu theo tháng" extra={<BarChartOutlined />}>
+                <LineChart width={400} height={300} data={monthlyData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="month" />
                   <YAxis tickFormatter={formatCurrency} />
                   <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Doanh thu']} />
-                  <Area type="monotone" dataKey="totalRevenue" stroke="#1890ff" fill="#1890ff" fillOpacity={0.3} />
-                </AreaChart>
+                  <Legend />
+                  <Line type="monotone" dataKey="totalRevenue" stroke="#1890ff" strokeWidth={2} />
+                </LineChart>
               </Card>
             </Col>
             <Col xs={24} lg={12}>
-              <Card title="Phân bố doanh thu theo bưu cục" extra={<BarChartOutlined />}>
+              <Card title="Doanh thu theo bưu cục" extra={<BarChartOutlined />}>
                 <BarChart width={400} height={300} data={officeData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="toOffice.name" angle={-45} textAnchor="end" height={100} />
@@ -315,60 +321,10 @@ const Reports: React.FC = () => {
               </Card>
             </Col>
           </Row>
-        </div>
-      ),
-    },
-    {
-      key: 'detailed',
-      label: 'Báo cáo chi tiết',
-      children: (
-        <div>
-          {/* Financial Summary */}
-          <Card title="Tóm tắt tài chính" style={{ marginBottom: 24 }}>
-            <Row gutter={[16, 16]}>
-              <Col xs={24} sm={12} lg={6}>
-                <Statistic
-                  title="Tổng doanh thu"
-                  value={financialStats?.summary.totalRevenue || 0}
-                  prefix={<DollarOutlined />}
-                  suffix="đ"
-                  valueStyle={{ color: '#52c41a' }}
-                />
-              </Col>
-              <Col xs={24} sm={12} lg={6}>
-                <Statistic
-                  title="Tổng COD"
-                  value={financialStats?.summary.totalCOD || 0}
-                  prefix={<DollarOutlined />}
-                  suffix="đ"
-                  valueStyle={{ color: '#faad14' }}
-                />
-              </Col>
-              <Col xs={24} sm={12} lg={6}>
-                <Statistic
-                  title="Phí vận chuyển"
-                  value={financialStats?.summary.totalShippingFee || 0}
-                  prefix={<DollarOutlined />}
-                  suffix="đ"
-                  valueStyle={{ color: '#1890ff' }}
-                />
-              </Col>
-              <Col xs={24} sm={12} lg={6}>
-                <Statistic
-                  title="Tỷ lệ thành công"
-                  value={financialStats?.summary.successRate || 0}
-                  prefix={<PercentageOutlined />}
-                  suffix="%"
-                  valueStyle={{ color: '#722ed1' }}
-                />
-              </Col>
-            </Row>
-          </Card>
 
-          {/* Service Type Analysis */}
-          <Card title="Phân tích theo loại dịch vụ" style={{ marginBottom: 24 }}>
-            <Row gutter={[16, 16]}>
-              <Col xs={24} lg={12}>
+          <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+            <Col xs={24} lg={12}>
+              <Card title="Doanh thu theo loại dịch vụ" extra={<PieChartOutlined />}>
                 <PieChart width={400} height={300}>
                   <Pie
                     data={serviceTypeData}
@@ -389,48 +345,103 @@ const Reports: React.FC = () => {
                   </Pie>
                   <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Doanh thu']} />
                 </PieChart>
-              </Col>
-              <Col xs={24} lg={12}>
-                <Table
-                  dataSource={serviceTypeData}
-                  columns={[
-                    {
-                      title: 'Loại dịch vụ',
-                      dataIndex: ['serviceType', 'name'],
-                      key: 'serviceType',
-                    },
-                    {
-                      title: 'Số đơn',
-                      dataIndex: 'orderCount',
-                      key: 'orderCount',
-                      render: (value: number) => value.toLocaleString(),
-                    },
-                    {
-                      title: 'Doanh thu',
-                      dataIndex: 'totalRevenue',
-                      key: 'totalRevenue',
-                      render: (value: number) => `${value.toLocaleString()}đ`,
-                    },
-                  ]}
-                  pagination={false}
-                  size="small"
-                />
-              </Col>
-            </Row>
-          </Card>
-
-          {/* Office Performance */}
-          <Card title="Hiệu suất bưu cục">
+              </Card>
+            </Col>
+            <Col xs={24} lg={12}>
+              <Card title="Chi tiết thu chi">
+                <Space direction="vertical" size="large" style={{ width: '100%' }}>
+                  <div>
+                    <Text strong>Phí vận chuyển đã thu:</Text>
+                    <Text style={{ float: 'right', color: '#52c41a' }}>
+                      {(financialStats?.summary.shippingFeeCollected || 0).toLocaleString()}đ
+                    </Text>
+                  </div>
+                  <div>
+                    <Text strong>Tổng giảm giá:</Text>
+                    <Text style={{ float: 'right', color: '#f50' }}>
+                      -{(financialStats?.summary.totalDiscount || 0).toLocaleString()}đ
+                    </Text>
+                  </div>
+                  <Divider />
+                  <div>
+                    <Text strong style={{ fontSize: 16 }}>Tổng thu thực tế:</Text>
+                    <Text strong style={{ float: 'right', fontSize: 16, color: '#1890ff' }}>
+                      {(financialStats?.summary.totalRevenue || 0).toLocaleString()}đ
+                    </Text>
+                  </div>
+                </Space>
+              </Card>
+            </Col>
+          </Row>
+        </div>
+      ),
+    },
+    {
+      key: 'reconciliation',
+      label: 'Đối soát',
+      children: (
+        <div>
+          <Card title="Lịch sử đối soát" extra={
+            <Space>
+              <Button icon={<FileExcelOutlined />} onClick={exportToExcel}>
+                Xuất Excel
+              </Button>
+              <Button icon={<FilePdfOutlined />} onClick={exportToPDF}>
+                Xuất PDF
+              </Button>
+            </Space>
+          }>
             <Table
-              dataSource={officeData}
-              columns={officeColumns}
-              rowKey="toOfficeId"
+              columns={reconciliationColumns}
+              dataSource={reconciliationHistory?.orders || []}
+              rowKey="id"
               pagination={{
+                current: 1,
                 pageSize: 10,
+                total: reconciliationHistory?.pagination.total || 0,
                 showSizeChanger: true,
                 showQuickJumper: true,
               }}
             />
+            
+            {reconciliationHistory?.summary && (
+              <Card size="small" style={{ marginTop: 16, backgroundColor: '#f0f2f5' }}>
+                <Row gutter={16}>
+                  <Col span={6}>
+                    <Statistic
+                      title="Tổng đơn đã giao"
+                      value={reconciliationHistory.summary.totalOrders}
+                      prefix={<ShoppingCartOutlined />}
+                    />
+                  </Col>
+                  <Col span={6}>
+                    <Statistic
+                      title="Tổng COD"
+                      value={reconciliationHistory.summary.totalCOD}
+                      prefix={<DollarOutlined />}
+                      suffix="đ"
+                    />
+                  </Col>
+                  <Col span={6}>
+                    <Statistic
+                      title="Tổng phí vận chuyển"
+                      value={reconciliationHistory.summary.totalShippingFee}
+                      prefix={<TruckOutlined />}
+                      suffix="đ"
+                    />
+                  </Col>
+                  <Col span={6}>
+                    <Statistic
+                      title="Tổng thu"
+                      value={reconciliationHistory.summary.totalRevenue}
+                      prefix={<DollarOutlined />}
+                      suffix="đ"
+                      valueStyle={{ color: '#52c41a' }}
+                    />
+                  </Col>
+                </Row>
+              </Card>
+            )}
           </Card>
         </div>
       ),
@@ -439,17 +450,7 @@ const Reports: React.FC = () => {
 
   return (
     <div style={{ padding: 24 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <Title level={2} style={{ margin: 0 }}>Báo cáo & Thống kê</Title>
-        <Space>
-          <Button icon={<FileExcelOutlined />} onClick={exportToExcel} loading={loading}>
-            Xuất Excel
-          </Button>
-          <Button icon={<FilePdfOutlined />} onClick={exportToPDF} loading={loading}>
-            Xuất PDF
-          </Button>
-        </Space>
-      </div>
+      <Title level={2}>Quản lý dòng tiền & Báo cáo</Title>
       
       {/* Filters */}
       <Card style={{ marginBottom: 24 }}>
@@ -498,7 +499,7 @@ const Reports: React.FC = () => {
             </Button>
           </Col>
         </Row>
-    </Card>
+      </Card>
 
       {/* Main Content */}
       <Spin spinning={loading}>
@@ -508,4 +509,4 @@ const Reports: React.FC = () => {
   );
 };
 
-export default Reports;
+export default FinancialManagement;

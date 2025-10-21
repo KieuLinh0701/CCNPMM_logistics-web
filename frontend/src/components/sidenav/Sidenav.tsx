@@ -85,12 +85,6 @@ const Sidenav: React.FC<Props> = ({ color }) => {
         icon: <CarOutlined />,
       },
       {
-        key: "/admin/fees",
-        label: "Quản lý phí",
-        path: "/admin/fees",
-        icon: <DollarOutlined />,
-      },
-      {
         key: "/admin/promotions",
         label: "Khuyến mãi",
         path: "/admin/promotions",
@@ -101,6 +95,12 @@ const Sidenav: React.FC<Props> = ({ color }) => {
         label: "Báo cáo",
         path: "/admin/reports",
         icon: <BarChartOutlined />,
+      },
+      {
+        key: "/admin/financial",
+        label: "Quản lý dòng tiền",
+        path: "/admin/financial",
+        icon: <DollarOutlined />,
       },
       {
         key: "/admin/profile",

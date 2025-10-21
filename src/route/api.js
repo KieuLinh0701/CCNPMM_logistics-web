@@ -18,6 +18,8 @@ import shippingRequestController from "../controllers/shippingRequestController.
 import shipperController from "../controllers/shipperController.js";
 import notificationController from "../controllers/notificationController.js";
 import orderController from "../controllers/orderController.js";
+import financialController from "../controllers/financialController.js";
+import exportController from "../controllers/exportController.js";
 
 let router = express.Router();
 
@@ -201,6 +203,15 @@ let initApiRoutes = (app) => {
     router.delete('/admin/promotions/:id', verifyToken, requireRole(['admin']), promotionController.deletePromotion);
     router.put('/admin/promotions/:id/status', verifyToken, requireRole(['admin']), promotionController.updatePromotionStatus);
     router.get('/admin/promotions/stats', verifyToken, requireRole(['admin']), promotionController.getPromotionStats);
+
+    // FINANCIAL MANAGEMENT
+    router.get('/admin/financial/stats', verifyToken, requireRole(['admin']), financialController.getFinancialStats);
+    router.get('/admin/financial/reconciliation', verifyToken, requireRole(['admin']), financialController.getReconciliationHistory);
+    router.get('/admin/financial/report', verifyToken, requireRole(['admin']), financialController.getComprehensiveReport);
+    
+    // EXPORT
+    router.post('/admin/export/excel', verifyToken, requireRole(['admin']), exportController.exportFinancialReportExcel);
+    router.post('/admin/export/pdf', verifyToken, requireRole(['admin']), exportController.exportFinancialReportPDF);
 
     // SHIPPER
     // Shipper Dashboard
