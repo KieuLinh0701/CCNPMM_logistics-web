@@ -37,7 +37,7 @@ interface DeliveryRecord {
   recipientName: string;
   recipientPhone: string;
   recipientAddress: string;
-  codAmount: number;
+  cod: number;
   status: 'pending' | 'confirmed' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled' | 'returned';
   createdAt: string;
   deliveredAt?: string;
@@ -89,7 +89,24 @@ useEffect(() => {
         ...filters
       });
       
-      setHistory(response.orders);
+      const mapped: DeliveryRecord[] = (response.orders as any[]).map((o: any) => ({
+        id: o.id,
+        trackingNumber: o.trackingNumber,
+        recipientName: o.recipientName,
+        recipientPhone: o.recipientPhone,
+        recipientAddress: o.recipientAddress ?? o.recipientDetailAddress ?? '',
+        cod: Number(o.cod ?? o.codAmount ?? 0),
+        status: o.status,
+        createdAt: o.createdAt,
+        deliveredAt: o.deliveredAt,
+        notes: o.notes,
+        proofImages: o.proofImages,
+        actualRecipient: o.actualRecipient,
+        actualRecipientPhone: o.actualRecipientPhone,
+        codCollected: o.codCollected,
+      }));
+
+      setHistory(mapped);
       setStats(response.stats);
       setPagination(prev => ({
         ...prev,
@@ -173,8 +190,8 @@ useEffect(() => {
     },
     {
       title: 'COD',
-      dataIndex: 'codAmount',
-      key: 'codAmount',
+      dataIndex: 'cod',
+      key: 'cod',
       width: 120,
       render: (amount: number) => (
         amount > 0 ? (
@@ -391,7 +408,7 @@ useEffect(() => {
               <Col span={12}>
                 <Text strong>COD: </Text>
                 <Text style={{ color: '#f50' }}>
-                  {selectedRecord.codAmount > 0 ? `${selectedRecord.codAmount.toLocaleString()}đ` : 'Không COD'}
+                  {selectedRecord.cod > 0 ? `${selectedRecord.cod.toLocaleString()}đ` : 'Không COD'}
                 </Text>
               </Col>
             </Row>

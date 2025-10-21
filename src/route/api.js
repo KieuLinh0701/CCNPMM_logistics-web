@@ -117,7 +117,7 @@ let initApiRoutes = (app) => {
         return res.json({
             success: true,
             data: {
-                name: "CCNPMM Logistics",
+                name: "UTE Logistics",
                 description: "Dịch vụ vận chuyển hàng hóa chuyên nghiệp",
                 address: "123 Đường ABC, Quận XYZ, TP.HCM",
                 phone: "1900-1234",

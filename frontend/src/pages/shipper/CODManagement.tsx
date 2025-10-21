@@ -71,6 +71,7 @@ const ShipperCODManagement: React.FC = () => {
   const [submitForm] = Form.useForm();
 
 useEffect(() => {
+  console.log('[CODManagement] Component mounted, fetching transactions...');
   fetchTransactions();
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [pagination.current, pagination.pageSize, filters]);
@@ -78,11 +79,21 @@ useEffect(() => {
   const fetchTransactions = async () => {
     try {
       setLoading(true);
+      console.log('[CODManagement] Fetching transactions with params:', {
+        page: pagination.current,
+        limit: pagination.pageSize,
+        ...filters
+      });
+      
       const response = await shipperService.getCODTransactions({
         page: pagination.current,
         limit: pagination.pageSize,
         ...filters
       });
+      
+      console.log('[CODManagement] Response received:', response);
+      console.log('[CODManagement] Transactions:', response.transactions);
+      console.log('[CODManagement] Summary:', response.summary);
       
       setTransactions(response.transactions);
       setSummary(response.summary);
@@ -90,8 +101,10 @@ useEffect(() => {
         ...prev,
         total: response.pagination.total
       }));
+      
+      console.log('[CODManagement] State updated successfully');
     } catch (error) {
-      console.error('Error fetching COD transactions:', error);
+      console.error('[CODManagement] Error fetching COD transactions:', error);
       message.error('Lỗi khi tải danh sách giao dịch COD');
     } finally {
       setLoading(false);

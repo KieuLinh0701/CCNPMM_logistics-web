@@ -305,22 +305,44 @@ const shipperService = {
       transactionCount: number;
     };
   }> {
+    console.log('[shipperService.getCODTransactions] params:', params);
     const response = await api.get('/shipper/cod', { params });
+    console.log('[shipperService.getCODTransactions] raw response:', response);
     const raw = (response.data as any);
-    const data = raw?.data ?? raw;
-    const transactions = Array.isArray(data?.transactions)
-      ? data.transactions
-      : Array.isArray(data?.data)
-      ? data.data
-      : [];
-    const pagination = data?.pagination ?? data?.meta ?? { page: params.page ?? 1, limit: params.limit ?? 10, total: transactions.length };
-    const summaryRaw = data?.summary ?? {};
+    console.log('[shipperService.getCODTransactions] raw data:', raw);
+    
+    // API response structure: { success: true, data: [...], pagination: {...}, summary: {...} }
+    const rawTransactions = Array.isArray(raw?.data) ? raw.data : [];
+    console.log('[shipperService.getCODTransactions] raw transactions:', rawTransactions);
+    
+    // Map backend format to frontend format
+    const transactions: ShipperCODTransaction[] = rawTransactions.map((order: any) => ({
+      id: order.id,
+      trackingNumber: order.trackingNumber,
+      recipientName: order.recipientName,
+      recipientPhone: order.recipientPhone,
+      codAmount: order.cod || 0,
+      status: order.status === 'delivered' ? 'collected' : 'pending',
+      collectedAt: order.deliveredAt,
+      submittedAt: order.deliveredAt,
+      notes: order.notes
+    }));
+    console.log('[shipperService.getCODTransactions] mapped transactions:', transactions);
+    
+    const pagination = raw?.pagination ?? { page: params.page ?? 1, limit: params.limit ?? 10, total: transactions.length };
+    console.log('[shipperService.getCODTransactions] pagination:', pagination);
+    
+    const summaryRaw = raw?.summary ?? {};
+    console.log('[shipperService.getCODTransactions] summaryRaw:', summaryRaw);
+    
     const summary = {
       totalCollected: Number((summaryRaw as any).totalCollected) || 0,
       totalSubmitted: Number((summaryRaw as any).totalSubmitted) || 0,
       totalPending: Number((summaryRaw as any).totalPending) || 0,
       transactionCount: Number((summaryRaw as any).transactionCount) || transactions.length
     };
+    console.log('[shipperService.getCODTransactions] final summary:', summary);
+    
     return { transactions, pagination, summary };
   },
 

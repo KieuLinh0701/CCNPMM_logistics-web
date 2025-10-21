@@ -28,7 +28,7 @@ const HomePage: React.FC = () => {
         textAlign: 'center'
       }}>
         <Title level={1} style={{ color: 'white', marginBottom: 16 }}>
-          CCNPMM Logistics
+          UTE Logistics
         </Title>
         <Paragraph style={{ fontSize: 20, color: 'white', marginBottom: 32, maxWidth: 600, margin: '0 auto 32px' }}>
           Dịch vụ vận chuyển hàng hóa chuyên nghiệp, nhanh chóng và an toàn
@@ -184,7 +184,7 @@ const HomePage: React.FC = () => {
           marginBottom: 60
         }}>
           <Title level={2} style={{ textAlign: 'center', marginBottom: 40 }}>
-            Tại sao chọn CCNPMM Logistics?
+            Tại sao chọn UTE Logistics?
           </Title>
           
           <Row gutter={[32, 32]}>

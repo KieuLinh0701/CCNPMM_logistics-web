@@ -2522,6 +2522,7 @@ const orderService = {
 
       const {
         officeId,
+        shipperId,
         page = 1,
         limit = 10,
         status,
@@ -2531,9 +2532,13 @@ const orderService = {
 
       const offset = (page - 1) * limit;
       const where = {
-        toOfficeId: officeId,
-        cod: { [db.Sequelize.Op.gt]: 0 }
+        cod: { [db.Sequelize.Op.gt]: 0 },
+        status: { [db.Sequelize.Op.in]: ['delivered'] }, // Chỉ lấy đơn hàng đã giao
+        toOfficeId: officeId
       };
+
+      // Không cần shipperId vì model Order không có trường này
+      // Chỉ lấy đơn hàng theo officeId và trạng thái
 
       if (status) where.status = status;
       if (dateFrom && dateTo) {
@@ -2556,16 +2561,56 @@ const orderService = {
         ]
       });
 
+      // Debug: Log all orders to see what we're getting
+      console.log('=== COD TRANSACTIONS DEBUG ===');
+      console.log('Total count from query:', count);
+      console.log('Rows returned:', rows.length);
+      if (rows.length > 0) {
+        console.log('First order sample:', {
+          id: rows[0].id,
+          trackingNumber: rows[0].trackingNumber,
+          cod: rows[0].cod,
+          status: rows[0].status,
+          shipperId: rows[0].shipperId,
+          toOfficeId: rows[0].toOfficeId
+        });
+      } else {
+        console.log('No orders found with current filters');
+        // Let's check if there are any orders at all for this office
+        const allOrders = await db.Order.findAll({
+          where: { toOfficeId: officeId },
+          attributes: ['id', 'trackingNumber', 'cod', 'status', 'shipperId'],
+          limit: 5
+        });
+        console.log('Sample orders for this office:', allOrders);
+      }
+
       console.log('COD query result - count:', count);
       console.log('COD query result - rows length:', rows.length);
 
       // Tính tổng kết
+      console.log('Calculating summary for COD transactions...');
+      console.log('Rows for summary calculation:', rows.length);
+      rows.forEach((order, index) => {
+        console.log(`Order ${index + 1}: ID=${order.id}, COD=${order.cod}, Status=${order.status}`);
+      });
+
       const summary = {
-        totalCollected: rows.reduce((sum, order) => sum + (order.cod || 0), 0),
-        totalSubmitted: rows.filter(o => o.status === 'delivered').reduce((sum, order) => sum + (order.cod || 0), 0),
-        totalPending: rows.filter(o => o.status === 'in_transit').reduce((sum, order) => sum + (order.cod || 0), 0),
+        totalCollected: rows.reduce((sum, order) => {
+          const codAmount = order.cod || 0;
+          console.log(`Adding COD: ${codAmount} to sum: ${sum}`);
+          return sum + codAmount;
+        }, 0),
+        totalSubmitted: rows.reduce((sum, order) => {
+          const codAmount = order.cod || 0;
+          console.log(`Delivered order COD: ${codAmount}`);
+          return sum + codAmount;
+        }, 0),
+        totalPending: 0, // Không có đơn hàng pending vì chỉ lấy delivered
         transactionCount: count
       };
+
+      console.log('COD Summary calculated:', summary);
 
       const result = {
         transactions: rows,
