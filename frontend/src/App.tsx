@@ -55,7 +55,6 @@ import ShipperCODManagement from './pages/shipper/CODManagement';
 import ShipperIncidentReport from './pages/shipper/IncidentReport';
 import ShipperDeliveryHistory from './pages/shipper/DeliveryHistory';
 import ShipperDeliveryRoute from './pages/shipper/DeliveryRoute';
-import ShipperNotifications from './pages/shipper/Notifications';
 import UnassignedOrders from './pages/shipper/UnassignedOrders';
 import ShippingFeeBody from './pages/tracking/shippingFee/ShippingFeeBody';
 import OfficeSearchBody from './pages/tracking/officeSearch/OfficeSearchBody';
@@ -153,7 +152,6 @@ const App: React.FC = () => {
               <Route path="report" element={<ShipperIncidentReport />} />
               <Route path="history" element={<ShipperDeliveryHistory />} />
               <Route path="route" element={<ShipperDeliveryRoute />} />
-              <Route path="notifications" element={<ShipperNotifications />} />
               <Route path="profile" element={<Profile />} />
             </Route>
 

@@ -7,10 +7,10 @@ export default (sequelize) => {
         foreignKey: "userId",
         as: "user",
       });
-      Notification.belongsTo(models.Office, {
-        foreignKey: "officeId",
-        as: "office",
-      });
+      // Notification.belongsTo(models.Office, {
+      //   foreignKey: "officeId",
+      //   as: "office",
+      // });
     }
   }
 
@@ -40,15 +40,15 @@ export default (sequelize) => {
         type: DataTypes.INTEGER,
         allowNull: true,
       },
-      officeId: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-        references: { model: 'Offices', key: 'id' },
-      },
-      targetRole: {
-        type: DataTypes.STRING,
-        allowNull: true,
-      },
+      // officeId: {
+      //   type: DataTypes.INTEGER,
+      //   allowNull: true,
+      //   references: { model: 'Offices', key: 'id' },
+      // },
+      // targetRole: {
+      //   type: DataTypes.STRING,
+      //   allowNull: true,
+      // },
     },
     {
       sequelize,

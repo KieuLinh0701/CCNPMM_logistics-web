@@ -19,6 +19,10 @@ import {
   GiftOutlined,
   BarChartOutlined,
   ProfileOutlined,
+  InboxOutlined,
+  ClockCircleOutlined,
+  ExclamationCircleOutlined,
+  BellOutlined,
 } from "@ant-design/icons";
 
 const { SubMenu } = Menu;
@@ -266,14 +270,14 @@ const Sidenav: React.FC<Props> = ({ color }) => {
         icon: <ShoppingOutlined />,
         children: [
           {
-            key: "/shipper/orders/assigned",
-            label: "Đơn hàng được giao",
-            path: "/shipper/orders/assigned",
+            key: "/shipper/orders-unassigned",
+            label: "Danh sách đơn hàng",
+            path: "/shipper/orders-unassigned",
           },
           {
-            key: "/shipper/orders/delivered",
-            label: "Đơn hàng đã giao",
-            path: "/shipper/orders/delivered",
+            key: "/shipper/orders",
+            label: "Đơn hàng cần giao",
+            path: "/shipper/orders",
           },
         ],
       },
@@ -284,10 +288,40 @@ const Sidenav: React.FC<Props> = ({ color }) => {
         icon: <CarOutlined />,
       },
       {
+        key: "/shipper/pickup",
+        label: "Nhận/Trả hàng",
+        path: "/shipper/pickup",
+        icon: <InboxOutlined />,
+      },
+      {
         key: "/shipper/cod",
         label: "Quản lý COD",
         path: "/shipper/cod",
         icon: <DollarOutlined />,
+      },
+      {
+        key: "/shipper/history",
+        label: "Lịch sử giao hàng",
+        path: "/shipper/history",
+        icon: <ClockCircleOutlined />,
+      },
+      {
+        key: "/shipper/report",
+        label: "Báo cáo sự cố",
+        path: "/shipper/report",
+        icon: <ExclamationCircleOutlined />,
+      },
+      {
+        key: "/shipper/notifications",
+        label: "Thông báo",
+        path: "/shipper/notifications",
+        icon: <BellOutlined />,
+      },
+      {
+        key: "/shipper/profile",
+        label: "Hồ sơ cá nhân",
+        path: "/shipper/profile",
+        icon: <ProfileOutlined />,
       },
     ],
   };

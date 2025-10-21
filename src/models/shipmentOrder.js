@@ -24,10 +24,12 @@ export default (sequelize) => {
       shipmentId: {
         type: DataTypes.INTEGER,
         allowNull: false,
+        primaryKey: true,
       },
       orderId: {
         type: DataTypes.INTEGER,
         allowNull: false,
+        primaryKey: true,
       },
     },
     {
