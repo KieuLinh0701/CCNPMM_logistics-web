@@ -51,6 +51,9 @@ export interface Order {
 
   createdBy: User;
   createdByType: 'user' | 'manager';
+
+  refundedAt?: Date;
+  paidAt?: Date;
 }
 
 export interface OrderResponse {

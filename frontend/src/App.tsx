@@ -65,6 +65,7 @@ import OrderCreate from './pages/user/order/create/OrderCreate';
 import OrderCreateManager from './pages/manager/order/create/OrderCreate';
 import OrderEditManager from './pages/manager/edit/OrderEdit';
 import UserDashboard from './pages/user/dashboard/Dashboard';
+import TransactionList from './pages/user/revenue/TransactionList';
 
 const App: React.FC = () => {
   const user = JSON.parse(localStorage.getItem('user') || 'null');
@@ -138,6 +139,7 @@ const App: React.FC = () => {
               <Route path="info/shipping-rates" element={<ShippingRatesBody />} />
               <Route path="tracking/shipping-fee" element={<ShippingFeeBody />} />
               <Route path="tracking/office-search" element={<OfficeSearchBody />} />
+              <Route path="transactions" element={<TransactionList />} />
             </Route>
 
             <Route path="/shipper" element={<PrivateRoute roles={["shipper"]}><ShipperLayout /></PrivateRoute>}>

@@ -8,6 +8,7 @@ import { ImportProductsResponse, product, ProductAnalyticsReponse, ProductRespon
 import { PromotionResponse } from '../types/promotion';
 import { ImportVehiclesResponse, Vehicle, VehicleResponse } from '../types/vehicle';
 import { ShippingRequest, ShippingRequestResponse } from '../types/shippingRequest';
+import { TransactionResponse } from '../types/transaction';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8088/api';
 
@@ -885,6 +886,23 @@ export const requestAPI = {
         error.response?.data?.message || "Lỗi khi cập nhật thông tin yêu cầu"
       );
     }
+  },
+}
+
+export const transactionAPI = {
+  getTransactionTypes: async (): Promise<TransactionResponse> => {
+    const response = await api.get<TransactionResponse>('/protected/transactions/types');
+    return response.data;
+  },
+
+  listUserTransactions: async (query: string): Promise<TransactionResponse> => {
+    const res = await api.get<TransactionResponse>(`/user/transactions?${query}`);
+    return res.data;
+  },
+
+  exportUserTransactions: async (query: string): Promise<TransactionResponse> => {
+    const res = await api.get<TransactionResponse>(`/user/transactions/export?${query}`);
+    return res.data;
   },
 }
 

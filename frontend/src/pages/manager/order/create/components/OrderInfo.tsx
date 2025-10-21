@@ -25,7 +25,6 @@ interface Props {
   form: FormInstance;
   weight: number;
   orderValue: number;
-  cod: number;
   serviceTypes?: serviceType[];
   serviceLoading: boolean;
   selectedServiceType: serviceType | null;
@@ -37,7 +36,6 @@ const OrderInfo: React.FC<Props> = ({
   form,
   weight,
   orderValue,
-  cod,
   serviceTypes,
   serviceLoading,
   selectedServiceType,
@@ -153,38 +151,6 @@ const OrderInfo: React.FC<Props> = ({
           </Row>
 
           <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="codAmount"
-                label={
-                  <span>
-                    Tổng tiền thu hộ (COD){" "}
-                    <Tooltip title="Số tiền khách hàng thanh toán khi nhận hàng (chưa bao gồm phí vận chuyển)">
-                      <InfoCircleOutlined />
-                    </Tooltip>
-                  </span>
-                }
-                rules={[
-                  { required: true, message: "Vui lòng nhập tổng tiền thu hộ" },
-                  {
-                    type: "number",
-                    min: 0,
-                    message: "Nhập số tiền thu hộ hợp lệ"
-                  },
-                ]}
-              >
-                <InputNumber
-                  style={{ width: "100%" }}
-                  placeholder="Ví dụ: 200,000"
-                  min={0}
-                  step={1000}
-                  onChange={handleCodChange}
-                  formatter={value => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
-                  parser={value => value?.replace(/\$\s?|(,*)/g, '') as any}
-                />
-              </Form.Item>
-            </Col>
-
             <Col span={12}>
               <Form.Item
                 name="orderValue"

@@ -1,6 +1,7 @@
 import { Op } from 'sequelize';
 import db from '../models';
 import paymentService from './paymentService';
+import { createManagerShipTransaction, createRefundUserTransaction, createUserTransaction } from './transactionService';
 
 function generateTrackingNumber(length = 14) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -795,6 +796,24 @@ const orderService = {
         }
         // Thay trạng thái thanh toán thành Refunded
         order.paymentStatus = "Refunded";
+        order.refundedAt = new Date();
+
+        // Chỉ tạo transaction nếu chưa tồn tại
+        const existingTransaction = await db.Transaction.findOne({
+          where: { orderId: order.id, type: 'Income' },
+          transaction: t,
+        });
+
+        if (!existingTransaction) {
+          await createRefundUserTransaction(
+            order.id,
+            order.userId,
+            order.totalFee,
+            order.paymentMethod,
+            order.trackingNumber,
+            t,
+          );
+        }
       }
 
       // 7. Cập nhật trạng thái -> cancelled
@@ -912,8 +931,34 @@ const orderService = {
         return { success: false, message: "Đơn hàng không tồn tại" };
       }
 
-      // 3. Cập nhật trạng thái -> Paid
+      // 3. Cập nhật trạng thái
       order.paymentStatus = status;
+
+      // Nếu trạng thái là Paid thì cập nhật paidAt = thời gian hiện tại
+      if (status === 'Paid') {
+        order.paidAt = order.paidAt || new Date();
+        order.status = 'confirmed';
+
+        // Chỉ tạo transaction nếu chưa tồn tại
+        const existingTransaction = await db.Transaction.findOne({
+          where: { orderId: order.id, type: 'Expense' },
+          transaction: t,
+        });
+
+        if (!existingTransaction) {
+          await createUserTransaction(
+            order.id,
+            order.userId,
+            order.totalFee,
+            order.paymentMethod,
+            order.trackingNumber,
+            t,
+          );
+        }
+      } else {
+        order.paidAt = null;
+      }
+
       await order.save({ transaction: t });
 
       await t.commit();
@@ -1264,15 +1309,21 @@ const orderService = {
       const whereCondition = { userId };
 
       if (startDate && endDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0); 
+
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999); 
+
         whereCondition.createdAt = {
-          [db.Sequelize.Op.between]: [new Date(startDate), new Date(endDate)],
+          [db.Sequelize.Op.between]: [start, end],
         };
       }
 
       // 3. Query, chỉ lấy những trường cần thiết để chart
       const ordersResult = await db.Order.findAll({
         where: whereCondition,
-        attributes: ['id', 'status', 'createdAt'], 
+        attributes: ['id', 'status', 'createdAt'],
         order: [['createdAt', 'ASC']],
       });
 
@@ -1676,10 +1727,6 @@ const orderService = {
       )
         throw new Error("Địa chỉ người nhận không hợp lệ");
 
-      // 3. Validate COD
-      if (orderData.cod < 0)
-        throw new Error("COD không hợp lệ");
-
       if (orderData.shippingFee < 0)
         throw new Error("Phí vận chuyển không hợp lệ");
 
@@ -1728,10 +1775,7 @@ const orderService = {
         }
       }
 
-      console.log("shippingFee", orderData.shippingFee);
-
       const shippingFee = orderData.shippingFee || 0;
-      const codAmount = orderData.cod || 0;
       const orderValue = orderData.orderValue || 0;
 
       // 12. Tạo Order
@@ -1754,25 +1798,48 @@ const orderService = {
           serviceTypeId: serviceType.id,
           discountAmount: 0,
           shippingFee: shippingFee,
-          cod: codAmount,
+          cod: 0,
           orderValue: orderValue,
           payer: orderData.payer,
           paymentMethod: "Cash",
           paymentStatus: orderData.paymentStatus,
           notes: orderData.notes,
           userId: orderUserId || null,
-          status: "picked_up",
+          status: "confirmed",
           fromOfficeId: currentUser.employee.office.id,
           toOfficeId: orderData.toOffice?.id,
           createdBy: createdBy,
           createdByType: createdByType,
+          paidAt: orderData.payer == "Shop" ? new Date() : null,
           totalFee:
             Math.ceil((shippingFee || 0) * 1.1) +
-            (codAmount ? codAmount * 0.02 : 0) +
             (orderValue ? orderValue * 0.005 : 0) + 10000,
         },
         { transaction: t }
       );
+
+      if (order.payer === "Shop") {
+        // Tạo giao dịch
+        await createManagerShipTransaction(
+          order.id,
+          order.fromOfficeId,
+          order.totalFee,
+          order.paymentMethod,
+          order.trackingNumber,
+          t,
+        );
+
+        if (order.userId) {
+          await createUserTransaction(
+            order.id,
+            order.userId,
+            order.totalFee,
+            order.paymentMethod,
+            order.trackingNumber,
+            t,
+          );
+        }
+      }
 
       await t.commit();
 
@@ -1875,9 +1942,28 @@ const orderService = {
         const refundResult = await paymentService.refundVNPay(order.id);
         if (!refundResult.success) console.warn("Refund VNPay thất bại:", refundResult.message);
         order.paymentStatus = "Refunded";
+        order.refundedAt = new Date();
+
+        // Chỉ tạo transaction nếu chưa tồn tại
+        const existingTransaction = await db.Transaction.findOne({
+          where: { orderId: order.id, type: 'Income' },
+          transaction: t,
+        });
+
+        if (!existingTransaction) {
+          await createRefundUserTransaction(
+            order.id,
+            order.userId,
+            order.totalFee,
+            order.paymentMethod,
+            order.trackingNumber,
+            t,
+          );
+        }
       } else if (order.paymentMethod === "Cash" && order.paymentStatus === "Paid") {
         // Đánh dấu đã thanh toán nhưng hủy => cần xử lý hoàn tiền thủ công nếu có
         order.paymentStatus = "Refunded"; // hoặc "RefundRequired" nếu muốn tách riêng
+        order.refundedAt = new Date();
       }
 
       // 8. Cập nhật trạng thái hủy

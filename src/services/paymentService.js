@@ -14,17 +14,10 @@ const paymentService = {
       // 2. Tìm order theo id 
       const order = await db.Order.findByPk(orderId);
       if (!order) {
-        return res.status(404).json({ message: "Đơn hàng không tồn tại" });
+        return { success: false, message: "Đơn hàng không tồn tại" };
       }
 
-      // 3. Tính totalAmount = shippingFee - discountAmount
-      const shippingFee = Number(order.shippingFee) || 0;
-      const discountAmount = Number(order.discountAmount) || 0;
-      const totalAmount = shippingFee - discountAmount;
-
-      if (totalAmount <= 0) {
-        return res.status(400).json({ message: "Số tiền thanh toán không hợp lệ" });
-      }
+      const totalAmount = order.totalFee;
 
       // 4. Khởi tạo VNPay
       const vnpay = new VNPay({
@@ -44,7 +37,7 @@ const paymentService = {
       const vnpayResponse = await vnpay.buildPaymentUrl({
         vnp_Amount: totalAmount * 100, // VNPay yêu cầu số tiền * 100 (đơn vị = đồng)
         vnp_IpAddr: ip,
-        vnp_TxnRef: order.id,
+        vnp_TxnRef: String(order.id),
         vnp_OrderInfo: `Thanh toán đơn hàng ${order.trackingNumber}`,
         vnp_OrderType: "other",
         vnp_ReturnUrl: `${process.env.CLIENT_URL}/user/orders/success/${order.trackingNumber}`,
@@ -60,7 +53,7 @@ const paymentService = {
       };
     } catch (error) {
       console.error("Create VNPay URL error:", error);
-      return res.status(500).json({ message: "Error creating VNPay QR" });
+      return { success: false, message: "Error creating VNPay QR" };
     }
   },
 

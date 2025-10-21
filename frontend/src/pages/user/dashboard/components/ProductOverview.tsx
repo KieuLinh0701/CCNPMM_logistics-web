@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import { Card, Button, Typography, Row, Col, Table, Segmented, Tag } from 'antd';
+import { Card, Button, Typography, Row, Col, Table, Segmented, Tag, Tooltip } from 'antd';
 import {
   ShoppingOutlined,
-  StopOutlined,
   CheckCircleOutlined,
-  InboxOutlined,
   ArrowRightOutlined,
   CloseCircleOutlined,
   PauseCircleOutlined,
@@ -73,7 +71,7 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
           >
             <ShoppingOutlined style={{ fontSize: 20, color: '#1C3D90' }} />
           </div>
-          <Title level={4} style={{ color: '#1C3D90', margin: 0 }}>
+          <Title level={3} style={{ color: '#1C3D90', margin: 0 }}>
             Sản phẩm
           </Title>
         </div>
@@ -97,134 +95,142 @@ const ProductOverview: React.FC<ProductOverviewProps> = ({
       {/* ===== Hàng 1 ===== */}
       <div style={{ display: 'flex', gap: 16 }}>
         {/* Cột trái: Các card trạng thái */}
-        <div style={{ flex: '0 0 25%' }}>
+        <div style={{ flex: '0 0 26%' }}>
           <Row gutter={[16, 16]}>
             <Col span={12}>
-              <Card
-                bordered={false}
-                hoverable
-                style={{
-                  backgroundColor: '#f6ffed',
-                  height: 120,
-                  borderRadius: 12,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <Title level={5} style={{ margin: 0, color: '#389e0d' }}>
-                  Đang bán
-                </Title>
-                <div
+              <Tooltip title="Số lượng sản phẩm có trạng thái 'Active'">
+                <Card
+                  bordered={false}
+                  hoverable
                   style={{
+                    backgroundColor: '#f6ffed',
+                    height: 120,
+                    borderRadius: 12,
                     display: 'flex',
+                    flexDirection: 'column',
                     justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginTop: '12px',
                   }}
                 >
-                  <Title level={3} style={{ margin: 0, color: '#389e0d' }}>
-                    {activeProducts}
+                  <Title level={5} style={{ margin: 0, color: '#389e0d' }}>
+                    Đang bán
                   </Title>
-                  <CheckCircleOutlined style={{ fontSize: 28, color: '#389e0d' }} />
-                </div>
-              </Card>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginTop: '12px',
+                    }}
+                  >
+                    <Title level={3} style={{ margin: 0, color: '#389e0d' }}>
+                      {activeProducts}
+                    </Title>
+                    <CheckCircleOutlined style={{ fontSize: 28, color: '#389e0d' }} />
+                  </div>
+                </Card>
+              </Tooltip>
             </Col>
 
             <Col span={12}>
-              <Card
-                bordered={false}
-                hoverable
-                style={{
-                  backgroundColor: '#fff2e8',
-                  height: 120,
-                  borderRadius: 12,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <Title level={5} style={{ margin: 0, color: '#d46b08' }}>
-                  Ngừng bán
-                </Title>
-                <div
+              <Tooltip title="Số lượng sản phẩm có trạng thái 'Inactive'">
+                <Card
+                  bordered={false}
+                  hoverable
                   style={{
+                    backgroundColor: '#fff2e8',
+                    height: 120,
+                    borderRadius: 12,
                     display: 'flex',
+                    flexDirection: 'column',
                     justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginTop: '12px',
                   }}
                 >
-                  <Title level={3} style={{ margin: 0, color: '#d46b08' }}>
-                    {inactiveProducts}
+                  <Title level={5} style={{ margin: 0, color: '#d46b08' }}>
+                    Ngừng bán
                   </Title>
-                  <PauseCircleOutlined style={{ fontSize: 28, color: '#d46b08' }} />
-                </div>
-              </Card>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginTop: '12px',
+                    }}
+                  >
+                    <Title level={3} style={{ margin: 0, color: '#d46b08' }}>
+                      {inactiveProducts}
+                    </Title>
+                    <PauseCircleOutlined style={{ fontSize: 28, color: '#d46b08' }} />
+                  </div>
+                </Card>
+              </Tooltip>
             </Col>
 
             <Col span={12}>
-              <Card
-                bordered={false}
-                hoverable
-                style={{
-                  backgroundColor: '#fff1f0',
-                  height: 120,
-                  borderRadius: 12,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <Title level={5} style={{ margin: 0, color: '#cf1322' }}>
-                  Hết hàng
-                </Title>
-                <div
+              <Tooltip title="Số lượng sản phẩm đã hết hàng (stock = 0)">
+                <Card
+                  bordered={false}
+                  hoverable
                   style={{
+                    backgroundColor: '#fff1f0',
+                    height: 120,
+                    borderRadius: 12,
                     display: 'flex',
+                    flexDirection: 'column',
                     justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginTop: '12px',
                   }}
                 >
-                  <Title level={3} style={{ margin: 0, color: '#cf1322' }}>
-                    {outOfStockProducts}
+                  <Title level={5} style={{ margin: 0, color: '#cf1322' }}>
+                    Hết hàng
                   </Title>
-                  <CloseCircleOutlined style={{ fontSize: 28, color: '#cf1322' }} />
-                </div>
-              </Card>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginTop: '12px',
+                    }}
+                  >
+                    <Title level={3} style={{ margin: 0, color: '#cf1322' }}>
+                      {outOfStockProducts}
+                    </Title>
+                    <CloseCircleOutlined style={{ fontSize: 28, color: '#cf1322' }} />
+                  </div>
+                </Card>
+              </Tooltip>
             </Col>
 
             <Col span={12}>
-              <Card
-                bordered={false}
-                hoverable
-                style={{
-                  backgroundColor: '#e6f7ff',
-                  height: 120,
-                  borderRadius: 12,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <Title level={5} style={{ margin: 0, color: '#096dd9' }}>
-                  Tổng
-                </Title>
-                <div
+              <Tooltip title="Số lượng sản phẩm bạn đang có">
+                <Card
+                  bordered={false}
+                  hoverable
                   style={{
+                    backgroundColor: '#e6f7ff',
+                    height: 120,
+                    borderRadius: 12,
                     display: 'flex',
+                    flexDirection: 'column',
                     justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginTop: '12px',
                   }}
                 >
-                  <Title level={3} style={{ margin: 0, color: '#096dd9' }}>
-                    {totalProducts}
+                  <Title level={5} style={{ margin: 0, color: '#096dd9' }}>
+                    Tổng
                   </Title>
-                  <ShoppingOutlined style={{ fontSize: 28, color: '#096dd9' }} />
-                </div>
-              </Card>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginTop: '12px',
+                    }}
+                  >
+                    <Title level={3} style={{ margin: 0, color: '#096dd9' }}>
+                      {totalProducts}
+                    </Title>
+                    <ShoppingOutlined style={{ fontSize: 28, color: '#096dd9' }} />
+                  </div>
+                </Card>
+              </Tooltip>
             </Col>
           </Row>
         </div>

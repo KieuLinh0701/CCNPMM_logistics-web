@@ -75,13 +75,13 @@ const Header: React.FC<HeaderProps> = () => {
 
       {/* Góc phải */}
       <Space size="middle">
-        {user?.role === "manager" && (
+        {(user?.role === "manager" || user?.role === "user") && (
           <Button
             type="primary"
             ghost
             style={{ borderColor: "#fff", color: "#fff" }}
             icon={<PlusOutlined />}
-            onClick={() => navigate("/manager/orders/create")}
+            onClick={() => navigate(`/${user.role}/orders/create`)}
           >
             Tạo đơn hàng
           </Button>

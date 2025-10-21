@@ -1,95 +1,83 @@
-// Đây là bảng đối soát số tiền cod tính trên hệ thống và số tiền shipper nộp cho bưu cục
 import { Model, DataTypes } from 'sequelize';
 
 export default (sequelize) => {
   class PaymentSubmission extends Model {
     static associate(models) {
-      PaymentSubmission.belongsTo(models.Order, {
-        foreignKey: 'orderId',
-        as: 'order',
-        onDelete: 'CASCADE',
-        onUpdate: 'CASCADE',
-      });
-
-      PaymentSubmission.belongsTo(models.Office, { // Kho/bưu cục
+      PaymentSubmission.belongsTo(models.Office, {
         foreignKey: 'officeId',
         as: 'office',
         onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
       });
 
-      PaymentSubmission.belongsTo(models.User, { // Shipper nộp tiền
-        foreignKey: 'shipperId',
-        as: 'user',
-        onDelete: 'CASCADE',
+      PaymentSubmission.belongsTo(models.User, { // Shipper hoặc người nộp tiền
+        foreignKey: 'submittedById',
+        as: 'submittedBy',
+        onDelete: 'SET NULL',
+        onUpdate: 'CASCADE',
+      });
+
+      PaymentSubmission.belongsTo(models.User, { // Người xác nhận
+        foreignKey: 'confirmedById',
+        as: 'confirmedBy',
+        onDelete: 'SET NULL',
         onUpdate: 'CASCADE',
       });
     }
   }
 
-  PaymentSubmission.init(
-    {
-      orderId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-      },
-      officeId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-      },
-      shipperId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-      },
-      amountSubmitted: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        comment: 'Số tiền thực tế kho/bưu cục nhận từ shipper'
-      },
-      discrepancy: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        defaultValue: 0,
-        comment: 'Chênh lệch so với amountCollected'
-      },
-      status: {
-        type: DataTypes.ENUM('Pending','Confirmed','Adjusted','Rejected'),
-        allowNull: false,
-        defaultValue: 'Pending',
-        comment: `
-            Trạng thái đối soát tiền COD:
-            - Pending: Chờ kho/bưu cục xác nhận số tiền nộp từ shipper.
-            - Confirmed: Kho/bưu cục xác nhận số tiền nộp đúng với amountCollected (khớp hệ thống).
-            - Adjusted: Kho/bưu cục xác nhận nhưng có điều chỉnh (ví dụ: thu thiếu hoặc thừa đã giải thích/điều chỉnh).
-            - Rejected: Kho/bưu cục từ chối số tiền nộp do sai lệch lớn, cần kiểm tra hoặc xử lý thủ công.
-            },
-             `
-      },
-      notes: {
-        type: DataTypes.TEXT,
-        allowNull: true,
-      },
-      reconciledAt: {
-        type: DataTypes.DATE,
-        allowNull: true,
-        comment: `
-            Thời điểm kho/bưu cục xác nhận số tiền nộp từ shipper.
-            - Khi bản ghi mới được tạo (shipper nộp tiền), status = Pending.
-            - Khi kho/bưu cục kiểm tra và cập nhật status (Confirmed / Adjusted / Rejected),
-            thời điểm đó sẽ được ghi vào reconciledAt.
-            - Giúp phân biệt với createdAt, vì shipper nộp và kho xác nhận có thể khác thời điểm.
-        `
-      }
+  PaymentSubmission.init({
+    officeId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
     },
-    {
-      sequelize,
-      modelName: 'PaymentSubmission',
-      tableName: 'PaymentSubmissions',
-      timestamps: true,
-      createdAt: 'createdAt',
-      updatedAt: 'updatedAt',
-    }
-  );
+    submittedById: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: 'Shipper hoặc user nếu khách nộp trực tiếp và đã có tài khoản hoặc null'
+    },
+    submittedByType: {
+      type: DataTypes.ENUM('user', 'shipper', 'guest'),
+      allowNull: false,
+      defaultValue: 'user',
+      comment: 'Xác định người nộp tiền là user (khách) hay shipper',
+    },
+    totalAmountSubmitted: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      comment: 'Tổng tiền nộp từ shipper hoặc khách',
+    },
+    status: {
+      type: DataTypes.ENUM('Pending', 'Confirmed', 'Adjusted', 'Rejected'),
+      defaultValue: 'Pending',
+      allowNull: false,
+    },
+    notes: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    reconciledAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: 'Thời điểm kho/bưu cục xác nhận',
+    },
+    confirmedById: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    orderIds: {
+      type: DataTypes.JSON,
+      allowNull: false,
+      comment: 'Danh sách ID đơn hàng trong lô tiền nộp',
+    },
+  }, {
+    sequelize,
+    modelName: 'PaymentSubmission',
+    tableName: 'PaymentSubmissions',
+    timestamps: true,
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt',
+  });
 
   return PaymentSubmission;
 };

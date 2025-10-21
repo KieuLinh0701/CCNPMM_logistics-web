@@ -17,6 +17,7 @@ import payment from "./payment.js";
 import shippingRequestController from "../controllers/shippingRequestController.js";
 import shipperController from "../controllers/shipperController.js";
 import orderController from "../controllers/orderController.js";
+import transactionController from "../controllers/transactionController.js";
 
 let router = express.Router();
 
@@ -94,6 +95,14 @@ let initApiRoutes = (app) => {
     router.post("/orders", verifyToken, orderController.createOrder);
     // Promotion validation for orders
     router.post("/orders/validate-promotion", promotionController.validatePromotionCode);
+
+
+    // Transaction
+    // ======================= Protected =======================
+    router.get('/protected/transactions/types', verifyToken, transactionController.getTransactionTypes);
+    // ==================== User ====================================
+    router.get('/user/transactions', verifyToken, transactionController.listUserTransactions);
+    router.get('/user/transactions/export', verifyToken, transactionController.exportUserTransactions);
     
     // Public routes for guests
     // Order tracking

@@ -10,7 +10,12 @@ const paymentController = {
 
             const result = await paymentService.createVNPayURL(userId, orderId, req.ip);
 
-            return res.status(200).json(result);
+            if (result.success) {
+                return res.status(200).json(result);
+            } else {
+                return res.status(400).json(result);
+            }
+
         } catch (error) {
             console.error('Create URL VNPay error:', error);
             return res.status(500).json({
@@ -31,7 +36,8 @@ const paymentController = {
             if (vnp_ResponseCode === "00") {
                 // Thanh toán thành công
                 const orderId = vnp_TxnRef;
-                const result = await orderService.updatePaymentStatus(orderId, "Paid");
+                
+                await orderService.updatePaymentStatus(orderId, "Paid");
 
                 return res.json({ success: true, message: "Thanh toán thành công" });
             } else {

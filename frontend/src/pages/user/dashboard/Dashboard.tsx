@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
+import minMax from 'dayjs/plugin/minMax';
 import Title from "antd/es/typography/Title";
 import DateFilter from './components/Filter';
 import { useAppDispatch, useAppSelector } from '../../../hooks/redux';
 import { getOrderStatuses, getUserOrdersDashboard } from '../../../store/orderSlice';
 import ProductOverview from './components/ProductOverview';
 import OrderPreview from './components/OrderPreview';
-import { convertSoldByDateToChartData } from '../../../utils/chartUtils';
 import { getUserProductsDashboard } from '../../../store/productSlice';
 
 const UserDashboard: React.FC = () => {
+  dayjs.extend(minMax);
   const dispatch = useAppDispatch();
   const { orders = [], statuses = [] } = useAppSelector((state) => state.order);
   const {
@@ -26,16 +27,11 @@ const UserDashboard: React.FC = () => {
 
   // Nạp lại data khi datarange thay đổi
   useEffect(() => {
-    if (!dateRange) return;
-    dispatch(getUserOrdersDashboard({
-      startDate: dateRange[0].format('YYYY-MM-DD'),
-      endDate: dateRange[1].format('YYYY-MM-DD')
-    }));
+    const start = dateRange ? dateRange[0].format('YYYY-MM-DD') : undefined;
+    const end = dateRange ? dateRange[1].format('YYYY-MM-DD') : undefined;
 
-    dispatch(getUserProductsDashboard({
-      startDate: dateRange[0].format('YYYY-MM-DD'),
-      endDate: dateRange[1].format('YYYY-MM-DD')
-    }));
+    dispatch(getUserOrdersDashboard({ startDate: start, endDate: end }));
+    dispatch(getUserProductsDashboard({ startDate: start, endDate: end }));
   }, [dateRange]);
 
   const getGranularity = (start: Dayjs, end: Dayjs) => {
@@ -116,20 +112,17 @@ const UserDashboard: React.FC = () => {
 
   const lineChartProductData = (() => {
     const result: any[] = [];
-    const data = soldByDate || []; 
+    const data = soldByDate || [];
+
+    // start/end lấy y hệt Order chart
     const start = dateRange ? dateRange[0] : (data[0] ? dayjs(data[0].date) : dayjs());
     const end = dateRange ? dateRange[1] : dayjs();
+    const granularity = getGranularity(start, end);
 
-    // Xác định granularity dựa vào khoảng thời gian
-    const diffDays = end.diff(start, 'day');
-    let granularity: 'day' | 'week' | 'month' | 'year' = 'day';
-    if (diffDays > 30 && diffDays <= 180) granularity = 'week';
-    else if (diffDays > 180 && diffDays <= 730) granularity = 'month';
-    else if (diffDays > 730) granularity = 'year';
+    const grouped: Record<string, any> = {};
 
     // Gom dữ liệu theo granularity
-    const grouped: Record<string, number> = {};
-    data.forEach(item => {  
+    data.forEach(item => {
       let date = dayjs(item.date);
       if (granularity === 'week') date = date.startOf('week');
       else if (granularity === 'month') date = date.startOf('month');
@@ -137,26 +130,26 @@ const UserDashboard: React.FC = () => {
       else date = date.startOf('day');
 
       const key = date.format('YYYY-MM-DD');
-      grouped[key] = (grouped[key] || 0) + item.total;
+      if (!grouped[key]) grouped[key] = { date: key, total: 0 };
+      grouped[key].total += item.total;
     });
 
-    // Fill tất cả các ngày trong range, tạo displayDate
+    // Fill tất cả ngày trong khoảng
     let current = start.clone().startOf(granularity as any);
     const last = end.clone().endOf(granularity as any);
 
     while (current.isBefore(last) || current.isSame(last, granularity as any)) {
       const key = current.format('YYYY-MM-DD');
-      const total = grouped[key] || 0;
+      if (!grouped[key]) grouped[key] = { date: key, total: 0 };
 
-      // Tạo displayDate
-      let displayDate: string;
-      if (granularity === 'year') displayDate = current.format('YYYY');
-      else if (granularity === 'month') displayDate = current.format('MM/YYYY');
-      else displayDate = current.year() === dayjs().year()
+      // displayDate giống Order chart
+      if (granularity === 'year') grouped[key].displayDate = current.format('YYYY');
+      else if (granularity === 'month') grouped[key].displayDate = current.format('MM/YYYY');
+      else grouped[key].displayDate = current.year() === dayjs().year()
         ? current.format('DD/MM')
         : current.format('DD/MM/YYYY');
 
-      result.push({ date: key, displayDate, total });
+      result.push(grouped[key]);
       current = current.add(1, granularity as any);
     }
 

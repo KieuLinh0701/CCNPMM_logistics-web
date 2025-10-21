@@ -226,25 +226,9 @@ const Sidenav: React.FC<Props> = ({ color }) => {
       },
       {
         key: "finance",
-        label: "Quản lý dòng tiền",
+        label: "Lịch sử giao dịch",
         icon: <DollarOutlined />,
-        children: [
-          {
-            key: "/user/finance/tracking",
-            label: "Theo dõi thu - chi",
-            path: "/user/finance/tracking",
-          },
-          {
-            key: "/user/finance/confirm",
-            label: "Xác nhận đối soát",
-            path: "/user/finance/confirm",
-          },
-          {
-            key: "/user/finance/history",
-            label: "Lịch sử đối soát",
-            path: "/user/finance/history",
-          },
-        ],
+        path: "/user/transactions",
       },
       {
         key: "tracking",

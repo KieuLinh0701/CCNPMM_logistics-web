@@ -7,14 +7,12 @@ const { Text } = Typography;
 
 interface Props {
   shippingFee: number;
-  cod: number;
   orderValue: number;
   totalFee: number;
 }
 
 const FeeCard: React.FC<Props> = ({
   shippingFee,
-  cod,
   orderValue,
   totalFee,
 }) => {
@@ -53,17 +51,6 @@ const FeeCard: React.FC<Props> = ({
           </Tooltip>
         </Text>
         <div>+{(orderValue ? orderValue * 0.005 : 0).toLocaleString()} VNĐ</div>
-      </div>
-
-      {/* Phí thu COD */}
-      <div style={{ marginBottom: 16 }}>
-        <Text strong>
-          Phí thu COD
-          <Tooltip title="Tính 2% trên số tiền thu hộ">
-            <span style={{ marginLeft: 4, cursor: 'pointer' }}><InfoCircleOutlined /></span>
-          </Tooltip>
-        </Text>
-        <div>+{(cod ? cod * 0.02 : 0).toLocaleString()} VNĐ</div>
       </div>
 
       {/* Phí thu COD */}

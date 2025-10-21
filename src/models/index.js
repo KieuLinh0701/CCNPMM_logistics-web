@@ -31,10 +31,11 @@ import ShippingRate from './shippingRate.js';
 import Vehicle from './vehicle.js';
 import Product from './product.js';
 import OrderProduct from './orderProduct.js';
-import PaymentSubmission from './paymentSubmission.js';
 import ShippingCollection from './shippingCollection.js';
 import ShippingRequest from './shippingRequest.js';
 import Notification from './notification.js';
+import PaymentSubmission from './paymentSubmission.js';
+import Transaction from './transaction.js';
 
 // Initialize models
 const db = {
@@ -55,10 +56,11 @@ const db = {
   Vehicle: Vehicle(sequelize),
   Product: Product(sequelize),
   OrderProduct: OrderProduct(sequelize),
-  PaymentSubmission: PaymentSubmission(sequelize),
   ShippingCollection: ShippingCollection(sequelize),
   ShippingRequest: ShippingRequest(sequelize),
   Notification: Notification(sequelize),
+  PaymentSubmission: PaymentSubmission(sequelize),
+  Transaction: Transaction(sequelize),
 };
 
 // Call associate for each model if exists

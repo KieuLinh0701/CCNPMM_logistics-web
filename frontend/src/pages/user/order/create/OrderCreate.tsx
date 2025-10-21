@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import axios from "axios";
-import { Button, Col, Form, InputNumber, message, Modal, Row, Tooltip } from "antd";
+import { Button, Col, Form, InputNumber, message, Modal, Row, Spin, Tooltip } from "antd";
 import { AppDispatch, RootState } from "../../../../store/store";
 import { City, Ward } from "../../../../types/location";
 import { getOrderPayers, getOrderPaymentMethods, createUserOrder, createVNPayURL } from "../../../../store/orderSlice";
@@ -37,7 +37,7 @@ const OrderCreate: React.FC = () => {
     const navigate = useNavigate();
     const dispatch = useDispatch<AppDispatch>();
 
-    const { user } = useAppSelector(state => state.auth);
+    const { user, loading: loadingUser } = useAppSelector(state => state.auth);
 
     const [loading, setLoading] = useState(false);
 
@@ -511,6 +511,19 @@ const OrderCreate: React.FC = () => {
 
         setDiscountAmount(discount);
     }, [selectedPromo, shippingFee]);
+
+    useEffect(() => {
+        if (user) {
+            setSenderData({
+                name: `${user.lastName} ${user.firstName}`,
+                phone: user.phoneNumber,
+                detailAddress: user.detailAddress || "",
+                wardCode: user.codeWard || 0,
+                cityCode: user.codeCity || 0,
+            });
+        }
+    }, [user]);
+
 
     const orderColumns = [
         {

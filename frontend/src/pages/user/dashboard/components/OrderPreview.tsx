@@ -113,7 +113,7 @@ const OrderPreview: React.FC<OrderPreviewProps> = ({
           >
             <FileTextOutlined style={{ fontSize: 20, color: '#1C3D90' }} />
           </div>
-          <Title level={4} style={{ color: '#1C3D90', margin: 0 }}>
+          <Title level={3} style={{ color: '#1C3D90', margin: 0 }}>
             Đơn hàng
           </Title>
         </div>
@@ -138,7 +138,7 @@ const OrderPreview: React.FC<OrderPreviewProps> = ({
       {/* Nội dung chính */}
       <div style={{ display: 'flex', gap: 16 }}>
         {/* Cột trái: Các card trạng thái */}
-        <div style={{ flex: '0 0 25%' }}>
+        <div style={{ flex: '0 0 26%' }}>
           <Row gutter={[16, 16]}>
             {Object.keys(groupedStatuses).map((key) => {
               const group = groupedStatuses[key];

@@ -8,6 +8,7 @@ import productReducer from './productSlice';
 import promotionReducer from './promotionSlice';
 import vehicleReducer from './vehicleSlice';
 import shippingRequestReducer from './shippingRequestSlice';
+import transactionReducer from './transactionSlice';
 
 export const store = configureStore({
   reducer: {
@@ -20,6 +21,7 @@ export const store = configureStore({
     promotion: promotionReducer,
     vehicle: vehicleReducer,
     request: shippingRequestReducer,
+    transaction: transactionReducer,
   },
 });
 

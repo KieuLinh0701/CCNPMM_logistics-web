@@ -38,7 +38,6 @@ const OrderCreateManager: React.FC = () => {
 
     const [orderValue, setOrderValue] = useState(0);
     const [weight, setWeight] = useState(0);
-    const [codAmount, setCodAmount] = useState(0);
 
     const [selectedOffice, setSelectedOffice] = useState<Office | null>(null);
     const { shippingFee, loading: orderLoading, payers = [], paymentMethods = [] } =
@@ -117,10 +116,6 @@ const OrderCreateManager: React.FC = () => {
             setOrderValue(changedValues.orderValue);
         }
 
-        if (changedValues.codAmount !== undefined) {
-            setCodAmount(changedValues.codAmount);
-        }
-
         if (changedValues.serviceType !== undefined) {
             const selected = serviceTypes?.find(s => s.id === changedValues.serviceType);
             setSelectedServiceType(selected || null);
@@ -184,7 +179,6 @@ const OrderCreateManager: React.FC = () => {
 
                 weight,
                 serviceType: selectedServiceType,
-                cod: codAmount || 0,
                 orderValue: orderValue,
                 payer: paymentData.payer,
                 paymentStatus: paymentData.payer == "Shop" ? "Paid" : "Unpaid",
@@ -345,7 +339,6 @@ const OrderCreateManager: React.FC = () => {
                                 form={orderInfo}
                                 weight={weight}
                                 orderValue={orderValue}
-                                cod={codAmount}
                                 serviceTypes={serviceTypes}
                                 serviceLoading={serviceLoading}
                                 selectedServiceType={selectedServiceType}
@@ -381,9 +374,7 @@ const OrderCreateManager: React.FC = () => {
                         <FeeCard
                             shippingFee={shippingFee}
                             totalFee={Math.ceil((shippingFee || 0) * 1.1) +
-                                (codAmount ? codAmount * 0.02 : 0) +
                                 (orderValue ? orderValue * 0.005 : 0) + 10000}
-                            cod={codAmount}
                             orderValue={orderValue}
                         />
                     </div>

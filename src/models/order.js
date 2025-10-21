@@ -273,6 +273,18 @@ export default (sequelize) => {
         type: DataTypes.INTEGER,
         allowNull: true,
       },
+
+      paidAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: 'Thời gian thanh toán đơn hàng'
+      },
+
+      refundedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: 'Thời gian hoàn trả tiền đơn hàng'
+      },
     },
     {
       sequelize,

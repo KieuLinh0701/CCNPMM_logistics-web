@@ -502,37 +502,49 @@ const productService = {
 
   async getUserProductsDashboard(userId, startDate, endDate) {
     try {
-      // Thống kê sản phẩm
-      const outOfStockProducts = await db.Product.count({ where: { userId, stock: 0 } });
+      // 1. Thống kê sản phẩm cơ bản
+      const outOfStockProducts = await db.Product.count({
+        where: { userId, stock: 0, status: 'Active' },
+      });
       const activeProducts = await db.Product.count({ where: { userId, status: 'Active' } });
       const inactiveProducts = await db.Product.count({ where: { userId, status: 'Inactive' } });
 
+      // 2. Chuẩn bị filter ngày (UTC+7)
       const replacements = { userId };
       let dateCondition = '';
       if (startDate && endDate) {
-        replacements.startDate = startDate;
-        replacements.endDate = endDate;
-        dateCondition = 'AND o.createdAt BETWEEN :startDate AND :endDate';
+        // Start/end theo giờ VN
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+
+        replacements.startDate = start;
+        replacements.endDate = end;
+
+        // Filter bằng CONVERT_TZ sang +07:00
+        dateCondition = 'AND CONVERT_TZ(o.createdAt, "+00:00", "+07:00") BETWEEN :startDate AND :endDate';
       }
 
-      // Gom sản phẩm bán theo ngày
+      // 3. Gom sản phẩm bán theo ngày
       const soldByDate = await db.sequelize.query(
         `
       SELECT 
-        DATE(o.createdAt) AS date,
+        DATE(CONVERT_TZ(o.createdAt, '+00:00', '+07:00')) AS date,
         SUM(op.quantity) AS total
       FROM Orders o
       JOIN OrderProducts op ON o.id = op.orderId
       WHERE o.userId = :userId
         ${dateCondition}
         AND o.status NOT IN ('cancelled', 'draft', 'returning', 'returned')
-      GROUP BY DATE(o.createdAt)
-      ORDER BY DATE(o.createdAt) ASC;
+      GROUP BY DATE(CONVERT_TZ(o.createdAt, '+00:00', '+07:00'))
+      ORDER BY DATE(CONVERT_TZ(o.createdAt, '+00:00', '+07:00')) ASC;
       `,
         { replacements, type: db.Sequelize.QueryTypes.SELECT }
       );
 
-      // Top 5 sản phẩm bán chạy nhất
+      // 4. Top 5 sản phẩm bán chạy
       const topSelling = await db.sequelize.query(
         `
       SELECT
@@ -552,10 +564,10 @@ const productService = {
         { replacements, type: db.Sequelize.QueryTypes.SELECT }
       );
 
-      // Top 5 sản phẩm có tỷ lệ hoàn cao nhất
+      // 5. Top 5 sản phẩm tỷ lệ hoàn cao
       const topReturned = await db.sequelize.query(
         `
-     SELECT 
+      SELECT 
         p.id,
         p.name,
         COALESCE(SUM(op.quantity), 0) AS total
@@ -572,20 +584,20 @@ const productService = {
         { replacements, type: db.Sequelize.QueryTypes.SELECT }
       );
 
+      // 6. Sản phẩm theo loại
       const productByType = await db.sequelize.query(
         `
-        SELECT 
-          p.type,
-          COUNT(p.id) AS total
-        FROM Products p
-        WHERE p.userId = :userId
-        GROUP BY p.type
-        ORDER BY total DESC;
-        `,
+      SELECT 
+        p.type,
+        COUNT(p.id) AS total
+      FROM Products p
+      WHERE p.userId = :userId
+      GROUP BY p.type
+      ORDER BY total DESC;
+      `,
         { replacements, type: db.Sequelize.QueryTypes.SELECT }
       );
 
-      // Trả kết quả về
       return {
         success: true,
         outOfStockProducts,
