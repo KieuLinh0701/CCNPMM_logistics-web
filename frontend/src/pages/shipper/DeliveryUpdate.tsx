@@ -80,8 +80,8 @@ useEffect(() => {
         proofImages: selectedImages,
         actualRecipient: values.actualRecipient,
         actualRecipientPhone: values.actualRecipientPhone,
-        codCollected: values.codCollected,
-        totalAmountCollected: values.totalAmountCollected,
+        codCollected: values.codCollected ? Number(values.codCollected) : undefined,
+        totalAmountCollected: values.totalAmountCollected ? Number(values.totalAmountCollected) : undefined,
         shipperId: JSON.parse(localStorage.getItem('user') || '{}').id
       });
       
@@ -283,7 +283,7 @@ useEffect(() => {
                 { required: true, message: 'Vui lòng nhập số tiền COD đã thu' },
                 {
                   validator: (_, value) => {
-                    if (value && value !== order.codAmount) {
+                    if (value && Number(value) !== order.codAmount) {
                       return Promise.reject(new Error(`Số tiền COD phải bằng ${order.codAmount.toLocaleString()}đ`));
                     }
                     return Promise.resolve();
@@ -303,11 +303,14 @@ useEffect(() => {
             name="totalAmountCollected"
             label="Tổng số tiền đã thu từ khách"
             rules={[
-              { required: true, message: 'Vui lòng nhập tổng số tiền đã thu' },
+              { 
+                required: (order.codAmount + order.shippingFee - order.discountAmount) > 0, 
+                message: 'Vui lòng nhập tổng số tiền đã thu' 
+              },
               {
                 validator: (_, value) => {
                   const expectedAmount = order.codAmount + order.shippingFee - order.discountAmount;
-                  if (value && value !== expectedAmount) {
+                  if (value && Number(value) !== expectedAmount) {
                     return Promise.reject(new Error(`Tổng số tiền phải bằng ${expectedAmount.toLocaleString()}đ (COD + Phí vận chuyển - Giảm giá)`));
                   }
                   return Promise.resolve();

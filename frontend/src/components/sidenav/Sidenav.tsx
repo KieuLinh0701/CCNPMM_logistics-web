@@ -22,7 +22,6 @@ import {
   InboxOutlined,
   ClockCircleOutlined,
   ExclamationCircleOutlined,
-  BellOutlined,
 } from "@ant-design/icons";
 
 const { SubMenu } = Menu;
@@ -326,12 +325,6 @@ const Sidenav: React.FC<Props> = ({ color }) => {
         label: "Báo cáo sự cố",
         path: "/shipper/report",
         icon: <ExclamationCircleOutlined />,
-      },
-      {
-        key: "/shipper/notifications",
-        label: "Thông báo",
-        path: "/shipper/notifications",
-        icon: <BellOutlined />,
       },
       {
         key: "/shipper/profile",
