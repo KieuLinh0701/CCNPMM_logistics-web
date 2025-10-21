@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Card, Descriptions, Drawer, Form, Input, Modal, Popconfirm, Select, Space, Table, Tag, message } from 'antd';
+import { Button, Card, Descriptions, Drawer, Form, Input, Modal, Popconfirm, Select, Space, Table, Tag, message, Typography } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { adminAPI, OrderRow } from '../../services/api';
 import { useNavigate } from 'react-router-dom';
+
+const { Title } = Typography;
 
 type QueryState = { page: number; limit: number; search: string; status?: string; postOfficeId?: string };
 
@@ -147,29 +149,38 @@ const AdminOrders: React.FC = () => {
   ], [onDelete, onUpdateStatus]);
 
   return (
-    <Card title="Quản lý đơn hàng" extra={
-      <Space>
-        <Button 
-          type="primary" 
-          icon={<PlusOutlined />}
-          onClick={() => navigate('/admin/orders/create')}
-        >
-          Thêm đơn hàng
-        </Button>
-        <Input.Search allowClear placeholder="Tìm kiếm" onSearch={(v) => setQuery({ ...query, page: 1, search: v })} />
-        <Select
-          placeholder="Lọc theo trạng thái"
-          allowClear
-          style={{ width: 150 }}
-          value={query.status}
-          onChange={(v) => setQuery({ ...query, page: 1, status: v })}
-        >
-          {statusOptions.map(option => (
-            <Select.Option key={option.value} value={option.value}>{option.label}</Select.Option>
-          ))}
-        </Select>
-      </Space>
-    }>
+    <div style={{ padding: 24, background: '#F9FAFB', borderRadius: 12 }}>
+      <div style={{ marginBottom: 24 }}>
+        <Title level={2} style={{ color: '#1C3D90' }}>Quản lý đơn hàng</Title>
+      </div>
+      
+      <Card 
+        style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+        extra={
+          <Space>
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />}
+              style={{ backgroundColor: '#1C3D90', borderColor: '#1C3D90' }}
+              onClick={() => navigate('/admin/orders/create')}
+            >
+              Thêm đơn hàng
+            </Button>
+            <Input.Search allowClear placeholder="Tìm kiếm" onSearch={(v) => setQuery({ ...query, page: 1, search: v })} />
+            <Select
+              placeholder="Lọc theo trạng thái"
+              allowClear
+              style={{ width: 150 }}
+              value={query.status}
+              onChange={(v) => setQuery({ ...query, page: 1, status: v })}
+            >
+              {statusOptions.map(option => (
+                <Select.Option key={option.value} value={option.value}>{option.label}</Select.Option>
+              ))}
+            </Select>
+          </Space>
+        }
+      >
       <Table
         rowKey="id"
         loading={loading}
@@ -229,6 +240,7 @@ const AdminOrders: React.FC = () => {
         </Form>
       </Modal>
     </Card>
+    </div>
   );
 };
 

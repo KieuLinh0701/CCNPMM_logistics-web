@@ -197,13 +197,15 @@ const ShipperDashboard: React.FC = () => {
   ];
 
   return (
-    <div style={{ padding: '24px' }}>
-      <Title level={2}>Dashboard Shipper</Title>
+    <div style={{ padding: 24, background: '#F9FAFB', borderRadius: 12 }}>
+      <div style={{ marginBottom: 24 }}>
+        <Title level={2} style={{ color: '#1C3D90' }}>Dashboard Shipper</Title>
+      </div>
       
       {/* Thống kê tổng quan */}
-      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={12} lg={6}>
-          <Card>
+          <Card style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <Statistic
               title="Tổng đơn được phân công"
               value={stats.totalAssigned}
@@ -213,7 +215,7 @@ const ShipperDashboard: React.FC = () => {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card>
+          <Card style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <Statistic
               title="Đang giao"
               value={stats.inProgress}
@@ -223,7 +225,7 @@ const ShipperDashboard: React.FC = () => {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card>
+          <Card style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <Statistic
               title="Đã giao thành công"
               value={stats.delivered}
@@ -233,7 +235,7 @@ const ShipperDashboard: React.FC = () => {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card>
+          <Card style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <Statistic
               title="COD đã thu"
               value={stats.codCollected}
@@ -250,9 +252,14 @@ const ShipperDashboard: React.FC = () => {
         <Col xs={24} lg={16}>
           <Card 
             title="Đơn hàng hôm nay" 
+            style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
             extra={
               <Space>
-                <Button type="primary" onClick={() => navigate('/shipper/orders')}>
+                <Button 
+                  type="primary" 
+                  style={{ backgroundColor: '#1C3D90', borderColor: '#1C3D90' }}
+                  onClick={() => navigate('/shipper/orders')}
+                >
                   Xem tất cả
                 </Button>
                 <Button onClick={() => navigate('/shipper/route')}>
@@ -283,7 +290,7 @@ const ShipperDashboard: React.FC = () => {
                 )}
               </Space>
             }
-            style={{ marginBottom: '16px' }}
+            style={{ marginBottom: 16, borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
           >
             <List
               dataSource={notifications}
@@ -309,7 +316,10 @@ const ShipperDashboard: React.FC = () => {
           </Card>
 
           {/* Tiện ích nhanh */}
-          <Card title="Tiện ích nhanh">
+          <Card 
+            title="Tiện ích nhanh"
+            style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+          >
             <Space direction="vertical" style={{ width: '100%' }}>
               <Button 
                 type="default" 

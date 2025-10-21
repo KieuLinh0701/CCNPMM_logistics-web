@@ -330,13 +330,15 @@ const ShipperOrders: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '24px' }}>
-      <Title level={2}>Danh sách đơn hàng cần giao</Title>
+    <div style={{ padding: 24, background: '#F9FAFB', borderRadius: 12 }}>
+      <div style={{ marginBottom: 24 }}>
+        <Title level={2} style={{ color: '#1C3D90' }}>Danh sách đơn hàng cần giao</Title>
+      </div>
       
       {/* Thống kê nhanh */}
-      <Row gutter={16} style={{ marginBottom: '24px' }}>
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col span={6}>
-          <Card size="small">
+          <Card size="small" style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <Statistic
               title="Tổng đơn hàng"
               value={stats.total}
@@ -345,7 +347,7 @@ const ShipperOrders: React.FC = () => {
           </Card>
         </Col>
         <Col span={6}>
-          <Card size="small">
+          <Card size="small" style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <Statistic
               title="Chờ giao"
               value={stats.assigned}
@@ -354,7 +356,7 @@ const ShipperOrders: React.FC = () => {
           </Card>
         </Col>
         <Col span={6}>
-          <Card size="small">
+          <Card size="small" style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <Statistic
               title="Đang giao"
               value={stats.inProgress}
@@ -363,7 +365,7 @@ const ShipperOrders: React.FC = () => {
           </Card>
         </Col>
         <Col span={6}>
-          <Card size="small">
+          <Card size="small" style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <Statistic
               title="Ưu tiên"
               value={stats.urgent}
@@ -373,7 +375,7 @@ const ShipperOrders: React.FC = () => {
         </Col>
       </Row>
 
-      <Card>
+      <Card style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
         {/* Bộ lọc */}
         <Row gutter={[16, 16]} style={{ marginBottom: '16px' }}>
           <Col xs={24} sm={12} md={6}>
