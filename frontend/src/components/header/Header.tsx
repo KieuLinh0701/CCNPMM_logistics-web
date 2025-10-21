@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Layout, Button, Space, Typography, Avatar, Dropdown, Menu, Badge, List, Divider } from "antd";
-import { UserOutlined, LogoutOutlined, ProfileOutlined, PlusOutlined, BellOutlined, ShoppingCartOutlined, ClockCircleOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
+import { UserOutlined, LogoutOutlined, ProfileOutlined, PlusOutlined, BellOutlined, ShoppingCartOutlined, ClockCircleOutlined, ExclamationCircleOutlined, PlayCircleOutlined } from "@ant-design/icons";
 import { useDispatch } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import { logout } from "../../store/authSlice";
@@ -87,6 +87,12 @@ const Header: React.FC<HeaderProps> = () => {
       const socket = getSocket();
       console.log('Socket connected:', socket.connected);
       
+      // Re-register user with WebSocket when user changes
+      if (user?.id) {
+        console.log('Re-registering user with WebSocket:', user.id);
+        socket.emit('register', user.id);
+      }
+      
       const onServerNotification = (payload: any) => {
         console.log('Received WebSocket notification:', payload);
         
@@ -124,6 +130,8 @@ const Header: React.FC<HeaderProps> = () => {
         return <ShoppingCartOutlined style={{ color: '#1890ff' }} />;
       case 'delivery_assigned':
         return <ClockCircleOutlined style={{ color: '#52c41a' }} />;
+      case 'delivery_started':
+        return <PlayCircleOutlined style={{ color: '#1890ff' }} />;
       case 'route_change':
         return <ExclamationCircleOutlined style={{ color: '#faad14' }} />;
       case 'cod_reminder':

@@ -50,7 +50,7 @@ interface OrderItem {
   weight: number;
   codAmount: number;
   totalAmount: number;
-  status: 'assigned' | 'in_progress' | 'delivered' | 'failed' | 'returned';
+  status: 'confirmed' | 'in_transit' | 'delivered' | 'failed' | 'returned';
   priority: 'normal' | 'urgent';
   serviceType: string;
   deliveryTime: string;
@@ -293,7 +293,7 @@ const ShipperOrders: React.FC = () => {
           >
             Chi tiết
           </Button>
-          {record.status !== 'in_progress' && (
+          {record.status === 'confirmed' && (
             <Button 
               type="primary" 
               size="small"
@@ -303,10 +303,10 @@ const ShipperOrders: React.FC = () => {
               Bắt đầu giao
             </Button>
           )}
-          {(
+          {record.status === 'confirmed' && (
             <Button danger type="link" size="small" onClick={() => handleUnclaim(record.id)}>Bỏ nhận</Button>
           )}
-          {record.status === 'in_progress' && (
+          {record.status === 'in_transit' && (
             <Button 
               type="default" 
               size="small"
@@ -324,8 +324,8 @@ const ShipperOrders: React.FC = () => {
   // Thống kê nhanh
   const stats = {
     total: orders.length,
-    assigned: orders.filter(o => o.status === 'assigned').length,
-    inProgress: orders.filter(o => o.status === 'in_progress').length,
+    confirmed: orders.filter(o => o.status === 'confirmed').length,
+    inProgress: orders.filter(o => o.status === 'in_transit').length,
     urgent: orders.filter(o => o.priority === 'urgent').length,
   };
 
@@ -350,7 +350,7 @@ const ShipperOrders: React.FC = () => {
           <Card size="small" style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <Statistic
               title="Chờ giao"
-              value={stats.assigned}
+              value={stats.confirmed}
               valueStyle={{ color: '#faad14' }}
             />
           </Card>
@@ -395,8 +395,8 @@ const ShipperOrders: React.FC = () => {
               onChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
               allowClear
             >
-              <Option value="assigned">Được phân công</Option>
-              <Option value="in_progress">Đang giao</Option>
+              <Option value="confirmed">Đã xác nhận</Option>
+              <Option value="in_transit">Đang giao</Option>
               <Option value="delivered">Đã giao</Option>
               <Option value="failed">Giao thất bại</Option>
               <Option value="returned">Đã hoàn</Option>

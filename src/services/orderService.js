@@ -2044,7 +2044,8 @@ const orderService = {
       console.log('Date To:', dateTo);
 
       const where = {
-        toOfficeId: officeId
+        toOfficeId: officeId,
+        createdByType: 'user' // Chỉ tính đơn hàng do user tạo, không tính đơn manager tạo tại bưu cục
       };
 
       // Chỉ thêm date filter nếu có giá trị
@@ -2132,7 +2133,9 @@ const orderService = {
 
       const offset = (page - 1) * limit;
       const where = {
-        toOfficeId: officeId
+        toOfficeId: officeId,
+        status: { [db.Sequelize.Op.in]: ['confirmed', 'in_transit'] }, // Lấy đơn đã xác nhận và đang giao
+        createdByType: 'user' // Chỉ lấy đơn hàng do user tạo, không lấy đơn manager tạo tại bưu cục
       };
 
       console.log('Base where clause:', where);
@@ -2229,7 +2232,11 @@ const orderService = {
       } = filters;
 
       const offset = (page - 1) * limit;
-      const where = { toOfficeId: officeId };
+      const where = { 
+        toOfficeId: officeId,
+        status: 'confirmed', // Chỉ lấy đơn hàng đã xác nhận
+        createdByType: 'user' // Chỉ lấy đơn hàng do user tạo, không lấy đơn manager tạo tại bưu cục
+      };
 
       if (status) where.status = status;
       if (search) {
@@ -2428,7 +2435,8 @@ const orderService = {
 
       const where = {
         toOfficeId: officeId,
-        status: { [db.Sequelize.Op.in]: ['confirmed', 'picked_up', 'in_transit'] }
+        status: { [db.Sequelize.Op.in]: ['confirmed', 'picked_up', 'in_transit'] },
+        createdByType: 'user' // Chỉ lấy đơn hàng do user tạo, không lấy đơn manager tạo tại bưu cục
       };
 
       // Nếu có shipperUserId: chỉ lấy đơn đã gán cho shipper hiện tại

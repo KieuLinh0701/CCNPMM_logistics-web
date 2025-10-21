@@ -166,6 +166,8 @@ const shipperController = {
 
       // Lấy thông tin employee để có officeId
       const employee = await employeeService.getEmployeeByUserId(userId);
+      console.log('Employee found for notification:', employee);
+      
       if (employee) {
         try {
           console.log('Creating notification for user:', userId, 'office:', employee.officeId);
@@ -181,6 +183,15 @@ const shipperController = {
           // Emit realtime notification với dữ liệu từ database
           if (notificationResult.success) {
             console.log('Emitting WebSocket notification...');
+            console.log('Notification data to emit:', {
+              id: notificationResult.data.id,
+              type: notificationResult.data.type,
+              title: notificationResult.data.title,
+              message: notificationResult.data.message,
+              isRead: notificationResult.data.isRead,
+              createdAt: notificationResult.data.createdAt
+            });
+            
             emitToUser(userId, 'notification', {
               id: notificationResult.data.id,
               type: notificationResult.data.type,
@@ -189,7 +200,7 @@ const shipperController = {
               isRead: notificationResult.data.isRead,
               createdAt: notificationResult.data.createdAt
             });
-            console.log('WebSocket notification sent');
+            console.log('WebSocket notification sent to user:', userId);
           } else {
             console.log('Failed to create notification:', notificationResult.message);
           }
@@ -290,18 +301,35 @@ const shipperController = {
         return res.status(400).json(result);
       }
 
-      // Emit thông báo thay đổi tuyến đường khi bắt đầu giao hàng
+      // Emit thông báo khi bắt đầu giao hàng
       if (status === 'in_transit') {
         try {
-          console.log('Creating route change notification for user:', userId, 'office:', employee.officeId);
+          console.log('Creating delivery start notification for user:', userId, 'office:', employee.officeId);
           
           // Tạo thông báo trong database TRƯỚC
-          const notificationResult = await notificationService.notifyRouteChange(userId, { id }, employee.officeId);
-          console.log('Route notification result:', notificationResult);
+          const notificationResult = await notificationService.createNotification({
+            userId: userId,
+            officeId: employee.officeId,
+            type: 'delivery_started',
+            title: 'Bắt đầu giao hàng',
+            message: `Bạn đã bắt đầu giao đơn hàng #${id}`,
+            relatedId: parseInt(id),
+            relatedType: 'order'
+          });
+          console.log('Delivery start notification result:', notificationResult);
           
           // Emit realtime notification với dữ liệu từ database
           if (notificationResult.success) {
-            console.log('Emitting WebSocket route notification...');
+            console.log('Emitting WebSocket delivery start notification...');
+            console.log('Notification data to emit:', {
+              id: notificationResult.data.id,
+              type: notificationResult.data.type,
+              title: notificationResult.data.title,
+              message: notificationResult.data.message,
+              isRead: notificationResult.data.isRead,
+              createdAt: notificationResult.data.createdAt
+            });
+            
             emitToUser(userId, 'notification', {
               id: notificationResult.data.id,
               type: notificationResult.data.type,
@@ -310,12 +338,12 @@ const shipperController = {
               isRead: notificationResult.data.isRead,
               createdAt: notificationResult.data.createdAt
             });
-            console.log('WebSocket route notification sent');
+            console.log('WebSocket delivery start notification sent to user:', userId);
           } else {
-            console.log('Failed to create route notification:', notificationResult.message);
+            console.log('Failed to create delivery start notification:', notificationResult.message);
           }
         } catch (error) {
-          console.error('Error in route notification process:', error);
+          console.error('Error in delivery start notification process:', error);
         }
       }
 

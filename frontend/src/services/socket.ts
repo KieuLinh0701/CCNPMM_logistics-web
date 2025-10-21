@@ -18,9 +18,12 @@ export function getSocket(): Socket {
     try {
       const u = JSON.parse(rawUser);
       if (u?.id) {
+        console.log('Registering user with WebSocket:', u.id);
         socket.emit('register', u.id);
       }
-    } catch {}
+    } catch (error) {
+      console.error('Error parsing user data for WebSocket registration:', error);
+    }
   }
 
   return socket;
