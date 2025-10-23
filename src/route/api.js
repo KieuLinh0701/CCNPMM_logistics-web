@@ -232,9 +232,12 @@ let initApiRoutes = (app) => {
     // Shipper COD Management
     router.get('/shipper/cod', verifyToken, requireRole(['shipper']), shipperController.getCODTransactions);
     router.post('/shipper/cod/submit', verifyToken, requireRole(['shipper']), shipperController.submitCOD);
+    router.get('/shipper/cod/history', verifyToken, requireRole(['shipper']), shipperController.getCODSubmissionHistory);
     
     // Shipper Incident Report
     router.post('/shipper/incident', verifyToken, requireRole(['shipper']), shipperController.reportIncident);
+    router.get('/shipper/incidents', verifyToken, requireRole(['shipper']), shipperController.getIncidentReports);
+    router.get('/shipper/incidents/:id', verifyToken, requireRole(['shipper']), shipperController.getIncidentReportDetail);
 
     // Shipper self-assign
     router.get('/shipper/orders-unassigned', verifyToken, requireRole(['shipper']), shipperController.getUnassignedOrders);

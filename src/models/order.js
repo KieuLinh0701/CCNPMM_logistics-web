@@ -77,6 +77,21 @@ export default (sequelize) => {
         onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
       });
+
+      // COD Management
+      Order.hasMany(models.ShippingCollection, {
+        foreignKey: 'orderId',
+        as: 'shippingCollections',
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+      });
+
+      Order.hasMany(models.PaymentSubmission, {
+        foreignKey: 'orderId',
+        as: 'paymentSubmissions',
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+      });
     }
   }
 

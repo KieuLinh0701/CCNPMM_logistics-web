@@ -2506,17 +2506,12 @@ const orderService = {
 
       const offset = (page - 1) * limit;
       const where = {
-        cod: { [db.Sequelize.Op.gt]: 0 },
-        status: { [db.Sequelize.Op.in]: ['delivered'] }, // Chỉ lấy đơn hàng đã giao
+        status: 'delivered', // Chỉ lấy đơn hàng đã giao
         toOfficeId: officeId
       };
 
-      // Không cần shipperId vì model Order không có trường này
-      // Chỉ lấy đơn hàng theo officeId và trạng thái
-
-      if (status) where.status = status;
       if (dateFrom && dateTo) {
-        where.createdAt = {
+        where.deliveredAt = {
           [db.Sequelize.Op.between]: [dateFrom, dateTo]
         };
       }
@@ -2531,7 +2526,19 @@ const orderService = {
         include: [
           { model: db.User, as: 'user', attributes: ['id', 'firstName', 'lastName'] },
           { model: db.Office, as: 'fromOffice', attributes: ['id', 'name'] },
-          { model: db.Office, as: 'toOffice', attributes: ['id', 'name'] }
+          { model: db.Office, as: 'toOffice', attributes: ['id', 'name'] },
+          {
+            model: db.ShippingCollection,
+            as: 'shippingCollections',
+            required: false, // LEFT JOIN để lấy cả đơn chưa thu tiền
+            attributes: ['id', 'amountCollected', 'discrepancy', 'notes', 'createdAt']
+          },
+          {
+            model: db.PaymentSubmission,
+            as: 'paymentSubmissions',
+            required: false, // LEFT JOIN để lấy cả đơn chưa nộp tiền
+            attributes: ['id', 'amountSubmitted', 'status', 'createdAt']
+          }
         ]
       });
 
@@ -2562,32 +2569,78 @@ const orderService = {
       console.log('COD query result - count:', count);
       console.log('COD query result - rows length:', rows.length);
 
-      // Tính tổng kết
+      // Tính tổng kết dựa trên ShippingCollection và PaymentSubmission
       console.log('Calculating summary for COD transactions...');
-      console.log('Rows for summary calculation:', rows.length);
+      
+      let totalCollected = 0;
+      let totalSubmitted = 0;
+      let totalPending = 0;
+
       rows.forEach((order, index) => {
-        console.log(`Order ${index + 1}: ID=${order.id}, COD=${order.cod}, Status=${order.status}`);
+        const codAmount = order.cod || 0;
+        const hasCollection = order.shippingCollections && order.shippingCollections.length > 0;
+        const hasSubmission = order.paymentSubmissions && order.paymentSubmissions.length > 0;
+        
+        // Chỉ tính các đơn hàng có COD > 0
+        if (codAmount > 0) {
+          if (hasCollection) {
+            totalCollected += codAmount;
+          }
+          
+          if (hasSubmission) {
+            totalSubmitted += codAmount;
+          } else if (hasCollection) {
+            totalPending += codAmount;
+          }
+        }
+        
+        console.log(`Order ${index + 1}: ID=${order.id}, COD=${codAmount}, Collected=${hasCollection}, Submitted=${hasSubmission}`);
       });
 
       const summary = {
-        totalCollected: rows.reduce((sum, order) => {
-          const codAmount = order.cod || 0;
-          console.log(`Adding COD: ${codAmount} to sum: ${sum}`);
-          return sum + codAmount;
-        }, 0),
-        totalSubmitted: rows.reduce((sum, order) => {
-          const codAmount = order.cod || 0;
-          console.log(`Delivered order COD: ${codAmount}`);
-          return sum + codAmount;
-        }, 0),
-        totalPending: 0, // Không có đơn hàng pending vì chỉ lấy delivered
+        totalCollected,
+        totalSubmitted,
+        totalPending,
         transactionCount: count
       };
 
       console.log('COD Summary calculated:', summary);
 
+      // Format transactions với trạng thái đúng
+      const formattedTransactions = rows.map(order => {
+        const codAmount = order.cod || 0;
+        const hasCollection = order.shippingCollections && order.shippingCollections.length > 0;
+        const hasSubmission = order.paymentSubmissions && order.paymentSubmissions.length > 0;
+        
+        let status = 'pending'; // Mặc định là chờ thu
+        
+        // Nếu đơn hàng không có COD, luôn hiển thị là "delivered"
+        if (codAmount === 0) {
+          status = 'delivered';
+        } else {
+          // Chỉ áp dụng logic COD cho đơn hàng có COD > 0
+          if (hasSubmission) {
+            status = 'submitted'; // Đã nộp
+          } else if (hasCollection) {
+            status = 'collected'; // Đã thu
+          }
+        }
+        
+        return {
+          id: order.id,
+          trackingNumber: order.trackingNumber,
+          recipientName: order.recipientName,
+          recipientPhone: order.recipientPhone,
+          codAmount: codAmount,
+          status: status,
+          collectedAt: hasCollection ? order.shippingCollections[0].createdAt : null,
+          submittedAt: hasSubmission ? order.paymentSubmissions[0].createdAt : null,
+          notes: hasCollection ? order.shippingCollections[0].notes : null
+        };
+      });
+
       const result = {
-        transactions: rows,
+        transactions: formattedTransactions,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),

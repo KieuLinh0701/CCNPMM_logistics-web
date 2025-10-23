@@ -35,6 +35,7 @@ import PaymentSubmission from './paymentSubmission.js';
 import ShippingCollection from './shippingCollection.js';
 import ShippingRequest from './shippingRequest.js';
 import Notification from './notification.js';
+import IncidentReport from './incidentReport.js';
 
 // Initialize models
 const db = {
@@ -59,6 +60,7 @@ const db = {
   ShippingCollection: ShippingCollection(sequelize),
   ShippingRequest: ShippingRequest(sequelize),
   Notification: Notification(sequelize),
+  IncidentReport: IncidentReport(sequelize),
 };
 
 // Call associate for each model if exists

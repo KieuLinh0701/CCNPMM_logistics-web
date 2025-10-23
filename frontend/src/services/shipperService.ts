@@ -321,10 +321,10 @@ const shipperService = {
       trackingNumber: order.trackingNumber,
       recipientName: order.recipientName,
       recipientPhone: order.recipientPhone,
-      codAmount: order.cod || 0,
-      status: order.status === 'delivered' ? 'collected' : 'pending',
-      collectedAt: order.deliveredAt,
-      submittedAt: order.deliveredAt,
+      codAmount: order.codAmount || 0, // Sử dụng codAmount từ backend
+      status: order.status, // Sử dụng status từ backend
+      collectedAt: order.collectedAt,
+      submittedAt: order.submittedAt,
       notes: order.notes
     }));
     console.log('[shipperService.getCODTransactions] mapped transactions:', transactions);
@@ -354,6 +354,40 @@ const shipperService = {
     await api.post('/shipper/cod/submit', data);
   },
 
+  async getCODSubmissionHistory(params: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  } = {}): Promise<{
+    submissions: any[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+    summary: {
+      totalSubmitted: number;
+      totalDiscrepancy: number;
+      totalSubmissions: number;
+    };
+  }> {
+    console.log('[shipperService.getCODSubmissionHistory] params:', params);
+    const response = await api.get('/shipper/cod/history', { params });
+    console.log('[shipperService.getCODSubmissionHistory] raw response:', response);
+    console.log('[shipperService.getCODSubmissionHistory] response data:', response.data);
+    
+    // Backend trả về { success: true, data: [...], pagination: {...}, summary: {...} }
+    const rawData = response.data as any;
+    return {
+      submissions: rawData.data || [],
+      pagination: rawData.pagination || { page: 1, limit: 10, total: 0, pages: 0 },
+      summary: rawData.summary || { totalSubmitted: 0, totalDiscrepancy: 0, totalSubmissions: 0 }
+    };
+  },
+
   // Incident Report
   async reportIncident(data: {
     trackingNumber: string;
@@ -367,6 +401,38 @@ const shipperService = {
     images: string[];
   }): Promise<void> {
     await api.post('/shipper/incident', data);
+  },
+
+  async getIncidentReports(params: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    priority?: string;
+  } = {}): Promise<{
+    data: ShipperIncident[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  }> {
+    console.log('[shipperService.getIncidentReports] params:', params);
+    const response = await api.get('/shipper/incidents', { params });
+    console.log('[shipperService.getIncidentReports] raw response:', response);
+    console.log('[shipperService.getIncidentReports] response data:', response.data);
+    
+    // Backend trả về { success: true, data: [...], pagination: {...} }
+    const rawData = response.data as any;
+    return {
+      data: rawData.data || [],
+      pagination: rawData.pagination || { page: 1, limit: 10, total: 0, pages: 0 }
+    };
+  },
+
+  async getIncidentReportDetail(id: number): Promise<ShipperIncident> {
+    const response = await api.get(`/shipper/incidents/${id}`);
+    return (response.data as any).data;
   }
 };
 
