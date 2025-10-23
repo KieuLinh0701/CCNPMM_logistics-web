@@ -50,7 +50,7 @@ interface OrderItem {
   weight: number;
   codAmount: number;
   totalAmount: number;
-  status: 'confirmed' | 'in_transit' | 'delivered' | 'failed' | 'returned';
+  status: 'confirmed' | 'delivering' | 'delivered' | 'failed' | 'returned';
   priority: 'normal' | 'urgent';
   serviceType: string;
   deliveryTime: string;
@@ -121,7 +121,7 @@ const ShipperOrders: React.FC = () => {
       onOk: async () => {
         try {
           setLoading(true);
-          await shipperService.updateDeliveryStatus(orderId, { status: 'in_transit' });
+          await shipperService.updateDeliveryStatus(orderId, { status: 'delivering' });
           message.success('Đã bắt đầu giao hàng');
           fetchOrders();
         } catch (error) {
@@ -161,7 +161,7 @@ const ShipperOrders: React.FC = () => {
       case 'pending': return 'default';
       case 'confirmed': return 'blue';
       case 'picked_up': return 'orange';
-      case 'in_transit': return 'processing';
+      case 'delivering': return 'processing';
       case 'delivered': return 'success';
       case 'cancelled': return 'error';
       case 'assigned': return 'blue';
@@ -177,7 +177,7 @@ const ShipperOrders: React.FC = () => {
       case 'pending': return 'Chờ xử lý';
       case 'confirmed': return 'Đã xác nhận';
       case 'picked_up': return 'Đã lấy hàng';
-      case 'in_transit': return 'Đang giao';
+      case 'delivering': return 'Đang giao hàng';
       case 'delivered': return 'Đã giao';
       case 'cancelled': return 'Đã hủy';
       case 'assigned': return 'Được phân công';
@@ -306,7 +306,7 @@ const ShipperOrders: React.FC = () => {
           {record.status === 'confirmed' && (
             <Button danger type="link" size="small" onClick={() => handleUnclaim(record.id)}>Bỏ nhận</Button>
           )}
-          {record.status === 'in_transit' && (
+          {record.status === 'delivering' && (
             <Button 
               type="default" 
               size="small"
@@ -325,7 +325,7 @@ const ShipperOrders: React.FC = () => {
   const stats = {
     total: orders.length,
     confirmed: orders.filter(o => o.status === 'confirmed').length,
-    inProgress: orders.filter(o => o.status === 'in_transit').length,
+    inProgress: orders.filter(o => o.status === 'delivering').length,
     urgent: orders.filter(o => o.priority === 'urgent').length,
   };
 
@@ -396,7 +396,7 @@ const ShipperOrders: React.FC = () => {
               allowClear
             >
               <Option value="confirmed">Đã xác nhận</Option>
-              <Option value="in_transit">Đang giao</Option>
+              <Option value="delivering">Đang giao hàng</Option>
               <Option value="delivered">Đã giao</Option>
               <Option value="failed">Giao thất bại</Option>
               <Option value="returned">Đã hoàn</Option>

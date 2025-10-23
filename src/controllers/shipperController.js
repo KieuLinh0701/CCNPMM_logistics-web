@@ -302,7 +302,7 @@ const shipperController = {
       }
 
       // Emit thông báo khi bắt đầu giao hàng
-      if (status === 'in_transit') {
+      if (status === 'delivering') {
         try {
           console.log('Creating delivery start notification for user:', userId, 'office:', employee.officeId);
           

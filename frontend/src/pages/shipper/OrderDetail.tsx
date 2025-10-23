@@ -39,7 +39,7 @@ interface OrderDetail {
   recipientPhone: string;
   recipientAddress: string;
   codAmount: number;
-  status: 'pending' | 'confirmed' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'picked_up' | 'delivering' | 'delivered' | 'cancelled';
   priority: 'normal' | 'urgent';
   serviceType: string;
   createdAt: string;
@@ -86,8 +86,8 @@ const ShipperOrderDetail: React.FC = () => {
       onOk: async () => {
         try {
           setActionLoading(true);
-          await shipperService.updateDeliveryStatus(order.id, { status: 'in_transit' });
-          setOrder(prev => prev ? { ...prev, status: 'in_transit' } : null);
+          await shipperService.updateDeliveryStatus(order.id, { status: 'delivering' });
+          setOrder(prev => prev ? { ...prev, status: 'delivering' } : null);
           message.success('Đã bắt đầu giao hàng');
           navigate(`/shipper/delivery/${order.id}`);
         } catch (error) {
@@ -115,7 +115,7 @@ const ShipperOrderDetail: React.FC = () => {
       case 'pending': return 'default';
       case 'confirmed': return 'blue';
       case 'picked_up': return 'orange';
-      case 'in_transit': return 'processing';
+      case 'delivering': return 'processing';
       case 'delivered': return 'success';
       case 'cancelled': return 'error';
       default: return 'default';
@@ -127,7 +127,7 @@ const ShipperOrderDetail: React.FC = () => {
       case 'pending': return 'Chờ xử lý';
       case 'confirmed': return 'Đã xác nhận';
       case 'picked_up': return 'Đã lấy hàng';
-      case 'in_transit': return 'Đang giao';
+      case 'delivering': return 'Đang giao hàng';
       case 'delivered': return 'Đã giao';
       case 'cancelled': return 'Đã hủy';
       default: return status;

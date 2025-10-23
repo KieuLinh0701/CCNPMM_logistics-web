@@ -2134,7 +2134,7 @@ const orderService = {
       const offset = (page - 1) * limit;
       const where = {
         toOfficeId: officeId,
-        status: { [db.Sequelize.Op.in]: ['confirmed', 'in_transit'] }, // Lấy đơn đã xác nhận và đang giao
+        status: { [db.Sequelize.Op.in]: ['confirmed', 'delivering'] }, // Lấy đơn đã xác nhận và đang giao
         createdByType: 'user' // Chỉ lấy đơn hàng do user tạo, không lấy đơn manager tạo tại bưu cục
       };
 
@@ -2435,7 +2435,7 @@ const orderService = {
 
       const where = {
         toOfficeId: officeId,
-        status: { [db.Sequelize.Op.in]: ['confirmed', 'picked_up', 'in_transit'] },
+        status: { [db.Sequelize.Op.in]: ['confirmed', 'picked_up', 'delivering'] },
         createdByType: 'user' // Chỉ lấy đơn hàng do user tạo, không lấy đơn manager tạo tại bưu cục
       };
 
@@ -2501,7 +2501,7 @@ const orderService = {
           serviceType: order.serviceType?.name || 'Tiêu chuẩn',
           estimatedTime: this.calculateEstimatedTime(index),
           status: order.status === 'delivered' ? 'completed' :
-            (order.status === 'in_transit' || order.status === 'picked_up') ? 'in_progress' : 'pending',
+            (order.status === 'delivering' || order.status === 'picked_up') ? 'in_progress' : 'pending',
           coordinates: this.generateRealCoordinates(order.recipientWardCode, order.recipientCityCode, index),
           distance: 2.5 + (index * 0.5),
           travelTime: 15 + (index * 5)

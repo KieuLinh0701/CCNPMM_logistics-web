@@ -38,7 +38,7 @@ interface DeliveryRecord {
   recipientPhone: string;
   recipientAddress: string;
   cod: number;
-  status: 'pending' | 'confirmed' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled' | 'returned';
+  status: 'pending' | 'confirmed' | 'picked_up' | 'delivering' | 'delivered' | 'cancelled' | 'returned';
   createdAt: string;
   deliveredAt?: string;
   notes?: string;
@@ -138,7 +138,7 @@ useEffect(() => {
       case 'pending': return 'default';
       case 'confirmed': return 'blue';
       case 'picked_up': return 'orange';
-      case 'in_transit': return 'processing';
+      case 'delivering': return 'processing';
       case 'delivered': return 'success';
       case 'cancelled': return 'error';
       case 'failed': return 'error';
@@ -152,7 +152,7 @@ useEffect(() => {
       case 'pending': return 'Chờ xử lý';
       case 'confirmed': return 'Đã xác nhận';
       case 'picked_up': return 'Đã lấy hàng';
-      case 'in_transit': return 'Đang giao';
+      case 'delivering': return 'Đang giao hàng';
       case 'delivered': return 'Đã giao';
       case 'cancelled': return 'Đã hủy';
       case 'failed': return 'Giao thất bại';

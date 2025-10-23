@@ -18,7 +18,7 @@ export interface ShipperOrder {
   shippingFee: number;
   discountAmount: number;
   paymentMethod: string;
-  status: 'pending' | 'confirmed' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'picked_up' | 'delivering' | 'delivered' | 'cancelled';
   priority: 'normal' | 'urgent';
   serviceType: string;
   createdAt: string;
