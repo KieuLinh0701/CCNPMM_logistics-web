@@ -241,6 +241,17 @@ let initApiRoutes = (app) => {
     router.post('/shipper/orders/:id/claim', verifyToken, requireRole(['shipper']), shipperController.claimOrder);
     router.post('/shipper/orders/:id/unclaim', verifyToken, requireRole(['shipper']), shipperController.unclaimOrder);
 
+    // DRIVER
+    const driverController = require('../controllers/driverController').default || require('../controllers/driverController');
+    router.get('/driver/context', verifyToken, requireRole(['driver']), driverController.getContext);
+    router.get('/driver/orders/confirmed', verifyToken, requireRole(['driver']), driverController.getConfirmedOrders);
+    router.post('/driver/pickup', verifyToken, requireRole(['driver']), driverController.pickUp);
+    router.post('/driver/shipment/start', verifyToken, requireRole(['driver']), driverController.startShipment);
+    router.post('/driver/shipment/finish', verifyToken, requireRole(['driver']), driverController.finishShipment);
+    router.get('/driver/shipments', verifyToken, requireRole(['driver']), driverController.getShipments);
+    router.get('/driver/route', verifyToken, requireRole(['driver']), driverController.getRoute);
+    router.get('/driver/history', verifyToken, requireRole(['driver']), driverController.getHistory);
+
     // Notification Routes
     router.get('/notifications', verifyToken, notificationController.getNotifications);
     router.put('/notifications/:notificationId/read', verifyToken, notificationController.markAsRead);

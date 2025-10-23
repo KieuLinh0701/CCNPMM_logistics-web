@@ -57,6 +57,13 @@ import ShipperIncidentReport from './pages/shipper/IncidentReport';
 import ShipperDeliveryHistory from './pages/shipper/DeliveryHistory';
 import ShipperDeliveryRoute from './pages/shipper/DeliveryRoute';
 import UnassignedOrders from './pages/shipper/UnassignedOrders';
+// Driver
+import DriverDashboard from './pages/driver/Dashboard';
+import DriverOrders from './pages/driver/Orders';
+import DriverShipments from './pages/driver/Shipments';
+import DriverRoute from './pages/driver/Route';
+import DriverHistory from './pages/driver/History';
+
 import ShippingFeeBody from './pages/tracking/shippingFee/ShippingFeeBody';
 import OfficeSearchBody from './pages/tracking/officeSearch/OfficeSearchBody';
 import OfficeSearch from './pages/tracking/officeSearch/OfficeSearch';
@@ -152,6 +159,15 @@ const App: React.FC = () => {
               <Route path="report" element={<ShipperIncidentReport />} />
               <Route path="history" element={<ShipperDeliveryHistory />} />
               <Route path="route" element={<ShipperDeliveryRoute />} />
+              <Route path="profile" element={<Profile />} />
+            </Route>
+
+            <Route path="/driver" element={<PrivateRoute roles={["driver"]}><ShipperLayout /></PrivateRoute>}>
+              <Route path="dashboard" element={<DriverDashboard />} />
+              <Route path="orders" element={<DriverOrders />} />
+              <Route path="shipments" element={<DriverShipments />} />
+              <Route path="route" element={<DriverRoute />} />
+              <Route path="history" element={<DriverHistory />} />
               <Route path="profile" element={<Profile />} />
             </Route>
 

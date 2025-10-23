@@ -30,7 +30,7 @@ interface OrderSummary {
   recipientAddress: string;
   recipientPhone: string;
   codAmount: number;
-  status: 'pending' | 'confirmed' | 'picked_up' | 'delivering' | 'delivered' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'arrived_at_office' | 'picked_up' | 'delivering' | 'delivered' | 'cancelled';
   priority: 'normal' | 'urgent';
   serviceType: string;
 }
@@ -85,6 +85,7 @@ const ShipperDashboard: React.FC = () => {
     switch (status) {
       case 'pending': return 'default';
       case 'confirmed': return 'blue';
+      case 'arrived_at_office': return 'blue';
       case 'picked_up': return 'orange';
       case 'delivering': return 'processing';
       case 'delivered': return 'success';
@@ -101,6 +102,7 @@ const ShipperDashboard: React.FC = () => {
     switch (status) {
       case 'pending': return 'Chờ xử lý';
       case 'confirmed': return 'Đã xác nhận';
+      case 'arrived_at_office': return 'Đã đến bưu cục';
       case 'picked_up': return 'Đã lấy hàng';
       case 'delivering': return 'Đang giao hàng';
       case 'delivered': return 'Đã giao';
@@ -183,9 +185,17 @@ const ShipperDashboard: React.FC = () => {
           >
             Chi tiết
           </Button>
-          {record.status === 'confirmed' && (
+          {record.status === 'arrived_at_office' && (
             <Button 
               type="primary" 
+              onClick={() => navigate(`/shipper/orders/${record.id}`)}
+            >
+              Nhận đơn
+            </Button>
+          )}
+          {record.status === 'picked_up' && (
+            <Button 
+              type="default" 
               onClick={() => navigate(`/shipper/delivery/${record.id}`)}
             >
               Bắt đầu giao

@@ -22,6 +22,9 @@ import {
   InboxOutlined,
   ClockCircleOutlined,
   ExclamationCircleOutlined,
+  TruckOutlined,
+  EnvironmentOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons";
 
 const { SubMenu } = Menu;
@@ -330,6 +333,44 @@ const Sidenav: React.FC<Props> = ({ color }) => {
         key: "/shipper/profile",
         label: "Hồ sơ cá nhân",
         path: "/shipper/profile",
+        icon: <ProfileOutlined />,
+      },
+    ],
+    driver: [
+      {
+        key: "/driver/dashboard",
+        label: "Tổng quan",
+        path: "/driver/dashboard",
+        icon: <DashboardOutlined />,
+      },
+      {
+        key: "/driver/orders",
+        label: "Đơn hàng cần nhận",
+        path: "/driver/orders",
+        icon: <ShoppingOutlined />,
+      },
+      {
+        key: "/driver/shipments",
+        label: "Quản lý chuyến vận chuyển",
+        path: "/driver/shipments",
+        icon: <TruckOutlined />,
+      },
+      {
+        key: "/driver/route",
+        label: "Lộ trình vận chuyển",
+        path: "/driver/route",
+        icon: <EnvironmentOutlined />,
+      },
+      {
+        key: "/driver/history",
+        label: "Lịch sử vận chuyển",
+        path: "/driver/history",
+        icon: <ClockCircleOutlined />,
+      },
+      {
+        key: "/driver/profile",
+        label: "Hồ sơ cá nhân",
+        path: "/driver/profile",
         icon: <ProfileOutlined />,
       },
     ],

@@ -39,7 +39,7 @@ interface OrderDetail {
   recipientPhone: string;
   recipientAddress: string;
   codAmount: number;
-  status: 'pending' | 'confirmed' | 'picked_up' | 'delivering' | 'delivered' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'arrived_at_office' | 'picked_up' | 'delivering' | 'delivered' | 'cancelled';
   priority: 'normal' | 'urgent';
   serviceType: string;
   createdAt: string;
@@ -75,6 +75,27 @@ const ShipperOrderDetail: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePickup = async () => {
+    if (!order) return;
+    
+    Modal.confirm({
+      title: 'Nhận đơn để giao',
+      content: 'Xác nhận nhận đơn, trạng thái sẽ chuyển sang picked_up',
+      onOk: async () => {
+        try {
+          setActionLoading(true);
+          await shipperService.updateDeliveryStatus(order.id, { status: 'picked_up' });
+          setOrder(prev => prev ? { ...prev, status: 'picked_up' } : null);
+          message.success('Đã nhận đơn');
+        } catch (error) {
+          message.error('Lỗi khi cập nhật trạng thái');
+        } finally {
+          setActionLoading(false);
+        }
+      }
+    });
   };
 
   const handleStartDelivery = async () => {
@@ -114,6 +135,7 @@ const ShipperOrderDetail: React.FC = () => {
     switch (status) {
       case 'pending': return 'default';
       case 'confirmed': return 'blue';
+      case 'arrived_at_office': return 'blue';
       case 'picked_up': return 'orange';
       case 'delivering': return 'processing';
       case 'delivered': return 'success';
@@ -126,6 +148,7 @@ const ShipperOrderDetail: React.FC = () => {
     switch (status) {
       case 'pending': return 'Chờ xử lý';
       case 'confirmed': return 'Đã xác nhận';
+      case 'arrived_at_office': return 'Đã đến bưu cục';
       case 'picked_up': return 'Đã lấy hàng';
       case 'delivering': return 'Đang giao hàng';
       case 'delivered': return 'Đã giao';
@@ -317,7 +340,18 @@ const ShipperOrderDetail: React.FC = () => {
       <Card>
         <Row justify="center">
           <Space size="large">
-            {order.status === 'confirmed' && (
+            {order.status === 'arrived_at_office' && (
+              <Button
+                type="primary"
+                size="large"
+                icon={<PlayCircleOutlined />}
+                loading={actionLoading}
+                onClick={handlePickup}
+              >
+                Nhận đơn
+              </Button>
+            )}
+            {order.status === 'picked_up' && (
               <Button
                 type="primary"
                 size="large"
