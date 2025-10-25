@@ -18,7 +18,7 @@ export interface ShipperOrder {
   shippingFee: number;
   discountAmount: number;
   paymentMethod: string;
-  status: 'pending' | 'confirmed' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'picked_up' | 'delivering' | 'delivered' | 'cancelled';
   priority: 'normal' | 'urgent';
   serviceType: string;
   createdAt: string;
@@ -305,22 +305,44 @@ const shipperService = {
       transactionCount: number;
     };
   }> {
+    console.log('[shipperService.getCODTransactions] params:', params);
     const response = await api.get('/shipper/cod', { params });
+    console.log('[shipperService.getCODTransactions] raw response:', response);
     const raw = (response.data as any);
-    const data = raw?.data ?? raw;
-    const transactions = Array.isArray(data?.transactions)
-      ? data.transactions
-      : Array.isArray(data?.data)
-      ? data.data
-      : [];
-    const pagination = data?.pagination ?? data?.meta ?? { page: params.page ?? 1, limit: params.limit ?? 10, total: transactions.length };
-    const summaryRaw = data?.summary ?? {};
+    console.log('[shipperService.getCODTransactions] raw data:', raw);
+    
+    // API response structure: { success: true, data: [...], pagination: {...}, summary: {...} }
+    const rawTransactions = Array.isArray(raw?.data) ? raw.data : [];
+    console.log('[shipperService.getCODTransactions] raw transactions:', rawTransactions);
+    
+    // Map backend format to frontend format
+    const transactions: ShipperCODTransaction[] = rawTransactions.map((order: any) => ({
+      id: order.id,
+      trackingNumber: order.trackingNumber,
+      recipientName: order.recipientName,
+      recipientPhone: order.recipientPhone,
+      codAmount: order.codAmount || 0, // Sử dụng codAmount từ backend
+      status: order.status, // Sử dụng status từ backend
+      collectedAt: order.collectedAt,
+      submittedAt: order.submittedAt,
+      notes: order.notes
+    }));
+    console.log('[shipperService.getCODTransactions] mapped transactions:', transactions);
+    
+    const pagination = raw?.pagination ?? { page: params.page ?? 1, limit: params.limit ?? 10, total: transactions.length };
+    console.log('[shipperService.getCODTransactions] pagination:', pagination);
+    
+    const summaryRaw = raw?.summary ?? {};
+    console.log('[shipperService.getCODTransactions] summaryRaw:', summaryRaw);
+    
     const summary = {
       totalCollected: Number((summaryRaw as any).totalCollected) || 0,
       totalSubmitted: Number((summaryRaw as any).totalSubmitted) || 0,
       totalPending: Number((summaryRaw as any).totalPending) || 0,
       transactionCount: Number((summaryRaw as any).transactionCount) || transactions.length
     };
+    console.log('[shipperService.getCODTransactions] final summary:', summary);
+    
     return { transactions, pagination, summary };
   },
 
@@ -330,6 +352,40 @@ const shipperService = {
     notes?: string;
   }): Promise<void> {
     await api.post('/shipper/cod/submit', data);
+  },
+
+  async getCODSubmissionHistory(params: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  } = {}): Promise<{
+    submissions: any[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+    summary: {
+      totalSubmitted: number;
+      totalDiscrepancy: number;
+      totalSubmissions: number;
+    };
+  }> {
+    console.log('[shipperService.getCODSubmissionHistory] params:', params);
+    const response = await api.get('/shipper/cod/history', { params });
+    console.log('[shipperService.getCODSubmissionHistory] raw response:', response);
+    console.log('[shipperService.getCODSubmissionHistory] response data:', response.data);
+    
+    // Backend trả về { success: true, data: [...], pagination: {...}, summary: {...} }
+    const rawData = response.data as any;
+    return {
+      submissions: rawData.data || [],
+      pagination: rawData.pagination || { page: 1, limit: 10, total: 0, pages: 0 },
+      summary: rawData.summary || { totalSubmitted: 0, totalDiscrepancy: 0, totalSubmissions: 0 }
+    };
   },
 
   // Incident Report
@@ -345,6 +401,38 @@ const shipperService = {
     images: string[];
   }): Promise<void> {
     await api.post('/shipper/incident', data);
+  },
+
+  async getIncidentReports(params: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    priority?: string;
+  } = {}): Promise<{
+    data: ShipperIncident[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  }> {
+    console.log('[shipperService.getIncidentReports] params:', params);
+    const response = await api.get('/shipper/incidents', { params });
+    console.log('[shipperService.getIncidentReports] raw response:', response);
+    console.log('[shipperService.getIncidentReports] response data:', response.data);
+    
+    // Backend trả về { success: true, data: [...], pagination: {...} }
+    const rawData = response.data as any;
+    return {
+      data: rawData.data || [],
+      pagination: rawData.pagination || { page: 1, limit: 10, total: 0, pages: 0 }
+    };
+  },
+
+  async getIncidentReportDetail(id: number): Promise<ShipperIncident> {
+    const response = await api.get(`/shipper/incidents/${id}`);
+    return (response.data as any).data;
   }
 };
 

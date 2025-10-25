@@ -28,6 +28,7 @@
     "multer": "^2.0.2",
     "mysql2": "^3.14.3",
     "nodemailer": "^6.9.7",
+    "pdfkit": "^0.17.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-leaflet": "^5.0.0",
@@ -36,7 +37,8 @@
     "sequelize": "^6.37.7",
     "socket.io": "^4.8.1",
     "speakeasy": "^2.0.0",
-    "vnpay": "^2.4.4"
+    "vnpay": "^2.4.4",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@babel/core": "^7.28.3",

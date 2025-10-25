@@ -25,6 +25,7 @@ import AdminFees from './pages/admin/Fees';
 import AdminReports from './pages/admin/Reports';
 import AdminVehicles from './pages/admin/Vehicles';
 import PromotionManagement from './pages/admin/PromotionManagement';
+import FinancialManagement from './pages/admin/FinancialManagement';
 import ManagerDashboard from './pages/manager/Dashboard';
 import ManagerLayout from './layouts/ManagerLayout';
 import { PrivateRoute } from './components/PrivateRoute';
@@ -55,6 +56,13 @@ import ShipperIncidentReport from './pages/shipper/IncidentReport';
 import ShipperDeliveryHistory from './pages/shipper/DeliveryHistory';
 import ShipperDeliveryRoute from './pages/shipper/DeliveryRoute';
 import UnassignedOrders from './pages/shipper/UnassignedOrders';
+// Driver
+import DriverDashboard from './pages/driver/Dashboard';
+import DriverOrders from './pages/driver/Orders';
+import DriverShipments from './pages/driver/Shipments';
+import DriverRoute from './pages/driver/Route';
+import DriverHistory from './pages/driver/History';
+
 import ShippingFeeBody from './pages/tracking/shippingFee/ShippingFeeBody';
 import OfficeSearchBody from './pages/tracking/officeSearch/OfficeSearchBody';
 import OfficeSearch from './pages/tracking/officeSearch/OfficeSearch';
@@ -113,6 +121,7 @@ const App: React.FC = () => {
               <Route path="fees" element={<AdminFees />} />
               <Route path="promotions" element={<PromotionManagement />} />
               <Route path="reports" element={<AdminReports />} />
+              <Route path="financial" element={<FinancialManagement />} />
               <Route path="vehicles" element={<AdminVehicles />} />
               <Route path="profile" element={<Profile />} />
               <Route path="notifications" element={<NotificationList />} />
@@ -173,6 +182,15 @@ const App: React.FC = () => {
               <Route path="profile" element={<Profile />} />
               <Route path="notifications" element={<NotificationList />} />
               <Route path="notifications/:id" element={<NotificationDetail />} />
+            </Route>
+
+            <Route path="/driver" element={<PrivateRoute roles={["driver"]}><ShipperLayout /></PrivateRoute>}>
+              <Route path="dashboard" element={<DriverDashboard />} />
+              <Route path="orders" element={<DriverOrders />} />
+              <Route path="shipments" element={<DriverShipments />} />
+              <Route path="route" element={<DriverRoute />} />
+              <Route path="history" element={<DriverHistory />} />
+              <Route path="profile" element={<Profile />} />
             </Route>
 
           </Routes>

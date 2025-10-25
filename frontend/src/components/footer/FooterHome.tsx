@@ -19,7 +19,7 @@ const FooterHome: React.FC = () => {
       {/* Title đứng trên cùng */}
       <Row>
         <Col>
-          <Title level={3} style={{ color: '#1C3D90', margin: 0, fontSize: '40px' }}>My Website</Title>
+          <Title level={3} style={{ color: '#1C3D90', margin: 0, fontSize: '40px' }}>UTE Logistics</Title>
         </Col>
       </Row>
 

@@ -217,8 +217,8 @@ const shippingRequestService = {
 
         // Kiểm tra trạng thái hợp lệ theo loại request
         const allowedStatusPerRequestType = {
-          ChangeOrderInfo: ['confirmed', 'in_transit', 'picked_up'],
-          DeliveryReminder: ['picked_up', 'in_transit'],
+          ChangeOrderInfo: ['confirmed', 'delivering', 'picked_up'],
+          DeliveryReminder: ['picked_up', 'delivering'],
           PickupReminder: ['pending', 'confirmed'],
           Complaint: ['picked_up', 'returned', 'in_transit', 'delivered', 'returning', 'delivering'],
           Inquiry: [],
@@ -256,21 +256,21 @@ const shippingRequestService = {
             case 'ChangeOrderInfo':
               if (['confirmed', 'picked_up'].includes(orderStatus)) {
                 officeId = orderWithOffice.fromOffice?.id;
-              } else if (orderStatus === 'in_transit') {
+              } else if (orderStatus === 'delivering') {
                 officeId = orderWithOffice.toOffice?.id;
               }
               break;
             case 'DeliveryReminder':
               if (['picked_up'].includes(orderStatus)) {
                 officeId = orderWithOffice.fromOffice?.id;
-              } else if (orderStatus === 'in_transit') {
+              } else if (orderStatus === 'delivering') {
                 officeId = orderWithOffice.toOffice?.id;
               }
               break;
             case 'Complaint':
               if (['picked_up', 'returned'].includes(orderStatus)) {
                 officeId = orderWithOffice.fromOffice?.id;
-              } else if (['in_transit', 'delivered', 'returning', 'delivering'].includes(orderStatus)) {
+              } else if (['delivering', 'delivered', 'returning'].includes(orderStatus)) {
                 officeId = orderWithOffice.toOffice?.id;
               }
               break;

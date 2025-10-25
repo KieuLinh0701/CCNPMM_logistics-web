@@ -37,6 +37,7 @@ import Notification from './notification.js';
 import PaymentSubmission from './paymentSubmission.js';
 import Transaction from './transaction.js';
 import TransactionImage from './transactionImage.js';
+import IncidentReport from './incidentReport.js';
 
 // Initialize models
 const db = {
@@ -63,6 +64,7 @@ const db = {
   PaymentSubmission: PaymentSubmission(sequelize),
   Transaction: Transaction(sequelize),
   TransactionImage: TransactionImage(sequelize),
+  IncidentReport: IncidentReport(sequelize),
 };
 
 // Call associate for each model if exists

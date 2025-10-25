@@ -69,7 +69,7 @@ const orderService = {
           { model: db.Office, as: 'toOffice', attributes: ['id', 'name', 'address', 'phoneNumber', 'type', 'status'] },
           { model: db.ServiceType, as: 'serviceType', attributes: ['id', 'name', 'deliveryTime', 'status'] },
           { model: db.Product, as: 'products', attributes: ['id', 'name', 'weight', 'type', 'status'], through: { attributes: ['quantity'] } },
-          { model: db.OrderHistory, as: 'histories', attributes: ['id', 'status', 'note', 'actionTime'] }
+          { model: db.OrderHistory, as: 'histories', attributes: ['id', 'action', 'note', 'actionTime'] }
         ],
         order: [[{ model: db.OrderHistory, as: 'histories' }, 'actionTime', 'DESC']]
       });
@@ -109,6 +109,7 @@ const orderService = {
         order.status = nextStatus;
       }
 
+      // Nếu shipper bắt đầu giao từ trạng thái picked_up → delivering, chỉ cập nhật status
       // deliveredAt when delivered
       if (nextStatus === 'delivered') {
         order.deliveredAt = new Date();
@@ -2380,7 +2381,7 @@ const orderService = {
           { model: db.Office, as: 'fromOffice', attributes: ['id', 'name', 'address', 'phoneNumber', 'type'] },
           { model: db.Office, as: 'toOffice', attributes: ['id', 'name', 'address', 'phoneNumber', 'type'] },
           { model: db.ServiceType, as: 'serviceType', attributes: ['id', 'name', 'deliveryTime'] },
-          { model: db.OrderHistory, as: 'histories', attributes: ['id', 'status', ['note', 'notes'], ['actionTime', 'createdAt']] }
+          { model: db.OrderHistory, as: 'histories', attributes: ['id', 'action', ['note', 'notes'], ['actionTime', 'createdAt']] }
         ]
       });
 
@@ -2403,7 +2404,8 @@ const orderService = {
       console.log('Date To:', dateTo);
 
       const where = {
-        toOfficeId: officeId
+        toOfficeId: officeId,
+        createdByType: 'user' // Chỉ tính đơn hàng do user tạo, không tính đơn manager tạo tại bưu cục
       };
 
       // Chỉ thêm date filter nếu có giá trị
@@ -2491,7 +2493,9 @@ const orderService = {
 
       const offset = (page - 1) * limit;
       const where = {
-        toOfficeId: officeId
+        toOfficeId: officeId,
+        status: { [db.Sequelize.Op.in]: ['picked_up', 'delivering'] }, // Chỉ hiển thị đơn đã nhận và đang giao
+        createdByType: 'user'
       };
 
       console.log('Base where clause:', where);
@@ -2518,26 +2522,9 @@ const orderService = {
         order: [['createdAt', 'DESC']]
       });
 
-      // Nếu có shipperUserId: chỉ lấy đơn đã gán cho shipper hiện tại bằng EXISTS
-      let whereWithAssigned = { ...where };
-      if (shipperUserId !== undefined && shipperUserId !== null) {
-        const userIdNum = Number(shipperUserId);
-        if (!Number.isNaN(userIdNum)) {
-          const assignedExists = db.Sequelize.where(
-            db.Sequelize.literal(
-              `EXISTS (SELECT 1 FROM ShipmentOrders so JOIN Shipments sh ON sh.id = so.shipmentId AND sh.userId = ${userIdNum} WHERE so.orderId = \`Order\`.id)`
-            ),
-            true
-          );
-          whereWithAssigned = {
-            ...whereWithAssigned,
-            [db.Sequelize.Op.and]: [assignedExists],
-          };
-        }
-      }
-
+      // Hiển thị đơn theo status và office
       const { rows, count } = await db.Order.findAndCountAll({
-        where: whereWithAssigned,
+        where: where,
         limit: parseInt(limit),
         offset,
         order: [['createdAt', 'DESC']],
@@ -2588,7 +2575,11 @@ const orderService = {
       } = filters;
 
       const offset = (page - 1) * limit;
-      const where = { toOfficeId: officeId };
+      const where = { 
+        toOfficeId: officeId,
+        status: 'arrived_at_office', // Chỉ lấy đơn hàng đã đến bưu cục đích
+        createdByType: 'user' // Chỉ lấy đơn hàng do user tạo, không lấy đơn manager tạo tại bưu cục
+      };
 
       if (status) where.status = status;
       if (search) {
@@ -2602,19 +2593,26 @@ const orderService = {
         where.createdAt = { [db.Sequelize.Op.between]: [dateFrom, dateTo] };
       }
 
-      // Sử dụng subquery để tìm orders không có trong ShipmentOrder
+      // Chỉ loại trừ những đơn đã được shipper nhận (picked_up, delivering)
+      // Không loại trừ đơn chỉ được driver vận chuyển (arrived_at_office)
       const unassignedWhere = {
         ...where,
-        [db.Sequelize.Op.not]: {
-          id: {
-            [db.Sequelize.Op.in]: db.Sequelize.literal(
-              '(SELECT DISTINCT orderId FROM ShipmentOrders WHERE orderId IS NOT NULL)'
-            )
-          }
-        }
+        status: 'arrived_at_office' // Chỉ lấy đơn đã đến bưu cục và chưa được shipper nhận
       };
 
       console.log('Unassigned where clause:', unassignedWhere);
+
+      // Debug: Kiểm tra query đơn giản trước
+      const simpleQuery = await db.Order.findAll({
+        where: {
+          toOfficeId: officeId,
+          status: 'arrived_at_office',
+          createdByType: 'user'
+        }
+      });
+      console.log('Simple query (before NOT filter) found:', simpleQuery.length);
+
+      console.log('Final unassigned query - no ShipmentOrder filtering needed');
 
       const { rows, count } = await db.Order.findAndCountAll({
         where: unassignedWhere,
@@ -2644,7 +2642,7 @@ const orderService = {
     }
   },
 
-  // Shipper nhận đơn: tạo Shipment (nếu chưa có) và gán order vào ShipmentOrder
+  // Shipper nhận đơn: cập nhật status từ arrived_at_office → picked_up
   async claimOrder(userId, orderId) {
     const t = await db.sequelize.transaction();
     try {
@@ -2656,24 +2654,25 @@ const orderService = {
         return { success: false, message: 'Đơn hàng không tồn tại' };
       }
 
-      // Kiểm tra đã được gán chưa
-      const existingLink = await db.ShipmentOrder.findOne({ where: { orderId }, transaction: t });
-      if (existingLink) {
+      // Kiểm tra đơn phải ở trạng thái arrived_at_office
+      if (order.status !== 'arrived_at_office') {
         await t.rollback();
-        return { success: false, message: 'Đơn đã được gán' };
+        return { success: false, message: 'Đơn hàng không ở trạng thái có thể nhận' };
       }
 
-      // Tìm Shipment đang hoạt động của shipper
-      let shipment = await db.Shipment.findOne({
-        where: { userId, status: { [db.Sequelize.Op.in]: ['Pending', 'InTransit'] } },
-        transaction: t
-      });
+      // Cập nhật status thành picked_up
+      await order.update({ status: 'picked_up' }, { transaction: t });
 
-      if (!shipment) {
-        shipment = await db.Shipment.create({ userId, status: 'Pending', startTime: new Date() }, { transaction: t });
-      }
-
-      await db.ShipmentOrder.create({ shipmentId: shipment.id, orderId }, { transaction: t });
+      // Ghi lịch sử
+      await db.OrderHistory.create({
+        orderId: order.id,
+        fromOfficeId: order.fromOfficeId || null,
+        toOfficeId: order.toOfficeId || null,
+        shipmentId: null, // Không liên quan đến shipment của driver
+        action: 'PickedUp',
+        note: `Shipper ${userId} đã nhận đơn để giao`,
+        actionTime: new Date()
+      }, { transaction: t });
 
       await t.commit();
       return { success: true };
@@ -2787,31 +2786,14 @@ const orderService = {
 
       const where = {
         toOfficeId: officeId,
-        status: { [db.Sequelize.Op.in]: ['confirmed', 'picked_up', 'in_transit'] }
+        status: { [db.Sequelize.Op.in]: ['arrived_at_office', 'picked_up', 'delivering'] },
+        createdByType: 'user' // Chỉ lấy đơn hàng do user tạo, không lấy đơn manager tạo tại bưu cục
       };
 
-      // Nếu có shipperUserId: chỉ lấy đơn đã gán cho shipper hiện tại
-      let whereWithAssigned = { ...where };
-      if (shipperUserId !== undefined && shipperUserId !== null) {
-        const userIdNum = Number(shipperUserId);
-        if (!Number.isNaN(userIdNum)) {
-          const assignedExists = db.Sequelize.where(
-            db.Sequelize.literal(
-              `EXISTS (SELECT 1 FROM ShipmentOrders so JOIN Shipments sh ON sh.id = so.shipmentId AND sh.userId = ${userIdNum} WHERE so.orderId = \`Order\`.id)`
-            ),
-            true
-          );
-          whereWithAssigned = {
-            ...whereWithAssigned,
-            [db.Sequelize.Op.and]: [assignedExists],
-          };
-        }
-      }
-
-      console.log('Where clause:', whereWithAssigned);
+      console.log('Where clause:', where);
 
       const orders = await db.Order.findAll({
-        where: whereWithAssigned,
+        where: where,
         order: [['createdAt', 'ASC']],
         include: [
           { model: db.User, as: 'user', attributes: ['id', 'firstName', 'lastName'] },
@@ -2852,7 +2834,7 @@ const orderService = {
           serviceType: order.serviceType?.name || 'Tiêu chuẩn',
           estimatedTime: this.calculateEstimatedTime(index),
           status: order.status === 'delivered' ? 'completed' :
-            (order.status === 'in_transit' || order.status === 'picked_up') ? 'in_progress' : 'pending',
+            (order.status === 'delivering' || order.status === 'picked_up') ? 'in_progress' : 'pending',
           coordinates: this.generateRealCoordinates(order.recipientWardCode, order.recipientCityCode, index),
           distance: 2.5 + (index * 0.5),
           travelTime: 15 + (index * 5)
@@ -2873,6 +2855,7 @@ const orderService = {
 
       const {
         officeId,
+        shipperId,
         page = 1,
         limit = 10,
         status,
@@ -2882,13 +2865,12 @@ const orderService = {
 
       const offset = (page - 1) * limit;
       const where = {
-        toOfficeId: officeId,
-        cod: { [db.Sequelize.Op.gt]: 0 }
+        status: 'delivered', // Chỉ lấy đơn hàng đã giao
+        toOfficeId: officeId
       };
 
-      if (status) where.status = status;
       if (dateFrom && dateTo) {
-        where.createdAt = {
+        where.deliveredAt = {
           [db.Sequelize.Op.between]: [dateFrom, dateTo]
         };
       }
@@ -2903,23 +2885,121 @@ const orderService = {
         include: [
           { model: db.User, as: 'user', attributes: ['id', 'firstName', 'lastName'] },
           { model: db.Office, as: 'fromOffice', attributes: ['id', 'name'] },
-          { model: db.Office, as: 'toOffice', attributes: ['id', 'name'] }
+          { model: db.Office, as: 'toOffice', attributes: ['id', 'name'] },
+          {
+            model: db.ShippingCollection,
+            as: 'shippingCollections',
+            required: false, // LEFT JOIN để lấy cả đơn chưa thu tiền
+            attributes: ['id', 'amountCollected', 'discrepancy', 'notes', 'createdAt']
+          },
+          {
+            model: db.PaymentSubmission,
+            as: 'paymentSubmissions',
+            required: false, // LEFT JOIN để lấy cả đơn chưa nộp tiền
+            attributes: ['id', 'amountSubmitted', 'status', 'createdAt']
+          }
         ]
       });
+
+      // Debug: Log all orders to see what we're getting
+      console.log('=== COD TRANSACTIONS DEBUG ===');
+      console.log('Total count from query:', count);
+      console.log('Rows returned:', rows.length);
+      if (rows.length > 0) {
+        console.log('First order sample:', {
+          id: rows[0].id,
+          trackingNumber: rows[0].trackingNumber,
+          cod: rows[0].cod,
+          status: rows[0].status,
+          shipperId: rows[0].shipperId,
+          toOfficeId: rows[0].toOfficeId
+        });
+      } else {
+        console.log('No orders found with current filters');
+        // Let's check if there are any orders at all for this office
+        const allOrders = await db.Order.findAll({
+          where: { toOfficeId: officeId },
+          attributes: ['id', 'trackingNumber', 'cod', 'status', 'shipperId'],
+          limit: 5
+        });
+        console.log('Sample orders for this office:', allOrders);
+      }
 
       console.log('COD query result - count:', count);
       console.log('COD query result - rows length:', rows.length);
 
-      // Tính tổng kết
+      // Tính tổng kết dựa trên ShippingCollection và PaymentSubmission
+      console.log('Calculating summary for COD transactions...');
+      
+      let totalCollected = 0;
+      let totalSubmitted = 0;
+      let totalPending = 0;
+
+      rows.forEach((order, index) => {
+        const codAmount = order.cod || 0;
+        const hasCollection = order.shippingCollections && order.shippingCollections.length > 0;
+        const hasSubmission = order.paymentSubmissions && order.paymentSubmissions.length > 0;
+        
+        // Chỉ tính các đơn hàng có COD > 0
+        if (codAmount > 0) {
+          if (hasCollection) {
+            totalCollected += codAmount;
+          }
+          
+          if (hasSubmission) {
+            totalSubmitted += codAmount;
+          } else if (hasCollection) {
+            totalPending += codAmount;
+          }
+        }
+        
+        console.log(`Order ${index + 1}: ID=${order.id}, COD=${codAmount}, Collected=${hasCollection}, Submitted=${hasSubmission}`);
+      });
+
       const summary = {
-        totalCollected: rows.reduce((sum, order) => sum + (order.cod || 0), 0),
-        totalSubmitted: rows.filter(o => o.status === 'delivered').reduce((sum, order) => sum + (order.cod || 0), 0),
-        totalPending: rows.filter(o => o.status === 'in_transit').reduce((sum, order) => sum + (order.cod || 0), 0),
+        totalCollected,
+        totalSubmitted,
+        totalPending,
         transactionCount: count
       };
 
+      console.log('COD Summary calculated:', summary);
+
+      // Format transactions với trạng thái đúng
+      const formattedTransactions = rows.map(order => {
+        const codAmount = order.cod || 0;
+        const hasCollection = order.shippingCollections && order.shippingCollections.length > 0;
+        const hasSubmission = order.paymentSubmissions && order.paymentSubmissions.length > 0;
+        
+        let status = 'pending'; // Mặc định là chờ thu
+        
+        // Nếu đơn hàng không có COD, luôn hiển thị là "delivered"
+        if (codAmount === 0) {
+          status = 'delivered';
+        } else {
+          // Chỉ áp dụng logic COD cho đơn hàng có COD > 0
+          if (hasSubmission) {
+            status = 'submitted'; // Đã nộp
+          } else if (hasCollection) {
+            status = 'collected'; // Đã thu
+          }
+        }
+        
+        return {
+          id: order.id,
+          trackingNumber: order.trackingNumber,
+          recipientName: order.recipientName,
+          recipientPhone: order.recipientPhone,
+          codAmount: codAmount,
+          status: status,
+          collectedAt: hasCollection ? order.shippingCollections[0].createdAt : null,
+          submittedAt: hasSubmission ? order.paymentSubmissions[0].createdAt : null,
+          notes: hasCollection ? order.shippingCollections[0].notes : null
+        };
+      });
+
       const result = {
-        transactions: rows,
+        transactions: formattedTransactions,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -3007,9 +3087,9 @@ const orderService = {
         // Create initial order history
         await db.OrderHistory.create({
           orderId: order.id,
-          status: 'pending',
-          description: 'Đơn hàng được tạo',
-          timestamp: new Date()
+          action: 'ReadyForPickup',
+          note: 'Đơn hàng được tạo',
+          actionTime: new Date()
         }, { transaction: t });
 
         await t.commit();

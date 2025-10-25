@@ -46,8 +46,9 @@ const UnassignedOrders: React.FC = () => {
     switch (status) {
       case 'pending': return 'default';
       case 'confirmed': return 'blue';
+      case 'arrived_at_office': return 'blue';
       case 'picked_up': return 'orange';
-      case 'in_transit': return 'processing';
+      case 'delivering': return 'processing';
       case 'delivered': return 'success';
       case 'cancelled': return 'error';
       default: return 'default';
@@ -58,8 +59,9 @@ const UnassignedOrders: React.FC = () => {
     switch (status) {
       case 'pending': return 'Chờ xử lý';
       case 'confirmed': return 'Đã xác nhận';
+      case 'arrived_at_office': return 'Đã đến bưu cục';
       case 'picked_up': return 'Đã lấy hàng';
-      case 'in_transit': return 'Đang giao';
+      case 'delivering': return 'Đang giao hàng';
       case 'delivered': return 'Đã giao';
       case 'cancelled': return 'Đã hủy';
       default: return status;

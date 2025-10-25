@@ -104,7 +104,7 @@ const LoginForm: React.FC = () => {
             <div style={{ width: "100%", maxWidth: 400 }}>
               <div style={{ textAlign: "center", marginBottom: 30 }}>
                 <Title level={2} style={{ color: "#1C3D90", margin: 0 }}>
-                  My Website
+                  UTE Logistics
                 </Title>
                 <Text type="secondary">
                   Đăng nhập để tiếp tục trải nghiệm

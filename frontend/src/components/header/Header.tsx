@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Layout, Button, Space, Typography, Avatar, Dropdown, Menu, Badge, List, Divider, Modal } from "antd";
-import { UserOutlined, LogoutOutlined, ProfileOutlined, PlusOutlined, BellOutlined, ShoppingCartOutlined, ClockCircleOutlined, ExclamationCircleOutlined, BellFilled, BellTwoTone } from "@ant-design/icons";
+import { UserOutlined, LogoutOutlined, ProfileOutlined, PlusOutlined, BellOutlined, ShoppingCartOutlined, ClockCircleOutlined, ExclamationCircleOutlined, BellFilled, BellTwoTone, PlayCircleOutlined } from "@ant-design/icons";
 import { useDispatch } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import { logout } from "../../store/authSlice";
@@ -80,12 +80,20 @@ const Header: React.FC<HeaderProps> = () => {
 
   // Subscribe to WebSocket notifications
   useEffect(() => {
+    console.log('Setting up notifications for user:', user.id);
+
     // Fetch initial notifications from database
     fetchNotifications();
 
     // Connect to WebSocket
     const socket = getSocket();
     console.log('Socket connected:', socket.connected);
+
+    // Re-register user with WebSocket when user changes
+    if (user?.id) {
+      console.log('Re-registering user with WebSocket:', user.id);
+      socket.emit('register', user.id);
+    }
 
     const onServerNotification = (payload: any) => {
       console.log('Received WebSocket notification:', payload);
@@ -99,7 +107,7 @@ const Header: React.FC<HeaderProps> = () => {
         isRead: payload.isRead || false,
         userId: user.id,
         createdAt: payload.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       };
 
       console.log('Adding notification to state:', newNotification);
@@ -123,6 +131,8 @@ const Header: React.FC<HeaderProps> = () => {
         return <ShoppingCartOutlined style={{ color: '#1890ff' }} />;
       case 'delivery_assigned':
         return <ClockCircleOutlined style={{ color: '#52c41a' }} />;
+      case 'delivery_started':
+        return <PlayCircleOutlined style={{ color: '#1890ff' }} />;
       case 'route_change':
         return <ExclamationCircleOutlined style={{ color: '#faad14' }} />;
       case 'cod_reminder':
@@ -343,7 +353,7 @@ const Header: React.FC<HeaderProps> = () => {
     <>
       <AntHeader
         style={{
-          background: "#1C3D90",
+          background: "#1C3D90", // xanh trầm hơn
           padding: "0 24px",
           display: "flex",
           justifyContent: "space-between",
@@ -354,10 +364,9 @@ const Header: React.FC<HeaderProps> = () => {
         {/* Góc trái - Tên website */}
         <Link to="/home">
           <Text strong style={{ fontSize: "18px", color: "#fff" }}>
-            MyWebsite
+            UTELogistics
           </Text>
         </Link>
-
         {/* Góc phải */}
         <Space size="middle">
           {(user?.role === "manager" || user?.role === "user") && (

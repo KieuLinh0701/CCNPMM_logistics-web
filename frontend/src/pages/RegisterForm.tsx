@@ -235,7 +235,7 @@ const RegisterForm: React.FC = () => {
           >
             <div style={{ textAlign: "center", marginBottom: 24 }}>
               <Title level={2} style={{ color: "#1C3D90", marginBottom: 8 }}>
-                My Website
+                UTE Logistics
               </Title>
               <Text type="secondary">Đăng ký tài khoản mới</Text>
             </div>

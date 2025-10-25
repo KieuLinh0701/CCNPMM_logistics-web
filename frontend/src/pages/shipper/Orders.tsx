@@ -50,7 +50,7 @@ interface OrderItem {
   weight: number;
   codAmount: number;
   totalAmount: number;
-  status: 'assigned' | 'in_progress' | 'delivered' | 'failed' | 'returned';
+  status: 'arrived_at_office' | 'picked_up' | 'delivering' | 'delivered' | 'failed' | 'returned';
   priority: 'normal' | 'urgent';
   serviceType: string;
   deliveryTime: string;
@@ -113,16 +113,15 @@ const ShipperOrders: React.FC = () => {
   };
 
   // Loại bỏ logic Nhận đơn khỏi trang này
-
-  const handleStartDelivery = (orderId: number) => {
+  const handlePickup = (orderId: number) => {
     Modal.confirm({
-      title: 'Bắt đầu giao hàng',
-      content: 'Bạn có chắc chắn muốn bắt đầu giao đơn hàng này?',
+      title: 'Nhận đơn để giao',
+      content: 'Xác nhận nhận đơn, trạng thái sẽ chuyển sang picked_up',
       onOk: async () => {
         try {
           setLoading(true);
-          await shipperService.updateDeliveryStatus(orderId, { status: 'in_transit' });
-          message.success('Đã bắt đầu giao hàng');
+          await shipperService.updateDeliveryStatus(orderId, { status: 'picked_up' });
+          message.success('Đã nhận đơn');
           fetchOrders();
         } catch (error) {
           message.error('Lỗi khi cập nhật trạng thái');
@@ -156,12 +155,31 @@ const ShipperOrders: React.FC = () => {
     });
   };
 
+  const handleStartDelivery = (orderId: number) => {
+    Modal.confirm({
+      title: 'Bắt đầu giao hàng',
+      content: 'Bạn có chắc chắn muốn bắt đầu giao đơn hàng này?',
+      onOk: async () => {
+        try {
+          setLoading(true);
+          await shipperService.updateDeliveryStatus(orderId, { status: 'delivering' });
+          message.success('Đã bắt đầu giao hàng');
+          fetchOrders();
+        } catch (error) {
+          message.error('Lỗi khi cập nhật trạng thái');
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'default';
-      case 'confirmed': return 'blue';
+      case 'arrived_at_office': return 'blue';
       case 'picked_up': return 'orange';
-      case 'in_transit': return 'processing';
+      case 'delivering': return 'processing';
       case 'delivered': return 'success';
       case 'cancelled': return 'error';
       case 'assigned': return 'blue';
@@ -175,9 +193,9 @@ const ShipperOrders: React.FC = () => {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'pending': return 'Chờ xử lý';
-      case 'confirmed': return 'Đã xác nhận';
+      case 'arrived_at_office': return 'Đã đến bưu cục';
       case 'picked_up': return 'Đã lấy hàng';
-      case 'in_transit': return 'Đang giao';
+      case 'delivering': return 'Đang giao hàng';
       case 'delivered': return 'Đã giao';
       case 'cancelled': return 'Đã hủy';
       case 'assigned': return 'Được phân công';
@@ -293,27 +311,27 @@ const ShipperOrders: React.FC = () => {
           >
             Chi tiết
           </Button>
-          {record.status !== 'in_progress' && (
+          {record.status === 'arrived_at_office' && (
             <Button 
               type="primary" 
               size="small"
               icon={<PlayCircleOutlined />}
-              onClick={() => handleStartDelivery(record.id)}
+              onClick={() => handlePickup(record.id)}
             >
-              Bắt đầu giao
+              Nhận đơn
             </Button>
           )}
-          {(
+          {record.status === 'arrived_at_office' && (
             <Button danger type="link" size="small" onClick={() => handleUnclaim(record.id)}>Bỏ nhận</Button>
           )}
-          {record.status === 'in_progress' && (
+          {record.status === 'picked_up' && (
             <Button 
               type="default" 
               size="small"
               icon={<CheckCircleOutlined />}
-              onClick={() => navigate(`/shipper/delivery/${record.id}`)}
+              onClick={() => handleStartDelivery(record.id)}
             >
-              Cập nhật
+              Bắt đầu giao
             </Button>
           )}
         </Space>
@@ -324,19 +342,21 @@ const ShipperOrders: React.FC = () => {
   // Thống kê nhanh
   const stats = {
     total: orders.length,
-    assigned: orders.filter(o => o.status === 'assigned').length,
-    inProgress: orders.filter(o => o.status === 'in_progress').length,
+    confirmed: orders.filter(o => o.status === 'arrived_at_office').length,
+    inProgress: orders.filter(o => o.status === 'delivering').length,
     urgent: orders.filter(o => o.priority === 'urgent').length,
   };
 
   return (
-    <div style={{ padding: '24px' }}>
-      <Title level={2}>Danh sách đơn hàng cần giao</Title>
+    <div style={{ padding: 24, background: '#F9FAFB', borderRadius: 12 }}>
+      <div style={{ marginBottom: 24 }}>
+        <Title level={2} style={{ color: '#1C3D90' }}>Danh sách đơn hàng cần giao</Title>
+      </div>
       
       {/* Thống kê nhanh */}
-      <Row gutter={16} style={{ marginBottom: '24px' }}>
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col span={6}>
-          <Card size="small">
+          <Card size="small" style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <Statistic
               title="Tổng đơn hàng"
               value={stats.total}
@@ -345,16 +365,16 @@ const ShipperOrders: React.FC = () => {
           </Card>
         </Col>
         <Col span={6}>
-          <Card size="small">
+          <Card size="small" style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <Statistic
               title="Chờ giao"
-              value={stats.assigned}
+              value={stats.confirmed}
               valueStyle={{ color: '#faad14' }}
             />
           </Card>
         </Col>
         <Col span={6}>
-          <Card size="small">
+          <Card size="small" style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <Statistic
               title="Đang giao"
               value={stats.inProgress}
@@ -363,7 +383,7 @@ const ShipperOrders: React.FC = () => {
           </Card>
         </Col>
         <Col span={6}>
-          <Card size="small">
+          <Card size="small" style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <Statistic
               title="Ưu tiên"
               value={stats.urgent}
@@ -373,7 +393,7 @@ const ShipperOrders: React.FC = () => {
         </Col>
       </Row>
 
-      <Card>
+      <Card style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
         {/* Bộ lọc */}
         <Row gutter={[16, 16]} style={{ marginBottom: '16px' }}>
           <Col xs={24} sm={12} md={6}>
@@ -393,8 +413,8 @@ const ShipperOrders: React.FC = () => {
               onChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
               allowClear
             >
-              <Option value="assigned">Được phân công</Option>
-              <Option value="in_progress">Đang giao</Option>
+              <Option value="confirmed">Đã xác nhận</Option>
+              <Option value="delivering">Đang giao hàng</Option>
               <Option value="delivered">Đã giao</Option>
               <Option value="failed">Giao thất bại</Option>
               <Option value="returned">Đã hoàn</Option>

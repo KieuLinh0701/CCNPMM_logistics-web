@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Card, Descriptions, Drawer, Form, Input, Modal, Popconfirm, Select, Space, Table, Tag, message, Statistic, Row, Col } from 'antd';
+import { Button, Card, Descriptions, Drawer, Form, Input, Modal, Popconfirm, Select, Space, Table, Tag, message, Statistic, Row, Col, Typography } from 'antd';
 import { adminAPI, VehicleRow, PostOfficeRow } from '../../services/api';
+
+const { Title } = Typography;
 
 type QueryState = { page: number; limit: number; search: string; type?: string; status?: string };
 
@@ -193,34 +195,46 @@ const AdminVehicles: React.FC = () => {
   ], [onDelete, onEdit]);
 
   return (
-    <div>
+    <div style={{ padding: 24, background: '#F9FAFB', borderRadius: 12 }}>
+      <div style={{ marginBottom: 24 }}>
+        <Title level={2} style={{ color: '#1C3D90' }}>Quản lý phương tiện</Title>
+      </div>
+      
       {/* Statistics Cards */}
-      <Row gutter={16} style={{ marginBottom: 16 }}>
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col span={6}>
-          <Card>
+          <Card style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <Statistic title="Tổng phương tiện" value={stats.total} />
           </Card>
         </Col>
         <Col span={6}>
-          <Card>
+          <Card style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <Statistic title="Sẵn sàng" value={stats.available} valueStyle={{ color: '#3f8600' }} />
           </Card>
         </Col>
         <Col span={6}>
-          <Card>
+          <Card style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <Statistic title="Đang sử dụng" value={stats.inUse} valueStyle={{ color: '#1890ff' }} />
           </Card>
         </Col>
         <Col span={6}>
-          <Card>
+          <Card style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <Statistic title="Bảo trì" value={stats.maintenance} valueStyle={{ color: '#cf1322' }} />
           </Card>
         </Col>
       </Row>
 
-      <Card title="Quản lý phương tiện" extra={
+      <Card 
+        style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+        extra={
         <Space>
-          <Button type="primary" onClick={onAdd}>Thêm phương tiện</Button>
+          <Button 
+            type="primary" 
+            style={{ backgroundColor: '#1C3D90', borderColor: '#1C3D90' }}
+            onClick={onAdd}
+          >
+            Thêm phương tiện
+          </Button>
           <Input.Search allowClear placeholder="Tìm kiếm" onSearch={(v) => setQuery({ ...query, page: 1, search: v })} />
           <Select
             placeholder="Loại xe"

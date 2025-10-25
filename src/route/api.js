@@ -22,6 +22,8 @@ import transactionController from "../controllers/transactionController.js";
 import paymentSubmissionController from "../controllers/paymentSubmissionController.js";
 import orderHistoryController from "../controllers/orderHistoryController.js";
 import shipmentController from "../controllers/shipmentController.js";
+import financialController from "../controllers/financialController.js";
+import exportController from "../controllers/exportController.js";
 
 let router = express.Router();
 
@@ -144,7 +146,7 @@ let initApiRoutes = (app) => {
         return res.json({
             success: true,
             data: {
-                name: "CCNPMM Logistics",
+                name: "UTE Logistics",
                 description: "Dịch vụ vận chuyển hàng hóa chuyên nghiệp",
                 address: "123 Đường ABC, Quận XYZ, TP.HCM",
                 phone: "1900-1234",
@@ -231,6 +233,15 @@ let initApiRoutes = (app) => {
     router.put('/admin/promotions/:id/status', verifyToken, requireRole(['admin']), promotionController.updatePromotionStatus);
     router.get('/admin/promotions/stats', verifyToken, requireRole(['admin']), promotionController.getPromotionStats);
 
+    // FINANCIAL MANAGEMENT
+    router.get('/admin/financial/stats', verifyToken, requireRole(['admin']), financialController.getFinancialStats);
+    router.get('/admin/financial/reconciliation', verifyToken, requireRole(['admin']), financialController.getReconciliationHistory);
+    router.get('/admin/financial/report', verifyToken, requireRole(['admin']), financialController.getComprehensiveReport);
+    
+    // EXPORT
+    router.post('/admin/export/excel', verifyToken, requireRole(['admin']), exportController.exportFinancialReportExcel);
+    router.post('/admin/export/pdf', verifyToken, requireRole(['admin']), exportController.exportFinancialReportPDF);
+
     // SHIPPER
     // Shipper Dashboard
     router.get('/shipper/dashboard', verifyToken, requireRole(['shipper']), shipperController.getDashboard);
@@ -250,14 +261,31 @@ let initApiRoutes = (app) => {
     // Shipper COD Management
     router.get('/shipper/cod', verifyToken, requireRole(['shipper']), shipperController.getCODTransactions);
     router.post('/shipper/cod/submit', verifyToken, requireRole(['shipper']), shipperController.submitCOD);
-
+    router.get('/shipper/cod/history', verifyToken, requireRole(['shipper']), shipperController.getCODSubmissionHistory);
+    
     // Shipper Incident Report
     router.post('/shipper/incident', verifyToken, requireRole(['shipper']), shipperController.reportIncident);
+    router.get('/shipper/incidents', verifyToken, requireRole(['shipper']), shipperController.getIncidentReports);
+    router.get('/shipper/incidents/:id', verifyToken, requireRole(['shipper']), shipperController.getIncidentReportDetail);
 
     // Shipper self-assign
     router.get('/shipper/orders-unassigned', verifyToken, requireRole(['shipper']), shipperController.getUnassignedOrders);
     router.post('/shipper/orders/:id/claim', verifyToken, requireRole(['shipper']), shipperController.claimOrder);
     router.post('/shipper/orders/:id/unclaim', verifyToken, requireRole(['shipper']), shipperController.unclaimOrder);
+
+    // DRIVER
+    const driverController = require('../controllers/driverController').default || require('../controllers/driverController');
+    router.get('/driver/context', verifyToken, requireRole(['driver']), driverController.getContext);
+    router.get('/driver/orders/confirmed', verifyToken, requireRole(['driver']), driverController.getConfirmedOrders);
+    router.post('/driver/pickup', verifyToken, requireRole(['driver']), driverController.pickUp);
+    router.post('/driver/shipment/start', verifyToken, requireRole(['driver']), driverController.startShipment);
+    router.post('/driver/shipment/finish', verifyToken, requireRole(['driver']), driverController.finishShipment);
+    router.get('/driver/shipments', verifyToken, requireRole(['driver']), driverController.getShipments);
+    router.get('/driver/route', verifyToken, requireRole(['driver']), driverController.getRoute);
+    router.post('/driver/route/start', verifyToken, requireRole(['driver']), driverController.startRoute);
+    router.post('/driver/route/pause', verifyToken, requireRole(['driver']), driverController.pauseRoute);
+    router.post('/driver/route/resume', verifyToken, requireRole(['driver']), driverController.resumeRoute);
+    router.get('/driver/history', verifyToken, requireRole(['driver']), driverController.getHistory);
 
     // Notification Routes
     router.get('/notifications', verifyToken, notificationController.getNotifications);

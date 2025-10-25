@@ -31,7 +31,8 @@ const { TextArea } = Input;
 
 interface IncidentReport {
   id: number;
-  trackingNumber: string;
+  orderId: number;
+  shipperId: number;
   incidentType: string;
   title: string;
   description: string;
@@ -40,8 +41,24 @@ interface IncidentReport {
   recipientName: string;
   recipientPhone: string;
   images: string[];
-  status: 'pending' | 'processing' | 'resolved';
+  status: 'pending' | 'processing' | 'resolved' | 'rejected';
+  resolution?: string;
+  handledBy?: number;
+  handledAt?: string;
   createdAt: string;
+  updatedAt: string;
+  order?: {
+    id: number;
+    trackingNumber: string;
+    recipientName: string;
+    recipientPhone: string;
+    status: string;
+  };
+  handler?: {
+    id: number;
+    name: string;
+    email: string;
+  };
 }
 
 const ShipperIncidentReport: React.FC = () => {
@@ -59,8 +76,15 @@ const ShipperIncidentReport: React.FC = () => {
   const fetchReports = async () => {
     try {
       setLoading(true);
-      // TODO: Implement API call for incident reports
-      setReports([]);
+      console.log('[IncidentReport] Fetching incident reports...');
+      const response = await shipperService.getIncidentReports({
+        page: 1,
+        limit: 100
+      });
+      console.log('[IncidentReport] Raw response:', response);
+      console.log('[IncidentReport] Reports data:', response.data);
+      console.log('[IncidentReport] First report sample:', response.data[0]);
+      setReports(response.data as unknown as IncidentReport[]);
     } catch (error) {
       console.error('Error fetching incident reports:', error);
       message.error('Lỗi khi tải danh sách báo cáo sự cố');
@@ -125,9 +149,10 @@ const ShipperIncidentReport: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'default';
-      case 'processing': return 'processing';
+      case 'pending': return 'orange';
+      case 'processing': return 'blue';
       case 'resolved': return 'success';
+      case 'rejected': return 'red';
       default: return 'default';
     }
   };
@@ -137,14 +162,27 @@ const ShipperIncidentReport: React.FC = () => {
       case 'pending': return 'Chờ xử lý';
       case 'processing': return 'Đang xử lý';
       case 'resolved': return 'Đã giải quyết';
+      case 'rejected': return 'Từ chối';
       default: return status;
+    }
+  };
+
+  const getIncidentTypeText = (incidentType: string) => {
+    switch (incidentType) {
+      case 'recipient_not_available': return 'Người nhận không có mặt';
+      case 'wrong_address': return 'Sai địa chỉ';
+      case 'package_damaged': return 'Hàng hóa bị hỏng';
+      case 'recipient_refused': return 'Người nhận từ chối';
+      case 'security_issue': return 'Vấn đề an ninh';
+      case 'other': return 'Khác';
+      default: return incidentType;
     }
   };
 
   const columns = [
     {
       title: 'Mã đơn hàng',
-      dataIndex: 'trackingNumber',
+      dataIndex: ['order', 'trackingNumber'],
       key: 'trackingNumber',
       width: 140,
       render: (text: string) => (
@@ -166,7 +204,7 @@ const ShipperIncidentReport: React.FC = () => {
       key: 'incidentType',
       width: 120,
       render: (text: string) => (
-        <Tag>{text}</Tag>
+        <Tag>{getIncidentTypeText(text)}</Tag>
       ),
     },
     {
