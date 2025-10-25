@@ -253,6 +253,9 @@ let initApiRoutes = (app) => {
     router.post('/driver/shipment/finish', verifyToken, requireRole(['driver']), driverController.finishShipment);
     router.get('/driver/shipments', verifyToken, requireRole(['driver']), driverController.getShipments);
     router.get('/driver/route', verifyToken, requireRole(['driver']), driverController.getRoute);
+    router.post('/driver/route/start', verifyToken, requireRole(['driver']), driverController.startRoute);
+    router.post('/driver/route/pause', verifyToken, requireRole(['driver']), driverController.pauseRoute);
+    router.post('/driver/route/resume', verifyToken, requireRole(['driver']), driverController.resumeRoute);
     router.get('/driver/history', verifyToken, requireRole(['driver']), driverController.getHistory);
 
     // Notification Routes

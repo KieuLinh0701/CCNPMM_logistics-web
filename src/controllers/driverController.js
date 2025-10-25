@@ -315,27 +315,149 @@ const driverController = {
       console.log('[driver.getRoute] activeShipmentId=', activeShipment.id, 'ordersCount=', orders.length);
       const uniqueOffices = [...new Set(orders.map(o => o.toOffice?.id).filter(Boolean))];
       
+      // Nhóm orders theo bưu cục đích
+      const officeGroups = {};
+      orders.forEach(order => {
+        const officeId = order.toOffice?.id;
+        if (officeId) {
+          if (!officeGroups[officeId]) {
+            officeGroups[officeId] = {
+              office: order.toOffice,
+              orders: []
+            };
+          }
+          officeGroups[officeId].orders.push(order);
+        }
+      });
+
+      // Tạo delivery stops từ các bưu cục
+      const deliveryStops = Object.values(officeGroups).map((group, index) => ({
+        id: group.office.id,
+        trackingNumber: `OFFICE-${group.office.id}`,
+        officeName: group.office.name,
+        officePhone: group.office.phone || 'N/A',
+        officeAddress: group.office.address,
+        orderCount: group.orders.length,
+        priority: group.orders.some(order => order.priority === 'urgent') ? 'urgent' : 'normal',
+        serviceType: 'Vận chuyển bưu cục',
+        estimatedTime: '30 phút', // Mock data
+        status: 'pending',
+        coordinates: {
+          lat: 10.7769 + (index * 0.01), // Mock coordinates
+          lng: 106.7009 + (index * 0.01)
+        },
+        distance: 5 + (index * 2), // Mock distance
+        travelTime: 15 + (index * 5), // Mock travel time
+        toOffice: group.office
+      }));
+
+      // Tính toán thông tin tuyến
+      const totalDistance = deliveryStops.reduce((sum, stop) => sum + stop.distance, 0);
+      const totalDuration = deliveryStops.reduce((sum, stop) => sum + stop.travelTime, 0);
+      const totalOrders = deliveryStops.reduce((sum, stop) => sum + stop.orderCount, 0);
+
       const routeInfo = {
         id: activeShipment.id,
+        name: `Tuyến vận chuyển #${activeShipment.id}`,
+        startLocation: user.employee?.office?.address || 'Văn phòng xuất phát',
+        totalStops: deliveryStops.length,
+        completedStops: 0,
+        totalDistance: totalDistance,
+        estimatedDuration: totalDuration,
+        totalOrders: totalOrders,
+        status: activeShipment.status === 'Pending' ? 'not_started' : 'in_progress',
         fromOffice: user.employee?.office || null,
         toOffices: uniqueOffices.map(officeId => {
           const office = orders.find(o => o.toOffice?.id === officeId)?.toOffice;
           return office;
-        }).filter(Boolean),
-        orders: orders.map(order => ({
-          id: order.id,
-          trackingNumber: order.trackingNumber,
-          toOffice: order.toOffice,
-          priority: order.priority || 'normal'
-        })),
-        distance: 0, // Có thể tính toán dựa trên tọa độ
-        estimatedTime: 0 // Có thể tính toán dựa trên khoảng cách
+        }).filter(Boolean)
       };
 
-      return res.json({ success: true, data: routeInfo });
+      return res.json({ 
+        success: true, 
+        data: {
+          routeInfo,
+          deliveryStops
+        }
+      });
     } catch (err) {
       console.error("driver.getRoute error", err);
       return res.status(500).json({ success: false, message: "Lỗi server" });
+    }
+  },
+
+  // Bắt đầu tuyến vận chuyển
+  async startRoute(req, res) {
+    try {
+      const userId = req.user.id;
+      const { routeId } = req.body;
+
+      // Cập nhật trạng thái shipment
+      await db.Shipment.update(
+        { status: 'InTransit' },
+        { where: { id: routeId, userId } }
+      );
+
+      return res.json({
+        success: true,
+        message: 'Đã bắt đầu tuyến vận chuyển'
+      });
+    } catch (error) {
+      console.error('Start route error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi server'
+      });
+    }
+  },
+
+  // Tạm dừng tuyến vận chuyển
+  async pauseRoute(req, res) {
+    try {
+      const userId = req.user.id;
+      const { routeId } = req.body;
+
+      // Cập nhật trạng thái shipment
+      await db.Shipment.update(
+        { status: 'Paused' },
+        { where: { id: routeId, userId } }
+      );
+
+      return res.json({
+        success: true,
+        message: 'Đã tạm dừng tuyến vận chuyển'
+      });
+    } catch (error) {
+      console.error('Pause route error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi server'
+      });
+    }
+  },
+
+  // Tiếp tục tuyến vận chuyển
+  async resumeRoute(req, res) {
+    try {
+      const userId = req.user.id;
+      const { routeId } = req.body;
+
+      // Cập nhật trạng thái shipment
+      await db.Shipment.update(
+        { status: 'InTransit' },
+        { where: { id: routeId, userId } }
+      );
+
+      return res.json({
+        success: true,
+        message: 'Đã tiếp tục tuyến vận chuyển'
+      });
+    } catch (error) {
+      console.error('Resume route error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi server'
+      });
     }
   },
 
