@@ -167,6 +167,18 @@ const ShipperIncidentReport: React.FC = () => {
     }
   };
 
+  const getIncidentTypeText = (incidentType: string) => {
+    switch (incidentType) {
+      case 'recipient_not_available': return 'Người nhận không có mặt';
+      case 'wrong_address': return 'Sai địa chỉ';
+      case 'package_damaged': return 'Hàng hóa bị hỏng';
+      case 'recipient_refused': return 'Người nhận từ chối';
+      case 'security_issue': return 'Vấn đề an ninh';
+      case 'other': return 'Khác';
+      default: return incidentType;
+    }
+  };
+
   const columns = [
     {
       title: 'Mã đơn hàng',
@@ -192,7 +204,7 @@ const ShipperIncidentReport: React.FC = () => {
       key: 'incidentType',
       width: 120,
       render: (text: string) => (
-        <Tag>{text}</Tag>
+        <Tag>{getIncidentTypeText(text)}</Tag>
       ),
     },
     {

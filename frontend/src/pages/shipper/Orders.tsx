@@ -155,6 +155,25 @@ const ShipperOrders: React.FC = () => {
     });
   };
 
+  const handleStartDelivery = (orderId: number) => {
+    Modal.confirm({
+      title: 'Bắt đầu giao hàng',
+      content: 'Bạn có chắc chắn muốn bắt đầu giao đơn hàng này?',
+      onOk: async () => {
+        try {
+          setLoading(true);
+          await shipperService.updateDeliveryStatus(orderId, { status: 'delivering' });
+          message.success('Đã bắt đầu giao hàng');
+          fetchOrders();
+        } catch (error) {
+          message.error('Lỗi khi cập nhật trạng thái');
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'default';
@@ -310,7 +329,7 @@ const ShipperOrders: React.FC = () => {
               type="default" 
               size="small"
               icon={<CheckCircleOutlined />}
-              onClick={() => navigate(`/shipper/delivery/${record.id}`)}
+              onClick={() => handleStartDelivery(record.id)}
             >
               Bắt đầu giao
             </Button>

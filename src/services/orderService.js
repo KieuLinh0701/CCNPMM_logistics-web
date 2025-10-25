@@ -2135,7 +2135,7 @@ const orderService = {
       const offset = (page - 1) * limit;
       const where = {
         toOfficeId: officeId,
-        status: { [db.Sequelize.Op.in]: ['arrived_at_office', 'picked_up', 'delivering'] }, // Hiển thị đơn đã đến, đã nhận và đang giao
+        status: { [db.Sequelize.Op.in]: ['picked_up', 'delivering'] }, // Chỉ hiển thị đơn đã nhận và đang giao
         createdByType: 'user'
       };
 
