@@ -31,8 +31,7 @@ import { PrivateRoute } from './components/PrivateRoute';
 import ForgotPasswordForm from './pages/ForgotPasswordForm';
 import Profile from './pages/Profile';
 import Office from './pages/manager/Office';
-import Warehouse from './pages/manager/Warehouse';
-import EmployeePage from './pages/manager/EmployeeForm';
+import Warehouse from './pages/manager/warehouse/Warehouse';
 import CreateOrder from './pages/manager/CreateOrder';
 import UserLayout from './layouts/UserLayout';
 import OrderList from './pages/user/order/list/OrderList';
@@ -62,9 +61,17 @@ import OfficeSearch from './pages/tracking/officeSearch/OfficeSearch';
 import ShippingRatesBody from './pages/info/shippingRate/shippingRatesBody';
 import OrderCreate from './pages/user/order/create/OrderCreate';
 import OrderCreateManager from './pages/manager/order/create/OrderCreate';
-import OrderEditManager from './pages/manager/edit/OrderEdit';
 import UserDashboard from './pages/user/dashboard/Dashboard';
 import TransactionList from './pages/user/revenue/TransactionList';
+import NotificationList from './pages/NotificationList';
+import NotificationDetail from './pages/NotificationDetail';
+import OfficeTransactionList from './pages/manager/flowMoney/transaction/TransactionList';
+import OfficeSettlementList from './pages/manager/flowMoney/settlement/SettlementList';
+import OrderEditManager from './pages/manager/order/edit/OrderEdit';
+import EmployeePerformance from './pages/manager/employee/perfomance/EmployeePerformance';
+import EmployeeForm from './pages/manager/employee/EmployeeForm';
+import EmployeeShipment from './pages/manager/employee/shipment/EmployeeShipment';
+import ShipmentOrders from './pages/manager/employee/order/ShipmentOrders';
 
 const App: React.FC = () => {
   const user = JSON.parse(localStorage.getItem('user') || 'null');
@@ -108,6 +115,8 @@ const App: React.FC = () => {
               <Route path="reports" element={<AdminReports />} />
               <Route path="vehicles" element={<AdminVehicles />} />
               <Route path="profile" element={<Profile />} />
+              <Route path="notifications" element={<NotificationList />} />
+              <Route path="notifications/:id" element={<NotificationDetail />} />
             </Route>
 
             <Route path="/manager" element={<PrivateRoute roles={["manager"]}><ManagerLayout /></PrivateRoute>}>
@@ -115,12 +124,19 @@ const App: React.FC = () => {
               <Route path="profile" element={<Profile />} />
               <Route path="office" element={<Office />} />
               <Route path="warehouse" element={<Warehouse />} />
-              <Route path="employees/list" element={<EmployeePage />} />
+              <Route path="employees/list" element={<EmployeeForm />} />
+              <Route path="employees/performance" element={<EmployeePerformance />} />
+              <Route path="employees/performance/:employeeId/shipments" element={<EmployeeShipment />} />
+              <Route path="employees/performance/:employeeId/shipments/:shipmentId/orders" element={<ShipmentOrders />} />
               <Route path="orders" element={<OrderListManager />} />
               <Route path="orders/create" element={<OrderCreateManager />} />
               <Route path="orders/edit/:trackingNumber" element={<OrderEditManager />} />
               <Route path="vehicles" element={<Vehicles />} />
               <Route path="supports" element={<SupportManager />} />
+              <Route path="notifications" element={<NotificationList />} />
+              <Route path="notifications/:id" element={<NotificationDetail />} />
+              <Route path="finance/transactions" element={<OfficeTransactionList />} />
+              <Route path="finance/settlements" element={<OfficeSettlementList />} />
             </Route>
 
             <Route path="/user" element={<PrivateRoute roles={["user"]}><UserLayout /></PrivateRoute>}>
@@ -139,6 +155,8 @@ const App: React.FC = () => {
               <Route path="tracking/shipping-fee" element={<ShippingFeeBody />} />
               <Route path="tracking/office-search" element={<OfficeSearchBody />} />
               <Route path="transactions" element={<TransactionList />} />
+              <Route path="notifications" element={<NotificationList />} />
+              <Route path="notifications/:id" element={<NotificationDetail />} />
             </Route>
 
             <Route path="/shipper" element={<PrivateRoute roles={["shipper"]}><ShipperLayout /></PrivateRoute>}>
@@ -153,6 +171,8 @@ const App: React.FC = () => {
               <Route path="history" element={<ShipperDeliveryHistory />} />
               <Route path="route" element={<ShipperDeliveryRoute />} />
               <Route path="profile" element={<Profile />} />
+              <Route path="notifications" element={<NotificationList />} />
+              <Route path="notifications/:id" element={<NotificationDetail />} />
             </Route>
 
           </Routes>

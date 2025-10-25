@@ -1,12 +1,14 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { employeeAPI } from '../services/api';
 import { Employee, EmployeeCheckResult, EmployeeResponse, EmployeeState } from '../types/employee';
+import { stat } from 'node:fs/promises';
 
 const initialState: EmployeeState = {
   shifts: [],
   statuses: [],
   employee: null,
   employees: [],
+  message: null,
   total: 0,
   page: 1,
   limit: 10,
@@ -17,7 +19,8 @@ const initialState: EmployeeState = {
   totalImported: 0,
   totalFailed: 0,
   createdEmployees: [],
-  failedEmployees: []
+  failedEmployees: [],
+  data: [],
 };
 
 // Lấy Shift Enum
@@ -77,8 +80,8 @@ export const getEmployeesByOffice = createAsyncThunk<
       if (startDate) params.append("startDate", startDate);
       if (endDate) params.append("endDate", endDate);
 
-      const data = await employeeAPI.getEmployeesByOffice(officeId, params.toString()); 
-      return data; 
+      const data = await employeeAPI.getEmployeesByOffice(officeId, params.toString());
+      return data;
     } catch (err: any) {
       return thunkAPI.rejectWithValue(err.response?.data?.message || 'Lỗi khi lấy danh sách nhân viên');
     }
@@ -129,6 +132,7 @@ export const updateEmployee = createAsyncThunk<
   async ({ employee }, thunkAPI) => {
     try {
       const data = await employeeAPI.updateEmployee(employee);
+      console.log(data);
       return data;
     } catch (err: any) {
       return thunkAPI.rejectWithValue(err.response?.data?.message || 'Lỗi khi cập nhật nhân viên');
@@ -138,8 +142,8 @@ export const updateEmployee = createAsyncThunk<
 
 // Import Employees
 export const importEmployees = createAsyncThunk<
-  EmployeeResponse, 
-  { employees: Partial<Employee>[] }, 
+  EmployeeResponse,
+  { employees: Partial<Employee>[] },
   { rejectValue: string }
 >(
   'employee/importEmployees',
@@ -149,6 +153,72 @@ export const importEmployees = createAsyncThunk<
       return data; // backend trả về object giống như bạn thiết kế
     } catch (err: any) {
       return thunkAPI.rejectWithValue(err.response?.data?.message || 'Lỗi khi import nhân viên');
+    }
+  }
+);
+
+export const getEmployeePerformance = createAsyncThunk<
+  EmployeeResponse,
+  {
+    page: number;
+    limit: number;
+    searchText?: string;
+    role?: string;
+    sort?: string;
+    startDate?: string;
+    endDate?: string;
+  },
+  { rejectValue: string }
+>(
+  'employee/getEmployeePerformance',
+  async ({ page, limit, searchText, sort, startDate, endDate, role }, thunkAPI) => {
+    try {
+      // Build query param
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+      if (searchText) params.append("search", searchText);
+      if (sort) params.append("sort", sort);
+      if (startDate) params.append("startDate", startDate);
+      if (endDate) params.append("endDate", endDate);
+      if (role) params.append("role", role);
+
+      const data = await employeeAPI.getEmployeePerformance(params.toString());
+      return data;
+    } catch (err: any) {
+      return thunkAPI.rejectWithValue(err.response?.data?.message || 'Lỗi khi lấy danh sách hiệu suất nhân viên');
+    }
+  }
+);
+
+export const exportEmployeePerformance = createAsyncThunk<
+  EmployeeResponse,
+  {
+    searchText?: string;
+    role?: string;
+    sort?: string;
+    startDate?: string;
+    endDate?: string;
+  },
+  { rejectValue: string }
+>(
+  'employee/exportEmployeePerformance',
+  async ({ searchText, sort, startDate, endDate, role }, thunkAPI) => {
+    try {
+      // Build query param
+      const params = new URLSearchParams({
+      });
+      if (searchText) params.append("search", searchText);
+      if (sort) params.append("sort", sort);
+      if (startDate) params.append("startDate", startDate);
+      if (endDate) params.append("endDate", endDate);
+      if (role) params.append("role", role);
+
+      const data = await employeeAPI.exportEmployeePerformance(params.toString());
+      return data;
+    } catch (err: any) {
+      return thunkAPI.rejectWithValue(err.response?.data?.message || 'Lỗi khi lấy danh sách hiệu suất nhân viên');
     }
   }
 );
@@ -182,134 +252,171 @@ const employeeSlice = createSlice({
         state.error = action.payload as string;
       });
 
-      // Get Status In Employee
+    // Get Status In Employee
+    builder
+      .addCase(getStatusEnum.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getStatusEnum.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload.success && action.payload.statuses) {
+          state.statuses = action.payload.statuses;
+        }
+      })
+      .addCase(getStatusEnum.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+    // Get Employees By Office
+    builder
+      .addCase(getEmployeesByOffice.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getEmployeesByOffice.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload.success) {
+          state.employees = action.payload.employees || [];
+          state.total = action.payload.total || 0;
+          state.page = action.payload.page || 1;
+          state.limit = action.payload.limit || 10;
+        }
+      })
+      .addCase(getEmployeesByOffice.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+    // Add Employee
+    builder
+      .addCase(addEmployee.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(addEmployee.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload.success && action.payload.employee) {
+          state.employees.unshift(action.payload.employee);
+          state.message = action.payload.message || null;
+        }
+      })
+      .addCase(addEmployee.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+    // Check Before Add Employee
+    builder
+      .addCase(checkBeforeAddEmployee.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+        state.checkResult = null;
+      })
+      .addCase(checkBeforeAddEmployee.fulfilled, (state, action) => {
+        state.loading = false;
+        state.checkResult = action.payload;
+      })
+      .addCase(checkBeforeAddEmployee.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+        state.checkResult = null;
+      });
+
+    // Update Employee
+    builder
+      .addCase(updateEmployee.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateEmployee.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload.success && action.payload.employee) {
+          const updated = action.payload.employee;
+
+          state.employees = state.employees.map(emp =>
+            emp.id === updated.id
+              ? { ...emp, ...updated, user: { ...emp.user, ...updated.user } }
+              : emp
+          );
+
+          state.employee = updated;
+        }
+      })
+      .addCase(updateEmployee.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+    // Import Employees
+    builder
+      .addCase(importEmployees.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(importEmployees.fulfilled, (state, action) => {
+        state.loading = false;
+
+        const importData = action.payload.result;
+
+        if (importData?.success) {
+          state.importResults = importData.results || null;
+          state.totalImported = importData.totalImported || 0;
+          state.totalFailed = importData.totalFailed || 0;
+          state.createdEmployees = importData.createdEmployees || [];
+          state.failedEmployees = importData.failedEmployees || [];
+
+          // Nếu có employee thành công, thêm vào danh sách
+          importData.results?.forEach(r => {
+            if (r.success && r.employee) {
+              state.employees.unshift(r.employee);
+            }
+          });
+        }
+      })
+      .addCase(importEmployees.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+        state.importResults = null;
+        state.totalImported = 0;
+        state.totalFailed = 0;
+        state.createdEmployees = [];
+        state.failedEmployees = [];
+      });
+
+    builder
+      .addCase(getEmployeePerformance.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getEmployeePerformance.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload.success) {
+          state.data = action.payload.data ?? [];
+          state.total = action.payload.total ?? 0;
+        }
+      })
+      .addCase(getEmployeePerformance.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
       builder
-        .addCase(getStatusEnum.pending, (state) => {
-          state.loading = true;
-          state.error = null;
-        })
-        .addCase(getStatusEnum.fulfilled, (state, action) => {
-          state.loading = false;
-          if (action.payload.success && action.payload.statuses) {
-            state.statuses = action.payload.statuses;
-          }
-        })
-        .addCase(getStatusEnum.rejected, (state, action) => {
-          state.loading = false;
-          state.error = action.payload as string;
-        });
-
-      // Get Employees By Office
-      builder
-        .addCase(getEmployeesByOffice.pending, (state) => {
-          state.loading = true;
-          state.error = null;
-        })
-        .addCase(getEmployeesByOffice.fulfilled, (state, action) => {
-          state.loading = false;
-          if (action.payload.success) {
-            state.employees = action.payload.employees || [];
-            state.total = action.payload.total || 0;
-            state.page = action.payload.page || 1;
-            state.limit = action.payload.limit || 10;
-          }
-        })
-        .addCase(getEmployeesByOffice.rejected, (state, action) => {
-          state.loading = false;
-          state.error = action.payload as string;
-        });
-
-        // Add Employee
-        builder
-          .addCase(addEmployee.pending, (state) => {
-            state.loading = true;
-            state.error = null;
-          })
-          .addCase(addEmployee.fulfilled, (state, action) => {
-            state.loading = false;
-            if (action.payload.success && action.payload.employee) {
-              state.employees.unshift(action.payload.employee); 
-            }
-          })
-          .addCase(addEmployee.rejected, (state, action) => {
-            state.loading = false;
-            state.error = action.payload as string;
-          });
-
-        // Check Before Add Employee
-        builder
-          .addCase(checkBeforeAddEmployee.pending, (state) => {
-            state.loading = true;
-            state.error = null;
-            state.checkResult = null;
-          })
-          .addCase(checkBeforeAddEmployee.fulfilled, (state, action) => {
-            state.loading = false;
-            state.checkResult = action.payload;
-          })
-          .addCase(checkBeforeAddEmployee.rejected, (state, action) => {
-            state.loading = false;
-            state.error = action.payload as string;
-            state.checkResult = null;
-          });
-
-        // Update Employee
-        builder
-          .addCase(updateEmployee.pending, (state) => {
-            state.loading = true;
-            state.error = null;
-          })
-          .addCase(updateEmployee.fulfilled, (state, action) => {
-            state.loading = false;
-            if (action.payload.success && action.payload.employee) {
-              const index = state.employees.findIndex(emp => emp.id === action.payload.employee?.id);
-              if (index !== -1) {
-                state.employees[index] = action.payload.employee;
-              }
-              state.employee = action.payload.employee; 
-            }
-          })
-          .addCase(updateEmployee.rejected, (state, action) => {
-            state.loading = false;
-            state.error = action.payload as string;
-          });
-        
-        // Import Employees
-        builder
-          .addCase(importEmployees.pending, (state) => {
-            state.loading = true;
-            state.error = null;
-          })
-          .addCase(importEmployees.fulfilled, (state, action) => {
-            state.loading = false;
-
-            const importData = action.payload.result; // <-- dùng result nested
-
-            if (importData?.success) {
-              state.importResults = importData.results || null;
-              state.totalImported = importData.totalImported || 0;
-              state.totalFailed = importData.totalFailed || 0;
-              state.createdEmployees = importData.createdEmployees || [];
-              state.failedEmployees = importData.failedEmployees || [];
-
-              // Nếu có employee thành công, thêm vào danh sách
-              importData.results?.forEach(r => {
-                if (r.success && r.employee) {
-                  state.employees.unshift(r.employee);
-                }
-              });
-            }
-          })
-          .addCase(importEmployees.rejected, (state, action) => {
-            state.loading = false;
-            state.error = action.payload as string;
-            state.importResults = null;
-            state.totalImported = 0;
-            state.totalFailed = 0;
-            state.createdEmployees = [];
-            state.failedEmployees = [];
-          });
-
+      .addCase(exportEmployeePerformance.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(exportEmployeePerformance.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload.success) {
+          state.data = action.payload.data ?? [];
+        }
+      })
+      .addCase(exportEmployeePerformance.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
   },
 });
 

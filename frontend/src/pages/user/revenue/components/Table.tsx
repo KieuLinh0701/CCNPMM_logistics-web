@@ -81,9 +81,9 @@ const RevenueTable: React.FC<Props> = ({ transactions, role }) => {
     { title: "Loại doanh thu", dataIndex: "type", key: "type", align: "center", render: (p) => typeTag(p) },
     { title: "Loại giao dịch", dataIndex: "purpose", key: "purpose", align: "center", render: (p) => translateTransactionPurpose(p) },
     { title: "Phương thức thanh toán", dataIndex: "method", key: "method", align: "center" },
-    { title: "Ngày thanh toán", dataIndex: "confirmedAt", key: "confirmedAt", align: "center", render: (date) => dayjs(date).format('DD/MM/YYYY HH:mm:ss') },
+    { title: "Thời điểm giao dịch", dataIndex: "confirmedAt", key: "confirmedAt", align: "center", render: (date) => dayjs(date).format('DD/MM/YYYY HH:mm:ss') },
     {
-      title: "Ghi chú",
+      title: "Mô tả",
       dataIndex: "notes",
       key: "notes",
       align: "center",

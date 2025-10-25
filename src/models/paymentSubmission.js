@@ -10,14 +10,14 @@ export default (sequelize) => {
         onUpdate: 'CASCADE',
       });
 
-      PaymentSubmission.belongsTo(models.User, { // Shipper hoặc người nộp tiền
+      PaymentSubmission.belongsTo(models.User, { 
         foreignKey: 'submittedById',
         as: 'submittedBy',
         onDelete: 'SET NULL',
         onUpdate: 'CASCADE',
       });
 
-      PaymentSubmission.belongsTo(models.User, { // Người xác nhận
+      PaymentSubmission.belongsTo(models.User, { 
         foreignKey: 'confirmedById',
         as: 'confirmedBy',
         onDelete: 'SET NULL',
@@ -34,18 +34,12 @@ export default (sequelize) => {
     submittedById: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      comment: 'Shipper hoặc user nếu khách nộp trực tiếp và đã có tài khoản hoặc null'
-    },
-    submittedByType: {
-      type: DataTypes.ENUM('user', 'shipper', 'guest'),
-      allowNull: false,
-      defaultValue: 'user',
-      comment: 'Xác định người nộp tiền là user (khách) hay shipper',
+      comment: 'Shipper nộp trực tiếp'
     },
     totalAmountSubmitted: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      comment: 'Tổng tiền nộp từ shipper hoặc khách',
+      comment: 'Tổng tiền nộp từ shipper',
     },
     status: {
       type: DataTypes.ENUM('Pending', 'Confirmed', 'Adjusted', 'Rejected'),

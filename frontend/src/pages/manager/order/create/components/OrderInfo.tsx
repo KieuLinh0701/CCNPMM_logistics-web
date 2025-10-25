@@ -169,7 +169,7 @@ const OrderInfo: React.FC<Props> = ({
                   },
                   {
                     type: "number",
-                    min: 1, 
+                    min: 0, 
                     message: "Tổng giá trị hàng hóa phải lớn hơn 0",
                   },
                 ]}
@@ -177,7 +177,7 @@ const OrderInfo: React.FC<Props> = ({
                 <InputNumber
                   style={{ width: "100%" }}
                   placeholder="Ví dụ: 150,000"
-                  min={1} 
+                  min={0} 
                   step={1000}
                   onChange={handleOrderValueChange}
                   formatter={value => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}

@@ -2,8 +2,16 @@ import { User } from "./auth";
 import { Office } from "./office";
 import { Order } from "./order";
 
+export interface TransactionImage {
+  id: number;
+  transaction: Transaction;
+  url: string;
+  createdAd: Date;
+}
+
 export interface Transaction {
   id: number;
+  title: string;
   order?: Order;
   office?: Office;
   user?: User;
@@ -16,8 +24,11 @@ export interface Transaction {
         'OfficeExpense' |
         'RevenueTransfer' 
   confirmedAt: Date,
+  createdAt: Date,
   notes: string;
   paymentSubmissionId: number;
+  images: TransactionImage[];
+  status: 'Pending' | 'Confirmed' | "Rejected"
 }
 
 export interface TransactionResponse {
@@ -31,6 +42,9 @@ export interface TransactionResponse {
   types?: string[],
   statuses?: string[];
   nextCursor?: number;
+  totalIncome: number;
+  totalExpense: number,
+  balance: number,
 }
 
 export interface TransactionState {
@@ -42,4 +56,8 @@ export interface TransactionState {
   page: number;
   limit: number;
   types: string[];
+  statuses: string[];
+  totalIncome: number;
+  totalExpense: number;
+  balance: number;
 }

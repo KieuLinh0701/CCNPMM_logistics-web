@@ -244,6 +244,18 @@ const OrderCreate: React.FC = () => {
                 return;
             }
 
+            // Kiểm tra nếu có sản phẩm tươi sống => bắt buộc dùng dịch vụ hỏa tốc
+            const hasFreshProduct = orderProducts.some(op => op.product.type === "Fresh");
+            if (hasFreshProduct && serviceTypes) {
+                const fastService = serviceTypes.find(s => s.name.toLowerCase().includes("hỏa tốc"));
+                if (!selectedServiceType || selectedServiceType.id !== fastService?.id) {
+                    message.warning("Đơn hàng có sản phẩm tươi sống. Vui lòng chọn dịch vụ HỎA TỐC!");
+                    setSelectedServiceType(fastService || null);
+                    setServiceTypeId(fastService?.id ?? null);
+                    return; 
+                }
+            }
+
             // Chuẩn bị dữ liệu đơn hàng
             const orderData = {
                 senderName: senderData.name || `${user?.lastName} ${user?.firstName}`,
@@ -778,6 +790,8 @@ const OrderCreate: React.FC = () => {
                                     if (!hasUserAddress) return;
                                     setSelectedOffice(office);
                                 }}
+                                wards={wards}
+                                cities={provinces}
                             />
 
                             <NoteCard

@@ -1,7 +1,10 @@
 import { Op } from 'sequelize';
 import db from '../models';
 import paymentService from './paymentService';
-import { createManagerShipTransaction, createRefundUserTransaction, createUserTransaction } from './transactionService';
+import { createTransaction } from './transactionService';
+import notificationService from './notificationService';
+import transaction from '../models/transaction';
+import shipment from '../models/shipment';
 
 function generateTrackingNumber(length = 14) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -508,6 +511,13 @@ const orderService = {
 
       await t.commit();
 
+      await db.OrderHistory.create({
+        orderId: order.id,      
+        action: 'ReadyForPickup',
+        actionTime: new Date() 
+      });
+
+
       // 15. Load lại order đầy đủ
       const createdOrder = await db.Order.findByPk(order.id, {
         include: [
@@ -742,7 +752,7 @@ const orderService = {
 
       // 2. Tìm order theo id + userId (bao gồm cả sản phẩm và promotion)
       const order = await db.Order.findOne({
-        where: { id: orderId, createdBy: userId },
+        where: { id: orderId, userId: userId },
         include: [
           {
             model: db.OrderProduct,
@@ -754,6 +764,7 @@ const orderService = {
         transaction: t,
       });
 
+      console.log("order", order);
       if (!order) {
         return { success: false, message: "Đơn hàng không tồn tại" };
       }
@@ -772,7 +783,6 @@ const orderService = {
             // Hoàn trả stock và giảm soldQuantity
             await product.increment('stock', { by: orderProduct.quantity, transaction: t });
             await product.decrement('soldQuantity', { by: orderProduct.quantity, transaction: t });
-            console.log(`🔄 Đã khôi phục sản phẩm ${product.name}: stock +${orderProduct.quantity}, soldQuantity -${orderProduct.quantity}`);
           }
         }
       }
@@ -783,11 +793,11 @@ const orderService = {
         if (promotion && promotion.usedCount > 0) {
           promotion.usedCount -= 1;
           await promotion.save({ transaction: t });
-          console.log(`🔄 Đã giảm usedCount của promotion ${promotion.code}: ${promotion.usedCount + 1} -> ${promotion.usedCount}`);
         }
       }
 
       // 6. Nếu đã thanh toán bằng VNPay, refund trước
+      console.log("payment", order.paymentMethod);
       if (order.paymentMethod === "VNPay" && order.paymentStatus === "Paid") {
         const refundResult = await paymentService.refundVNPay(order.id);
         if (!refundResult.success) {
@@ -805,15 +815,30 @@ const orderService = {
         });
 
         if (!existingTransaction) {
-          await createRefundUserTransaction(
-            order.id,
-            order.userId,
-            order.totalFee,
-            order.paymentMethod,
-            order.trackingNumber,
-            t,
-          );
+          await createTransaction({
+            orderId: order.id,
+            userId: order.userId,
+            amount: order.totalFee,
+            type: 'Income',
+            method: order.paymentMethod,
+            purpose: 'Refund',
+            title: 'Hoàn phí vận chuyển online',
+            notes: `Hoàn phí vận chuyển cho đơn hàng #${order.trackingNumber}`,
+            transaction: t
+          });
         }
+
+        const data = {
+          title: `Hoàn tiền cho đơn hàng`,
+          message: `Xử lý hoàn tiền thành công cho đơn hàng #${order.trackingNumber}`,
+          type: 'order',
+          userId: user.id,
+          targetRole: 'user',
+          relatedId: order.id,
+          relatedType: 'order',
+        };
+
+        await notificationService.createNotification(data, t);
       }
 
       // 7. Cập nhật trạng thái -> cancelled
@@ -946,15 +971,30 @@ const orderService = {
         });
 
         if (!existingTransaction) {
-          await createUserTransaction(
-            order.id,
-            order.userId,
-            order.totalFee,
-            order.paymentMethod,
-            order.trackingNumber,
-            t,
-          );
+          await createTransaction({
+            orderId: order.id,
+            userId: order.userId,
+            amount: order.totalFee,
+            type: 'Expense',
+            method: order.paymentMethod,
+            purpose: 'ShippingService',
+            title: 'Thanh toán phí vận chuyển online',
+            notes: `Thanh toán thành công cho đơn hàng #${order.trackingNumber}`,
+            transaction: t
+          });
         }
+
+        const data = {
+          title: `Thanh toán cho đơn hàng`,
+          message: `Thanh toán thành công cho đơn hàng #${order.trackingNumber}`,
+          type: 'order',
+          userId: user.id,
+          targetRole: 'user',
+          relatedId: order.id,
+          relatedType: 'order',
+        };
+
+        await notificationService.createNotification(data, t);
       } else {
         order.paidAt = null;
       }
@@ -1277,6 +1317,18 @@ const orderService = {
       order.status = 'pending';
       await order.save({ transaction: t });
 
+      // Gửi thông báo cho user
+      const data = {
+        title: `Đơn hàng đã được xác nhận`,
+        message: `Đơn hàng #${order.trackingNumber} đã được nhân viên bưu cục xác nhận. Đơn hàng sẽ được đến lấy trong vòng 24h.`,
+        type: 'order',
+        userId: order.userId,
+        targetRole: 'user',
+        relatedId: order.trackingNumber,
+        relatedType: 'order',
+      };
+      await notificationService.createNotification({ data, transaction: t });
+
       await t.commit();
 
       return {
@@ -1310,10 +1362,10 @@ const orderService = {
 
       if (startDate && endDate) {
         const start = new Date(startDate);
-        start.setHours(0, 0, 0, 0); 
+        start.setHours(0, 0, 0, 0);
 
         const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999); 
+        end.setHours(23, 59, 59, 999);
 
         whereCondition.createdAt = {
           [db.Sequelize.Op.between]: [start, end],
@@ -1657,6 +1709,18 @@ const orderService = {
         transaction: t
       });
 
+      const data = {
+        title: `Thanh toán cho đơn hàng`,
+        message: `Thanh toán thành công cho đơn hàng #${order.trackingNumber}`,
+        type: 'order',
+        userId: user.id,
+        targetRole: 'user',
+        relatedId: order.id,
+        relatedType: 'order',
+      };
+
+      await notificationService.createNotification(data, t);
+
       await t.commit();
 
       console.log("order after reload:", order);
@@ -1820,28 +1884,57 @@ const orderService = {
 
       if (order.payer === "Shop") {
         // Tạo giao dịch
-        await createManagerShipTransaction(
-          order.id,
-          order.fromOfficeId,
-          order.totalFee,
-          order.paymentMethod,
-          order.trackingNumber,
-          t,
-        );
+        await createTransaction({
+          orderId: order.id,
+          officeId: order.fromOfficeId,
+          amount: order.totalFee,
+          type: 'Income',
+          method: order.paymentMethod,
+          purpose: 'ShippingService',
+          title: 'Thu phí vận chuyển tại quầy',
+          notes: `Thu phí vận chuyển cho đơn hàng #${order.trackingNumber}`,
+          transaction: t
+        });
 
         if (order.userId) {
-          await createUserTransaction(
-            order.id,
-            order.userId,
-            order.totalFee,
-            order.paymentMethod,
-            order.trackingNumber,
-            t,
-          );
+          await createTransaction({
+            orderId: order.id,
+            userId: order.userId,
+            amount: order.totalFee,
+            type: 'Expense',
+            method: order.paymentMethod,
+            purpose: 'ShippingService',
+            title: 'Thanh toán phí vận chuyển tại quầy',
+            notes: `Thanh toán phí vận chuyển thành công cho đơn hàng #${order.trackingNumber}`,
+            transaction: t
+          });
         }
       }
 
+      if (order.userId) {
+        const data = {
+          title: `Tạo đơn hàng thành công`,
+          message: `Đơn hàng #${order.trackingNumber} đã được nhân viên bưu cục tạo. Nếu bạn không yêu cầu, vui lòng gửi Yêu cầu hỗ trợ hoặc Khiếu nại để được xử lý.`,
+          type: 'order',
+          userId: order.userId,
+          targetRole: 'user',
+          relatedId: order.id,
+          relatedType: 'order',
+        };
+
+        await notificationService.createNotification(data, t);
+      }
+
       await t.commit();
+
+      await db.OrderHistory.create({
+        orderId: order.id,      
+        action: 'Imported',
+        actionTime: new Date(),
+        fromOfficeId: null,
+        shipmentId: null,
+        toOfficeId: currentUser.employee.office.id,
+      });
 
       // 15. Load lại order đầy đủ
       const createdOrder = await db.Order.findByPk(order.id, {
@@ -1946,29 +2039,86 @@ const orderService = {
 
         // Chỉ tạo transaction nếu chưa tồn tại
         const existingTransaction = await db.Transaction.findOne({
-          where: { orderId: order.id, type: 'Income' },
+          where: { orderId: order.id, userId: order.userId, type: 'Income' },
           transaction: t,
         });
 
         if (!existingTransaction) {
-          await createRefundUserTransaction(
-            order.id,
-            order.userId,
-            order.totalFee,
-            order.paymentMethod,
-            order.trackingNumber,
-            t,
-          );
+          await createTransaction({
+            orderId: order.id,
+            userId: order.userId,
+            amount: order.totalFee,
+            type: 'Income',
+            method: order.paymentMethod,
+            purpose: 'Refund',
+            title: 'Hoàn phí vận chuyển online',
+            notes: `Hoàn phí vận chuyển cho đơn hàng #${order.trackingNumber}`,
+            transaction: t
+          });
         }
       } else if (order.paymentMethod === "Cash" && order.paymentStatus === "Paid") {
         // Đánh dấu đã thanh toán nhưng hủy => cần xử lý hoàn tiền thủ công nếu có
         order.paymentStatus = "Refunded"; // hoặc "RefundRequired" nếu muốn tách riêng
         order.refundedAt = new Date();
+
+        // Chỉ tạo transaction nếu chưa tồn tại cho bưu cục
+        const existingTransaction = await db.Transaction.findOne({
+          where: { orderId: order.id, officeId: order.fromOfficeId, type: 'Expense' },
+          transaction: t,
+        });
+
+        if (!existingTransaction) {
+          await createTransaction({
+            orderId: order.id,
+            officeId: order.fromOfficeId,
+            amount: order.totalFee,
+            type: 'Expense',
+            method: order.paymentMethod,
+            purpose: 'Refund',
+            title: 'Hoàn phí vận chuyển tại quầy',
+            notes: `Hoàn phí vận chuyển cho đơn hàng #${order.trackingNumber}`,
+            transaction: t
+          });
+        }
+
+        if (order.userId) {
+          const existingTransaction = await db.Transaction.findOne({
+            where: { orderId: order.id, userId: order.userId, type: 'Income' },
+            transaction: t,
+          });
+
+          if (!existingTransaction) {
+            await createTransaction({
+              orderId: order.id,
+              userId: order.userId,
+              amount: order.totalFee,
+              type: 'Income',
+              method: order.paymentMethod,
+              purpose: 'Refund',
+              title: 'Hoàn phí vận chuyển tại quầy',
+              notes: `Hoàn phí vận chuyển cho đơn hàng #${order.trackingNumber}`,
+              transaction: t
+            });
+          }
+        }
       }
 
       // 8. Cập nhật trạng thái hủy
       order.status = "cancelled";
       await order.save({ transaction: t });
+
+      // Gửi thông báo cho user
+      const data = {
+        title: `Hủy đơn hàng thành công`,
+        message: `Đơn hàng #${order.trackingNumber} đã được nhân viên bưu cục hủy. Nếu bạn không yêu cầu thay đổi này, vui lòng gửi Yêu cầu hỗ trợ hoặc Khiếu nại để được xử lý.`,
+        type: 'order',
+        userId: order.userId,
+        targetRole: 'user',
+        relatedId: order.id,
+        relatedType: 'order',
+      };
+
+      await notificationService.createNotification(data, t);
 
       await t.commit();
       return {
@@ -2009,7 +2159,7 @@ const orderService = {
         include: [
           { model: db.Office, as: "fromOffice" },
           { model: db.Office, as: "toOffice" },
-          // { model: db.OrderProduct, as: "orderProducts", include: [{ model: db.Product, as: "product" }] },
+          { model: db.User, as: "user" },
         ],
         transaction: t,
       });
@@ -2086,6 +2236,18 @@ const orderService = {
         transaction: t,
       });
 
+      // Gửi thông báo cho user
+      const data = {
+        title: `Cập nhật thông tin đơn hàng`,
+        message: `Đơn hàng #${existingOrder.trackingNumber} đã được nhân viên bưu cục cập nhật thông tin. Nếu bạn không yêu cầu thay đổi này, vui lòng gửi Yêu cầu hỗ trợ hoặc Khiếu nại để được xử lý.`,
+        type: 'order',
+        userId: existingOrder.userId,
+        targetRole: 'user',
+        relatedId: existingOrder.id,
+        relatedType: 'order',
+      };
+      await notificationService.createNotification(data, t);
+
       await t.commit();
       return { success: true, message: "Cập nhật đơn hàng thành công" };
 
@@ -2093,6 +2255,117 @@ const orderService = {
       if (!t.finished) await t.rollback();
       console.error("Update Manager Order error:", error);
       return { success: false, message: error.message || "Lỗi khi cập nhật đơn hàng" };
+    }
+  },
+
+  async getShipmentOrders(managerId, shipmentId, page = 1, limit = 10, filters = {}) {
+    const t = await db.sequelize.transaction();
+    try {
+      // 1. Lấy manager và office
+      const manager = await db.Employee.findOne({
+        where: { id: managerId, status: "Active" },
+        include: [{ model: db.Office, as: "office" }],
+        transaction: t,
+      });
+      if (!manager) {
+        await t.rollback();
+        return { success: false, message: "Manager không hợp lệ hoặc không hoạt động" };
+      }
+
+      // 2. Lấy shipment kèm user -> employee -> office + shipmentOrders
+      const shipment = await db.Shipment.findByPk(shipmentId, {
+        include: [
+          {
+            model: db.User,
+            as: "user",
+            include: [
+              {
+                model: db.Employee,
+                as: "employee",
+                include: [{ model: db.Office, as: "office" }],
+              },
+            ],
+          },
+          {
+            model: db.ShipmentOrder,
+            as: "shipmentOrders",
+            include: [{ model: db.Order, as: "order" }],
+          },
+        ],
+        transaction: t,
+      });
+
+      if (!shipment) {
+        await t.rollback();
+        return { success: false, message: "Shipment không tồn tại" };
+      }
+
+      // 3. Lấy officeId của shipment thông qua user -> employee
+      const shipmentOfficeId = shipment.user?.employee?.office?.id;
+
+      // 4. Check quyền manager
+      if (manager.id !== shipment.userId && manager.office?.id !== shipmentOfficeId) {
+        await t.rollback();
+        return { success: false, message: "Manager không có quyền xem shipment này" };
+      }
+
+      // 5. Build filters cho orders
+      const { searchText, payer, paymentMethod, cod, sort } = filters;
+      let orders = shipment.shipmentOrders.map((so) => so.order);
+
+      if (searchText) {
+        orders = orders.filter(
+          (o) => o.trackingNumber.includes(searchText)
+        );
+      }
+      if (payer && payer !== "All") {
+        orders = orders.filter((o) => o.payer === payer);
+      }
+      if (paymentMethod && paymentMethod !== "All") {
+        orders = orders.filter((o) => o.paymentMethod === paymentMethod);
+      }
+      if (cod && cod !== "All") {
+        orders = orders.filter((o) =>
+          cod === "Yes" ? o.cod > 0 : o.cod === 0
+        );
+      }
+
+      // 6. Sort
+      if (sort) {
+        switch (sort) {
+          case "codHigh": orders.sort((a, b) => b.cod - a.cod); break;
+          case "codLow": orders.sort((a, b) => a.cod - b.cod); break;
+          case "orderValueHigh": orders.sort((a, b) => b.orderValue - a.orderValue); break;
+          case "orderValueLow": orders.sort((a, b) => a.orderValue - b.orderValue); break;
+          case "feeHigh": orders.sort((a, b) => b.totalFee - a.totalFee); break;
+          case "feeLow": orders.sort((a, b) => a.totalFee - b.totalFee); break;
+          case "weightHigh": orders.sort((a, b) => b.weight - a.weight); break;
+          case "weightLow": orders.sort((a, b) => a.weight - b.weight); break;
+          default: orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        }
+      } else {
+        orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      }
+
+      // 7. Phân trang
+      const total = orders.length;
+      const offset = (page - 1) * limit;
+      const pagedOrders = orders.slice(offset, offset + limit);
+
+      await t.commit();
+
+      return {
+        success: true,
+        message: "Lấy danh sách đơn hàng thành công",
+        orders: pagedOrders,
+        total,
+        page,
+        limit,
+      };
+    } catch (error) {
+      await t.rollback();
+      console.error("Get Orders by Shipment error:", error);
+      return { success: false, message: "Lỗi server khi lấy đơn hàng" };
     }
   },
 

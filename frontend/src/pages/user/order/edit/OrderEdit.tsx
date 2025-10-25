@@ -196,6 +196,18 @@ const OrderEdit: React.FC = () => {
                     );
                     return;
                 }
+
+                // Kiểm tra nếu có sản phẩm tươi sống => bắt buộc dùng dịch vụ hỏa tốc
+                const hasFreshProduct = orderProducts.some(op => op.product.type === "Fresh");
+                if (hasFreshProduct && serviceTypes) {
+                    const fastService = serviceTypes.find(s => s.name.toLowerCase().includes("hỏa tốc"));
+                    if (!selectedServiceType || selectedServiceType.id !== fastService?.id) {
+                        message.warning("Đơn hàng có sản phẩm tươi sống. Vui lòng chọn dịch vụ HỎA TỐC!");
+                        setSelectedServiceType(fastService || null);
+                        setServiceTypeId(fastService?.id ?? null);
+                        return;
+                    }
+                }
             }
 
             const updatedOrder = {
@@ -922,6 +934,8 @@ const OrderEdit: React.FC = () => {
                                     selectedOffice={selectedOffice}
                                     offices={localOffices}
                                     onChange={setSelectedOffice}
+                                    wards={wards}
+                                    cities={provinces}
                                 />
                             )}
 

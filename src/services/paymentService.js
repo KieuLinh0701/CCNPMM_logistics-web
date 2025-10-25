@@ -61,6 +61,7 @@ const paymentService = {
     try {
       // 1. Lấy đơn hàng
       const order = await db.Order.findByPk(orderId);
+      console.log("Hi")
       if (!order) {
         return { success: false, message: "Đơn hàng không tồn tại" };
       }

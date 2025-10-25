@@ -17,16 +17,16 @@ import {
 import {
   CloseCircleOutlined,
   EditOutlined,
-  DeleteOutlined,
-  PlusOutlined,
   UploadOutlined,
   DownloadOutlined,
   SearchOutlined,
+  PlusCircleOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
 import * as XLSX from "xlsx";
 import dayjs from "dayjs";
 import { ColumnsType } from "antd/es/table";
-import { useAppDispatch, useAppSelector } from "../../hooks/redux";
+import { useAppDispatch, useAppSelector } from "../../../hooks/redux";
 import {
   addEmployee,
   getEmployeesByOffice,
@@ -35,10 +35,12 @@ import {
   checkBeforeAddEmployee,
   updateEmployee,
   importEmployees,
-} from "../../store/employeeSlice";
-import { getAssignableRoles } from "../../store/authSlice";
-import { getByUserId } from "../../store/officeSlice";
-import { Employee, EmployeeCheckResult } from "../../types/employee"; // import interface từ slice
+} from "../../../store/employeeSlice";
+import { getAssignableRoles } from "../../../store/authSlice";
+import { getByUserId } from "../../../store/officeSlice";
+import { Employee, EmployeeCheckResult } from "../../../types/employee";
+import { styles } from "../../user/order/style/Order.styles";
+import Title from "antd/es/typography/Title";
 
 // Interface thêm key cho bảng
 interface EmployeeTable extends Employee {
@@ -77,7 +79,7 @@ const EmployeeForm = () => {
   // Dữ liệu bảng
   const tableData: EmployeeTable[] = employees.map((emp, index) => ({
     ...emp,
-    key: String(index + 1 + (currentPage - 1) * pageSize),
+    key: String(emp.id),
   }));
 
   // Sửa nhân viên
@@ -88,6 +90,7 @@ const EmployeeForm = () => {
         message.success(data.message || "Cập nhật thành công");
         setIsModalOpen(false);
         setNewEmployee({});
+        fetchEmployees(currentPage);
         form.resetFields();
       } else {
         message.error(data.message || "Cập nhật thất bại");
@@ -132,37 +135,69 @@ const EmployeeForm = () => {
         Modal.confirm({
           title: "Xác nhận thêm nhân viên",
           content: (
-            <div>
+            <div style={{ maxWidth: 600 }}>
               <p>{result.message}</p>
               {result.user && (
-                <ul>
-                  <li><b>Tên cũ:</b> {result.user.lastName} {result.user.firstName}</li>
-                  <li><b>Email:</b> {result.user.email}</li>
-                  <li><b>Số điện thoại cũ:</b> {result.user.phoneNumber}</li>
-                  <li><b>Chức vụ cũ:</b> {result.user.role}</li>
-                </ul>
+                <div>
+                  <p>Dưới đây là thông tin hiện tại của nhân viên:</p>
+                  <ul>
+                    <li><b>Tên:</b> {result.user.lastName} {result.user.firstName}</li>
+                    <li><b>Email:</b> {result.user.email}</li>
+                    <li><b>Số điện thoại:</b> {result.user.phoneNumber}</li>
+                    <li><b>Chức vụ:</b> {result.user.role}</li>
+                  </ul>
+                </div>
               )}
-              <p>Bạn có chắc chắn muốn tiếp tục thêm nhân viên này và chỉnh sửa lại
-                theo thông tin bạn vừa nhập không?</p>
+              <p>
+                Hệ thống sẽ giữ nguyên tất cả thông tin cá nhân hiện tại và chỉ cập nhật số điện thoại mới.
+                Bạn có chắc chắn muốn tiếp tục?
+              </p>
             </div>
           ),
           okText: "Tiếp tục",
           cancelText: "Hủy",
+          okButtonProps: {
+            style: {
+              backgroundColor: "#1C3D90",
+              borderRadius: "8px",
+              color: "#fff",
+            },
+          },
+          cancelButtonProps: {
+            style: {
+              border: "1px solid #1C3D90",
+              borderRadius: "8px",
+              color: "#1C3D90",
+            },
+          },
+          centered: true,
+          width: 600,
+          icon: null,
           onOk: async () => {
             await dispatch(addEmployee({ employee: newEmployee }));
-            message.success("Thêm nhân viên thành công!");
+            message.success("Thêm nhân viên thành công và cập nhật số điện thoại!");
             setIsModalOpen(false);
             setNewEmployee({});
             form.resetFields();
           },
         });
       } else {
-        // Không có cảnh báo → thêm luôn
-        await dispatch(addEmployee({ employee: newEmployee }));
-        message.success("Thêm nhân viên thành công!");
-        setIsModalOpen(false);
-        setNewEmployee({});
-        form.resetFields();
+        try {
+          const result = await dispatch(addEmployee({ employee: newEmployee })).unwrap();
+
+          // bây giờ result có kiểu EmployeeResponse
+          if (result.success) {
+            message.success(result.message || "Thêm nhân viên thành công!");
+            setIsModalOpen(false);
+            setNewEmployee({});
+            form.resetFields();
+          } else {
+            message.error(result.message || "Thêm nhân viên thất bại!");
+          }
+        } catch (error: any) {
+          // unwrap sẽ ném ra nếu rejected
+          message.error(error?.message || "Thêm nhân viên thất bại!");
+        }
       }
     } catch (error) {
       message.error("Có lỗi khi thêm nhân viên!");
@@ -318,16 +353,13 @@ const EmployeeForm = () => {
 
               // load dữ liệu vào Form
               form.setFieldsValue({
-                id: record.id,
-                lastName: record.user?.lastName,
-                firstName: record.user?.firstName,
-                email: record.user?.email,
-                phoneNumber: record.user?.phoneNumber,
-                role: record.user?.role,
+                ...record.user,
                 hireDate: record.hireDate ? dayjs(record.hireDate) : null,
                 shift: record.shift,
                 status: record.status,
               });
+              setNewEmployee(record);
+
             }}
           >
             Sửa
@@ -411,7 +443,7 @@ const EmployeeForm = () => {
   return (
     <div style={{ padding: 24, background: "#F9FAFB", borderRadius: 12 }}>
       {/* Bộ lọc */}
-      <Row gutter={16} style={{ marginBottom: 40 }}>
+      <Row gutter={16} style={{ marginBottom: 30 }}>
         <Col span={24}>
           <div style={{ display: "flex", gap: 8, width: "100%" }}>
             <Input
@@ -422,7 +454,6 @@ const EmployeeForm = () => {
               allowClear
               style={{ flex: 1, height: 36, borderRadius: 8 }}
             />
-
 
             {/* Lọc theo ca */}
             <Select
@@ -479,7 +510,7 @@ const EmployeeForm = () => {
                 alignItems: "center",
                 gap: 4,
                 transition: "width 0.2s",
-                width: hover ? 110 : 36, // chỉ mở rộng khi hover
+                width: hover ? 110 : 36,
                 justifyContent: hover ? "center" : "center",
               }}
             >
@@ -490,46 +521,58 @@ const EmployeeForm = () => {
       </Row>
 
       {/* Các nút thao tác */}
-      <Row justify="end" style={{ marginBottom: 25 }}>
-        <Space>
-          <Button
-            type="primary"
-            style={{ backgroundColor: "#1976D2", borderColor: "#1976D2", height: 36, borderRadius: 8 }}
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setIsModalOpen(true);
-              setModalMode("create");
-              setNewEmployee({});
-              form.resetFields();
-            }}
-          >
-            Thêm nhân viên
-          </Button>
+      <Row align="middle" style={{ marginBottom: 25 }}>
+        <Col flex="auto">
+          <Title level={3} style={{ color: '#1C3D90', margin: 0 }}>
+            Danh sách nhân viên
+          </Title>
+        </Col>
 
-          <Upload beforeUpload={handleExcelUpload} showUploadList={false}>
+        <Col>
+          <Space>
             <Button
-              style={{ backgroundColor: "#43A047", borderColor: "#43A047", color: "#fff", height: 36, borderRadius: 8 }}
-              icon={<UploadOutlined />}
+              type="primary"
+              style={{ backgroundColor: "#1976D2", borderColor: "#1976D2", height: 36, borderRadius: 8 }}
+              icon={<PlusOutlined />}
+              onClick={() => {
+                setIsModalOpen(true);
+                setModalMode("create");
+                setNewEmployee({});
+                form.resetFields();
+              }}
             >
-              Nhập từ Excel
+              Thêm nhân viên
             </Button>
-          </Upload>
 
-          <Button
-            style={{ backgroundColor: "#FB8C00", borderColor: "#FB8C00", color: "#fff", height: 36, borderRadius: 8 }}
-            icon={<DownloadOutlined />}
-            onClick={handleDownloadTemplate}
-          >
-            File mẫu
-          </Button>
-        </Space>
+            <Upload beforeUpload={handleExcelUpload} showUploadList={false}>
+              <Button
+                style={{ backgroundColor: "#43A047", borderColor: "#43A047", color: "#fff", height: 36, borderRadius: 8 }}
+                icon={<UploadOutlined />}
+              >
+                Nhập từ Excel
+              </Button>
+            </Upload>
+
+            <Button
+              style={{ backgroundColor: "#FB8C00", borderColor: "#FB8C00", color: "#fff", height: 36, borderRadius: 8 }}
+              icon={<DownloadOutlined />}
+              onClick={handleDownloadTemplate}
+            >
+              File mẫu
+            </Button>
+          </Space>
+        </Col>
       </Row>
+
+      <Tag color="blue" style={{ fontSize: 14, padding: "4px 8px" }}>
+        Kết quả trả về: {total} nhân viên
+      </Tag>
 
       {/* Bảng */}
       <Table
         columns={columns}
         dataSource={tableData}
-        rowKey="key"
+        rowKey={(record) => record.id!}
         bordered
         pagination={{
           current: currentPage,
@@ -555,7 +598,9 @@ const EmployeeForm = () => {
               justifyContent: "left",
             }}
           >
-            {modalMode === "edit" ? `Chỉnh sửa thông tin nhân viên #${newEmployee.id}` : "Thêm nhân viên mới"}
+            {modalMode === "edit"
+              ? `Chỉnh sửa thông tin nhân viên #${newEmployee.id}`
+              : "Thêm nhân viên mới"}
           </span>
         }
         open={isModalOpen}
@@ -587,94 +632,99 @@ const EmployeeForm = () => {
         }}
       >
         <Form form={form} layout="vertical">
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                label="Họ"
-                name="lastName"
-                rules={[{ required: true, message: "Nhập họ nhân viên!" }]}
-                style={{ marginBottom: 12 }}
-              >
-                <Input
-                  placeholder="Nhập họ..."
-                  value={newEmployee.user?.lastName || ""}
-                  onChange={(e) =>
-                    setNewEmployee({
-                      ...newEmployee,
-                      user: { ...newEmployee.user, lastName: e.target.value },
-                    })
-                  }
-                />
-              </Form.Item>
-            </Col>
+          {/* 🔹 Thông tin cá nhân - chỉ hiển thị khi thêm mới */}
+          {modalMode !== "edit" && (
+            <>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    label="Họ"
+                    name="lastName"
+                    rules={[{ required: true, message: "Nhập họ nhân viên!" }]}
+                    style={{ marginBottom: 12 }}
+                  >
+                    <Input
+                      placeholder="Nhập họ..."
+                      value={newEmployee.user?.lastName || ""}
+                      onChange={(e) =>
+                        setNewEmployee({
+                          ...newEmployee,
+                          user: { ...newEmployee.user, lastName: e.target.value },
+                        })
+                      }
+                    />
+                  </Form.Item>
+                </Col>
 
-            <Col span={12}>
-              <Form.Item
-                label="Tên"
-                name="firstName"
-                rules={[{ required: true, message: "Nhập tên nhân viên!" }]}
-                style={{ marginBottom: 12 }}
-              >
-                <Input
-                  placeholder="Nhập tên..."
-                  value={newEmployee.user?.firstName || ""}
-                  onChange={(e) =>
-                    setNewEmployee({
-                      ...newEmployee,
-                      user: { ...newEmployee.user, firstName: e.target.value },
-                    })
-                  }
-                />
-              </Form.Item>
-            </Col>
-          </Row>
+                <Col span={12}>
+                  <Form.Item
+                    label="Tên"
+                    name="firstName"
+                    rules={[{ required: true, message: "Nhập tên nhân viên!" }]}
+                    style={{ marginBottom: 12 }}
+                  >
+                    <Input
+                      placeholder="Nhập tên..."
+                      value={newEmployee.user?.firstName || ""}
+                      onChange={(e) =>
+                        setNewEmployee({
+                          ...newEmployee,
+                          user: { ...newEmployee.user, firstName: e.target.value },
+                        })
+                      }
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                label="Số điện thoại"
-                name="phoneNumber"
-                rules={[{ required: true, message: "Nhập số điện thoại!" }]}
-                style={{ marginBottom: 12 }}
-              >
-                <Input
-                  placeholder="Nhập số điện thoại..."
-                  value={newEmployee.user?.phoneNumber || ""}
-                  onChange={(e) =>
-                    setNewEmployee({
-                      ...newEmployee,
-                      user: { ...newEmployee.user, phoneNumber: e.target.value },
-                    })
-                  }
-                />
-              </Form.Item>
-            </Col>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    label="Số điện thoại"
+                    name="phoneNumber"
+                    rules={[{ required: true, message: "Nhập số điện thoại!" }]}
+                    style={{ marginBottom: 12 }}
+                  >
+                    <Input
+                      placeholder="Nhập số điện thoại..."
+                      value={newEmployee.user?.phoneNumber || ""}
+                      onChange={(e) =>
+                        setNewEmployee({
+                          ...newEmployee,
+                          user: { ...newEmployee.user, phoneNumber: e.target.value },
+                        })
+                      }
+                    />
+                  </Form.Item>
+                </Col>
 
-            <Col span={12}>
-              <Form.Item
-                label="Email"
-                name="email"
-                rules={[
-                  { required: true, message: "Nhập email nhân viên!" },
-                  { type: "email", message: "Email không hợp lệ!" },
-                ]}
-                style={{ marginBottom: 12 }}
-              >
-                <Input
-                  placeholder="Nhập email..."
-                  value={newEmployee.user?.email || ""}
-                  disabled={modalMode === 'edit'}
-                  onChange={(e) =>
-                    setNewEmployee({
-                      ...newEmployee,
-                      user: { ...newEmployee.user, email: e.target.value },
-                    })
-                  }
-                />
-              </Form.Item>
-            </Col>
-          </Row>
+                <Col span={12}>
+                  <Form.Item
+                    label="Email"
+                    name="email"
+                    rules={[
+                      { required: true, message: "Nhập email nhân viên!" },
+                      { type: "email", message: "Email không hợp lệ!" },
+                    ]}
+                    style={{ marginBottom: 12 }}
+                  >
+                    <Input
+                      placeholder="Nhập email..."
+                      value={newEmployee.user?.email || ""}
+                      onChange={(e) =>
+                        setNewEmployee({
+                          ...newEmployee,
+                          user: { ...newEmployee.user, email: e.target.value },
+                        })
+                      }
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </>
+          )}
 
+          {/* 🔹 Thông tin công việc - luôn hiển thị */}
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
@@ -703,14 +753,12 @@ const EmployeeForm = () => {
             </Col>
 
             <Col span={12}>
-              <Form.Item
-                label="Ca làm"
-                name="shift"
-                style={{ marginBottom: 12 }}
-              >
+              <Form.Item label="Ca làm" name="shift" style={{ marginBottom: 12 }}>
                 <Select
                   value={newEmployee.shift || shifts?.[0]}
-                  onChange={(val) => setNewEmployee({ ...newEmployee, shift: val })}
+                  onChange={(val) =>
+                    setNewEmployee({ ...newEmployee, shift: val })
+                  }
                   placeholder="Chọn ca làm..."
                 >
                   {shifts?.map((item) => (
@@ -731,29 +779,32 @@ const EmployeeForm = () => {
                   placeholder="Chọn ngày thuê..."
                   value={newEmployee.hireDate ? dayjs(newEmployee.hireDate) : null}
                   onChange={(date) =>
-                    setNewEmployee({ ...newEmployee, hireDate: date?.toDate() || null })
+                    setNewEmployee({
+                      ...newEmployee,
+                      hireDate: date?.toDate() || null,
+                    })
                   }
                 />
               </Form.Item>
             </Col>
 
             <Col span={12}>
-                <Form.Item label="Trạng thái" name="status" style={{ marginBottom: 12 }}>
-                  <Select
-                    value={newEmployee.status || statuses?.[0]}
-                    onChange={(val) =>
-                      setNewEmployee({ ...newEmployee, status: val })
-                    }
-                    placeholder="Chọn trạng thái..."
-                  >
-                    {statuses?.map((item) => (
-                      <Select.Option key={item} value={item}>
-                        {item}
-                      </Select.Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
+              <Form.Item label="Trạng thái" name="status" style={{ marginBottom: 12 }}>
+                <Select
+                  value={newEmployee.status || statuses?.[0]}
+                  onChange={(val) =>
+                    setNewEmployee({ ...newEmployee, status: val })
+                  }
+                  placeholder="Chọn trạng thái..."
+                >
+                  {statuses?.map((item) => (
+                    <Select.Option key={item} value={item}>
+                      {item}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
           </Row>
         </Form>
       </Modal>

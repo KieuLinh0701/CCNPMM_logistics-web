@@ -8,17 +8,20 @@ import fs from 'fs';
 import userController from "../controllers/userController.js";
 import officeController from "../controllers/officeController.js";
 import employeeController from "../controllers/employeeController.js";
-import productController from "../controllers/productController.js"; 
+import productController from "../controllers/productController.js";
 import serviceTypeController from "../controllers/serviceTypeController.js";
 import shippingRateController from "../controllers/shippingRateController.js";
-import vehicleController from "../controllers/vehicleController.js"; 
-import promotionController from "../controllers/promotionController.js"; 
+import vehicleController from "../controllers/vehicleController.js";
+import promotionController from "../controllers/promotionController.js";
 import payment from "./payment.js";
 import shippingRequestController from "../controllers/shippingRequestController.js";
 import shipperController from "../controllers/shipperController.js";
 import notificationController from "../controllers/notificationController.js";
 import orderController from "../controllers/orderController.js";
 import transactionController from "../controllers/transactionController.js";
+import paymentSubmissionController from "../controllers/paymentSubmissionController.js";
+import orderHistoryController from "../controllers/orderHistoryController.js";
+import shipmentController from "../controllers/shipmentController.js";
 
 let router = express.Router();
 
@@ -26,7 +29,7 @@ let initApiRoutes = (app) => {
     // Static serve uploads
     const uploadRoot = 'C:/uploads';
     if (!fs.existsSync(uploadRoot)) {
-        try { fs.mkdirSync(uploadRoot, { recursive: true }); } catch (_) {}
+        try { fs.mkdirSync(uploadRoot, { recursive: true }); } catch (_) { }
     }
     app.use('/uploads', express.static(uploadRoot));
     const storage = multer.diskStorage({
@@ -63,6 +66,14 @@ let initApiRoutes = (app) => {
     router.get("/employees/check-before-add", verifyToken, employeeController.checkBeforeAddEmployee);
     router.put("/employees/:id", verifyToken, employeeController.updateEmployee);
     router.post('/employees/import', verifyToken, employeeController.importEmployees);
+    router.get('/employees/perform-export', verifyToken, employeeController.exportEmployeePerformance);
+    router.get('/employees/perform', verifyToken, employeeController.getEmployeePerformance);
+
+    // Protected Shipment Routes
+    router.get('/protected/shipments/statuses', verifyToken, shipmentController.getShipmentStatuses);
+
+    // Manager Shipment Routes
+    router.get('/manager/shipments/employee/:id', verifyToken, shipmentController.listEmployeeShipments);
 
     // Service Type routes
     router.get("/services/get-active", serviceTypeController.getActiveServiceTypes);
@@ -73,7 +84,7 @@ let initApiRoutes = (app) => {
 
     // ======================= Protected =======================
     router.get('/protected/orders/statuses', verifyToken, orderController.getOrderStatuses);
-    router.get('/protected/orders/payment-methods', verifyToken, orderController.getOrderPaymentMethods); 
+    router.get('/protected/orders/payment-methods', verifyToken, orderController.getOrderPaymentMethods);
     router.get('/protected/orders/payers', verifyToken, orderController.getOrderPayers);
     router.get('/protected/orders/payment-statuses', verifyToken, orderController.getOrderPaymentStatuses);
     router.get('/protected/orders/:trackingNumber', verifyToken, orderController.getOrderByTrackingNumber);
@@ -92,33 +103,42 @@ let initApiRoutes = (app) => {
     router.get('/manager/orders/:officeId', verifyToken, orderController.getOrdersByOfficeId);
     router.post('/manager/orders', verifyToken, orderController.createManagerOrder);
     router.put('/manager/orders', verifyToken, orderController.updateManagerOrder);
-    
+    router.get('/manager/orders/shipment/:id', verifyToken, orderController.getShipmentOrders);
+
     router.post("/orders", verifyToken, orderController.createOrder);
     // Promotion validation for orders
     router.post("/orders/validate-promotion", promotionController.validatePromotionCode);
 
 
-    // Transaction
+    // Transaction Route
     // ======================= Protected =======================
     router.get('/protected/transactions/types', verifyToken, transactionController.getTransactionTypes);
+    router.get('/protected/transactions/statuses', verifyToken, transactionController.getTransactionStatuses);
+
     // ==================== User ====================================
     router.get('/user/transactions', verifyToken, transactionController.listUserTransactions);
     router.get('/user/transactions/export', verifyToken, transactionController.exportUserTransactions);
-    
+
+    // ==================== Manager ====================================
+    router.get('/manager/transactions', verifyToken, transactionController.listManagerTransactions);
+    router.get('/manager/transactions/export', verifyToken, transactionController.exportManagerTransactions);
+    router.get('/manager/transactions/summary', verifyToken, transactionController.getManagerTransactionSummary);
+    router.post('/manager/transactions', verifyToken, upload.array('images', 5), transactionController.createTransaction);
+
     // Public routes for guests
     // Order tracking
     router.get("/public/orders/track/:trackingNumber", orderController.trackOrder);
-    
+
     // Office search
     router.get("/public/offices/search", officeController.searchOffices);
     router.get("/public/offices", officeController.getPublicOffices);
-    
+
     // Service types for public
     router.get("/public/services", serviceTypeController.getPublicServiceTypes);
-    
+
     // Shipping rates for public
     router.get("/public/shipping-rates", shippingRateController.getPublicShippingRates);
-    
+
     // Company information
     router.get("/public/company-info", (req, res) => {
         return res.json({
@@ -133,7 +153,7 @@ let initApiRoutes = (app) => {
             }
         });
     });
-    
+
     // Contact form submission
     router.post("/public/contact", (req, res) => {
         const { name, email, phone, subject, message } = req.body;
@@ -214,23 +234,23 @@ let initApiRoutes = (app) => {
     // SHIPPER
     // Shipper Dashboard
     router.get('/shipper/dashboard', verifyToken, requireRole(['shipper']), shipperController.getDashboard);
-    
+
     // Shipper Orders
     router.get('/shipper/orders', verifyToken, requireRole(['shipper']), shipperController.getOrders);
     router.get('/shipper/orders/:id', verifyToken, requireRole(['shipper']), shipperController.getOrderDetail);
     router.put('/shipper/orders/:id/status', verifyToken, requireRole(['shipper']), shipperController.updateDeliveryStatus);
-    
+
     // Shipper History
     router.get('/shipper/history', verifyToken, requireRole(['shipper']), shipperController.getDeliveryHistory);
-    
+
     // Shipper Route
     router.get('/shipper/route', verifyToken, requireRole(['shipper']), shipperController.getDeliveryRoute);
     router.post('/shipper/route/start', verifyToken, requireRole(['shipper']), shipperController.startRoute);
-    
+
     // Shipper COD Management
     router.get('/shipper/cod', verifyToken, requireRole(['shipper']), shipperController.getCODTransactions);
     router.post('/shipper/cod/submit', verifyToken, requireRole(['shipper']), shipperController.submitCOD);
-    
+
     // Shipper Incident Report
     router.post('/shipper/incident', verifyToken, requireRole(['shipper']), shipperController.reportIncident);
 
@@ -244,12 +264,12 @@ let initApiRoutes = (app) => {
     router.put('/notifications/:notificationId/read', verifyToken, notificationController.markAsRead);
     router.put('/notifications/mark-all-read', verifyToken, notificationController.markAllAsRead);
     router.delete('/notifications/:notificationId', verifyToken, notificationController.deleteNotification);
-    
+
     // Admin/Manager create notification
     router.post('/notifications', verifyToken, requireRole(['admin', 'manager']), notificationController.createNotification);
 
     // Product Routes
-    
+
     router.get('/protected/products/types', verifyToken, productController.getProductTypes);
     router.get('/protected/products/statuses', verifyToken, productController.getProductStatuses);
     router.get('/user/products', verifyToken, productController.listUserProducts);
@@ -278,12 +298,29 @@ let initApiRoutes = (app) => {
     router.put('/user/requests/cancel', verifyToken, shippingRequestController.cancelRequest);
     router.post('/user/requests', verifyToken, shippingRequestController.createRequest);
     router.put('/user/requests/:id', verifyToken, shippingRequestController.updateRequest);
-    
+
     router.get('/manager/requests/:officeId', verifyToken, shippingRequestController.listOfficeRequests);
     router.put('/manager/requests/:id', verifyToken, shippingRequestController.updateRequestByManager);
 
     // VNPAY
     router.use("/payment", payment);
+
+    // PaymentSubmission
+    // ============ Protected ==========================
+    router.get('/protected/submissions/statuses', verifyToken, paymentSubmissionController.getPaymentSubmissionStatuses);
+
+    // ============ User ===============================
+    router.get('/user/submissions/pending-summary', verifyToken, paymentSubmissionController.getUserPendingOrdersSummary);
+    router.get('/user/submissions/confirmed-summary', verifyToken, paymentSubmissionController.getUserConfirmedOrdersSummary);
+
+    // ============ Manager =============================
+    router.get('/manager/submissions', verifyToken, paymentSubmissionController.listManagerPaymentSubmissions);
+    router.get('/manager/submissions/summary', verifyToken, paymentSubmissionController.getPaymentSubmissionCountByStatus)
+    router.get('/manager/submissions/:id', verifyToken, paymentSubmissionController.getOrdersOfPaymentSubmission);
+    router.put('/manager/submissions/:id', verifyToken, paymentSubmissionController.updatePaymentSubmissionStatus);
+
+    // OrderHistory Route Manager
+    router.get('/manager/order-histories/warehouse', verifyToken, requireRole(['manager']), orderHistoryController.getWarehouseImportExportStatsByManager)
     
     // Test routes
     router.get('/test', (req, res) => {

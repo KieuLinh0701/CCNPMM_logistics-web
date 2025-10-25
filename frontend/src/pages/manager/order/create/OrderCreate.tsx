@@ -356,6 +356,8 @@ const OrderCreateManager: React.FC = () => {
                                 onChange={(office) => {
                                     setSelectedOffice(office);
                                 }}
+                                wards={wards}
+                                cities={provinces}
                             />
 
                             <NoteCard

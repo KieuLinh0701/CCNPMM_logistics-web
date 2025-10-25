@@ -371,6 +371,42 @@ export const updateManagerOrder = createAsyncThunk(
   }
 );
 
+export const getShipmentOrders = createAsyncThunk<
+  OrderResponse,
+  {
+    shipmentId: number,
+    page: number,
+    limit: number,
+    searchText?: string;
+    payer?: string;
+    paymentMethod?: string;
+    cod?: string;
+    sort?: string;
+  },
+  { rejectValue: string }
+>(
+  'order/getShipmentOrders',
+  async ({ shipmentId, page, limit, searchText, payer, paymentMethod, cod, sort }, thunkAPI) => {
+    try {
+      // Build query param
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+      if (searchText) params.append("search", searchText);
+      if (payer) params.append("payer", payer);
+      if (paymentMethod) params.append("paymentMethod", paymentMethod);
+      if (cod) params.append("cod", cod);
+      if (sort) params.append("sort", sort);
+
+      const data = await orderAPI.getShipmentOrders(shipmentId, params.toString());
+      return data;
+    } catch (err: any) {
+      return thunkAPI.rejectWithValue(err.response?.data?.message || 'Lỗi khi lấy danh sách đơn hàng của chuyến');
+    }
+  }
+);
+
 const orderSlice = createSlice({
   name: 'order',
   initialState,
@@ -707,6 +743,25 @@ const orderSlice = createSlice({
         state.loading = false;
       })
       .addCase(updateManagerOrder.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+    builder
+      .addCase(getShipmentOrders.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getShipmentOrders.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload.success) {
+          state.orders = action.payload.orders || [];
+          state.total = action.payload.total || 0;
+          state.page = action.payload.page || 1;
+          state.limit = action.payload.limit || 10;
+        }
+      })
+      .addCase(getShipmentOrders.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

@@ -2,6 +2,9 @@ import bcrypt from 'bcrypt';
 import db from '../models';
 import generateRandomPassword from '../utils/generateRandomPassword';
 import { sendWelcomeEmail } from '../utils/sendWelcomeEmail';
+import notificationService from './notificationService';
+import dayjs from 'dayjs';
+import { Op } from 'sequelize';
 
 const employeeService = {
 
@@ -159,9 +162,12 @@ const employeeService = {
   async checkBeforeAddEmployee(userId, email, phoneNumber, officeIdFromBody) {
     console.log("Check before add =>", { userId, email, phoneNumber, officeIdFromBody });
     try {
-      if (!email) return { success: false, message: "Thiếu email" };
+      // 1️⃣ Kiểm tra dữ liệu đầu vào
+      if (!email && !phoneNumber) {
+        return { success: false, message: "Thiếu email hoặc số điện thoại" };
+      }
 
-      // Lấy thông tin người thao tác
+      // 2️⃣ Lấy thông tin người thao tác
       const currentUser = await db.User.findOne({
         where: { id: userId },
         attributes: ["id", "role"],
@@ -172,6 +178,7 @@ const employeeService = {
         return { success: false, message: "Bạn không có quyền thực hiện thao tác này" };
       }
 
+      // 3️⃣ Xác định office thao tác
       let officeId = officeIdFromBody;
       if (currentUser.role === "manager") {
         if (!currentUser.employee)
@@ -181,94 +188,111 @@ const employeeService = {
         return { success: false, message: "Thiếu officeId khi thêm nhân viên" };
       }
 
-      // Lấy thông tin user cần check
-      const user = await db.User.findOne({
-        where: { email },
-        attributes: ["id", "email", "firstName", "lastName", "phoneNumber", "role"],
-        include: [{ model: db.Employee, as: "employee", attributes: ["officeId", "status"] }]
-      });
+      // 4️⃣ Kiểm tra user tồn tại theo email / phone
+      const existingByEmail = email
+        ? await db.User.findOne({ where: { email } })
+        : null;
+      const existingByPhone = phoneNumber
+        ? await db.User.findOne({ where: { phoneNumber } })
+        : null;
 
-      if (!user) {
-        return { success: true, exists: false, message: "User chưa tồn tại" };
+      // ⚙️ Trường hợp 1: Không có user nào tồn tại → người mới hoàn toàn
+      if (!existingByEmail && !existingByPhone) {
+        return { success: true, exists: false, message: "User chưa tồn tại, có thể tạo mới" };
       }
 
-      // Kiểm tra số điện thoại trùng
-      if (phoneNumber && user.phoneNumber !== phoneNumber) {
-        const phoneExists = await db.User.findOne({
-          where: { phoneNumber, id: { [db.Sequelize.Op.ne]: user.id } }
-        });
-        if (phoneExists) {
+      // ⚙️ Trường hợp 2: Cả email & phone cùng thuộc 1 user
+      if (existingByEmail && existingByPhone && existingByEmail.id === existingByPhone.id) {
+        const user = existingByEmail;
+        const allEmployees = await db.Employee.findAll({ where: { userId: user.id } });
+        const activeEmployee = allEmployees.find(e => e.status !== "Leave");
+
+        if (activeEmployee) {
+          if (activeEmployee.officeId === officeId) {
+            return {
+              success: false,
+              exists: true,
+              user,
+              message: "Người này đang là nhân viên tại bưu cục hiện tại, không thể thêm lại"
+            };
+          }
           return {
             success: false,
             exists: true,
             user,
-            message: "Số điện thoại này đã được sử dụng cho tài khoản khác"
+            message: `Người này đang là nhân viên tại bưu cục khác`
           };
         }
-      }
 
-      // Kiểm tra tất cả employee của user
-      const allEmployees = await db.Employee.findAll({ where: { userId: user.id } });
-
-      // Xem có active không
-      const activeEmployee = allEmployees.find(e => e.status !== "Leave");
-      if (activeEmployee) {
-        if (activeEmployee.officeId === officeId) {
-          return {
-            success: false,
-            exists: true,
-            user,
-            message: `Người này đang là nhân viên tại bưu cục hiện tại, không thể thêm`
-          };
-        } else {
-          return {
-            success: false,
-            exists: true,
-            user,
-            message: `Người này đang là nhân viên tại bưu cục ${activeEmployee.officeId}, không thể thêm vào bưu cục này`
-          };
-        }
-      }
-
-      // Nếu không có active → check từng office đã leave trước đó
-      const previousSameOffice = allEmployees.find(e => e.officeId === officeId && e.status === "Leave");
-      if (previousSameOffice) {
+        // Nếu đã nghỉ → có thể thêm lại
         return {
           success: true,
           exists: true,
-          isEmployee: false,
           user,
-          message: "Người này từng làm ở bưu cục này (đã nghỉ), có thể thêm lại."
+          message: "Người này từng làm việc (đã nghỉ), có thể thêm lại"
         };
       }
 
-      const previousOtherOffice = allEmployees.find(e => e.officeId !== officeId && e.status === "Leave");
-      if (previousOtherOffice) {
+      // ⚙️ Trường hợp 3: Chỉ trùng email
+      if (existingByEmail && !existingByPhone) {
+        const user = existingByEmail;
+        const allEmployees = await db.Employee.findAll({ where: { userId: user.id } });
+        const activeEmployee = allEmployees.find(e => e.status !== "Leave");
+
+        if (activeEmployee) {
+          if (activeEmployee.officeId === officeId) {
+            return {
+              success: false,
+              exists: true,
+              user,
+              message: "Người này đang là nhân viên tại bưu cục hiện tại"
+            };
+          } else {
+            return {
+              success: false,
+              exists: true,
+              user,
+              message: `Người này đang là nhân viên tại bưu cục khác`
+            };
+          }
+        }
+
+        // Nếu đã nghỉ → có thể thêm lại và cập nhật số điện thoại
         return {
           success: true,
           exists: true,
-          isEmployee: false,
           user,
-          message: "Người này từng làm ở bưu cục khác (đã nghỉ), có thể thêm vào bưu cục mới."
+          message: "Người này từng làm việc (đã nghỉ), có thể thêm lại và cập nhật số điện thoại mới"
         };
       }
 
-      // User chưa từng là nhân viên
-      return {
-        success: true,
-        exists: true,
-        isEmployee: false,
-        user,
-        message: "Người này đã có tài khoản, có thể thêm làm nhân viên"
-      };
+      // ⚙️ Trường hợp 4: Chỉ trùng số điện thoại
+      if (existingByPhone && !existingByEmail) {
+        return {
+          success: false,
+          exists: true,
+          user: existingByPhone,
+          message: "Số điện thoại này đã được sử dụng cho tài khoản khác"
+        };
+      }
+
+      // ⚙️ Trường hợp 5: Trùng email và phone nhưng thuộc 2 người khác nhau
+      if (existingByEmail && existingByPhone && existingByEmail.id !== existingByPhone.id) {
+        return {
+          success: false,
+          exists: true,
+          message: "Email và số điện thoại thuộc hai tài khoản khác nhau, vui lòng kiểm tra lại"
+        };
+      }
+
+      return { success: false, message: "Trường hợp dữ liệu không hợp lệ" };
 
     } catch (err) {
-      console.error("Check before add error:", err);
       return { success: false, message: "Lỗi server khi kiểm tra trước khi thêm" };
     }
   },
 
-  // Add Employee
+  // ADD EMPLOYEE
   async addEmployee(userId, hireDate, shift, status, user, office) {
     const t = await db.sequelize.transaction();
     try {
@@ -276,7 +300,7 @@ const employeeService = {
         return { success: false, message: "Thiếu thông tin tài khoản nhân viên" };
       }
 
-      // 1. Lấy user hiện tại (admin/manager đang thao tác)
+      // 1. Lấy người thao tác
       const currentUser = await db.User.findOne({
         where: { id: userId },
         attributes: ["id", "role"],
@@ -287,70 +311,64 @@ const employeeService = {
         return { success: false, message: "Bạn không có quyền thực hiện thao tác này" };
       }
 
-      // Xác định officeId thao tác
-      const officeId = currentUser.role === "manager"
-        ? currentUser.employee.officeId
-        : office?.id;
+      // 2. Xác định office
+      const officeId = currentUser.role === "manager" ? currentUser.employee.officeId : office?.id;
+      if (!officeId) return { success: false, message: "Thiếu thông tin officeId để thêm nhân viên" };
 
-      if (!officeId) {
-        return { success: false, message: "Thiếu thông tin officeId để thêm nhân viên" };
+      // 3. Kiểm tra user trùng email / phone
+      const existingByEmail = await db.User.findOne({ where: { email: user.email } });
+      const existingByPhone = await db.User.findOne({ where: { phoneNumber: user.phoneNumber } });
+
+      let targetUser = null;
+
+      // Email và phone trùng nhưng là 2 user khác → lỗi
+      if (existingByEmail && existingByPhone && existingByEmail.id !== existingByPhone.id) {
+        await t.rollback();
+        return { success: false, message: "Email và số điện thoại thuộc hai tài khoản khác nhau" };
       }
 
-      // 2. Tìm user theo email
-      let existingUser = await db.User.findOne({
-        where: { email: user.email },
-        include: [{ model: db.Employee, as: "employee" }]
-      });
+      // Cả 2 trùng và là cùng 1 user
+      if (existingByEmail && existingByPhone && existingByEmail.id === existingByPhone.id) {
+        targetUser = existingByEmail;
+      }
+      // Email trùng, phone khác
+      else if (existingByEmail && !existingByPhone) {
+        targetUser = existingByEmail;
 
-      if (existingUser) {
-        // Cập nhật thông tin user
-        await existingUser.update({
-          firstName: user.firstName,
-          lastName: user.lastName,
-          phoneNumber: user.phoneNumber,
-          role: user.role
-        }, { transaction: t });
+        const allEmployees = await db.Employee.findAll({ where: { userId: targetUser.id } });
+        const activeEmployee = allEmployees.find(e => e.status !== "Leave");
 
-        // Nếu user đã có employee trong cùng office → update employee
-        if (existingUser.employee && existingUser.employee.officeId === officeId) {
-          await existingUser.employee.update({
-            hireDate: new Date() || existingUser.employee.hireDate,
-            shift: shift || existingUser.employee.shift,
-            status: status || "Inactive",
-          }, { transaction: t });
-
-          await t.commit();
-
-          return {
-            success: true,
-            message: "Cập nhật thông tin nhân viên thành công",
-            employee: { ...existingUser.employee.toJSON(), user: existingUser.toJSON() }
-          };
+        if (activeEmployee) {
+          if (activeEmployee.officeId === officeId) {
+            await t.rollback();
+            return {
+              success: false,
+              message: "Người này đang là nhân viên active tại bưu cục hiện tại, không thể cập nhật số điện thoại"
+            };
+          } else {
+            await t.rollback();
+            return {
+              success: false,
+              message: `Người này đang là nhân viên active tại bưu cục khác (ID: ${activeEmployee.officeId}), không thể cập nhật số điện thoại`
+            };
+          }
         }
 
-        // Nếu chưa có employee hoặc employee thuộc office khác → tạo mới employee
-        const newEmployee = await db.Employee.create({
-          hireDate: hireDate || new Date(),
-          shift: shift || "Full Day",
-          status: status || "Inactive",
-          userId: existingUser.id,
-          officeId
-        }, { transaction: t });
+        // Nếu đã nghỉ → cập nhật phone
+        await targetUser.update({ phoneNumber: user.phoneNumber }, { transaction: t });
+      }
+      // Email khác, phone trùng → chặn
+      else if (!existingByEmail && existingByPhone) {
+        await t.rollback();
+        return { success: false, message: "Số điện thoại đã được sử dụng cho tài khoản khác" };
+      }
 
-        await t.commit();
-
-        return {
-          success: true,
-          message: "Thêm nhân viên thành công",
-          employee: { ...newEmployee.toJSON(), user: existingUser.toJSON() }
-        };
-
-      } else {
-        // 3. Nếu chưa có user → tạo mới user
+      // 4. Nếu user chưa tồn tại → tạo mới
+      if (!targetUser) {
         const plainPassword = generateRandomPassword();
         const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
-        existingUser = await db.User.create({
+        const newUser = await db.User.create({
           email: user.email,
           password: hashedPassword,
           firstName: user.firstName,
@@ -360,32 +378,63 @@ const employeeService = {
           isVerified: true
         }, { transaction: t });
 
-        // 4. Tạo employee mới
         const newEmployee = await db.Employee.create({
           hireDate: hireDate || new Date(),
           shift: shift || "Full Day",
-          status: status || "Inactive",
-          userId: existingUser.id,
+          status: status || "Active",
+          userId: newUser.id,
           officeId
         }, { transaction: t });
 
-        // Gửi email chào mừng sau khi commit
         t.afterCommit(async () => {
-          try {
-            await sendWelcomeEmail(existingUser.email, existingUser.firstName, existingUser.role, plainPassword);
-          } catch (err) {
-            console.error("Gửi email thất bại:", err);
-          }
+          await sendWelcomeEmail(newUser.email, newUser.firstName, newUser.role, plainPassword);
         });
 
         await t.commit();
 
-        return {
-          success: true,
-          message: "Tạo nhân viên thành công",
-          employee: { ...newEmployee.toJSON(), user: existingUser.toJSON() }
-        };
+        await notificationService.createNotification({
+          title: "Chào mừng bạn đến với hệ thống!",
+          message: "Tài khoản nhân viên của bạn đã được kích hoạt. Chúc bạn làm việc hiệu quả!",
+          type: "system",
+          userId: newUser.id,
+        });
+
+        return { success: true, message: "Thêm nhân viên mới thành công", employee: newEmployee };
       }
+
+      // 5.Nếu user đã tồn tại → kiểm tra employee
+      const allEmployees = await db.Employee.findAll({ where: { userId: targetUser.id } });
+      const activeEmployee = allEmployees.find(e => e.status !== "Leave");
+
+      if (activeEmployee) {
+        if (activeEmployee.officeId === officeId) {
+          await t.rollback();
+          return { success: false, message: "Người này đang là nhân viên tại bưu cục hiện tại" };
+        } else {
+          await t.rollback();
+          return { success: false, message: `Người này đang là nhân viên tại bưu cục khác (ID: ${activeEmployee.officeId})` };
+        }
+      }
+
+      // 6. Nếu đã nghỉ → thêm lại employee
+      const newEmployee = await db.Employee.create({
+        hireDate: hireDate || new Date(),
+        shift: shift || "Full Day",
+        status: status || "Active",
+        userId: targetUser.id,
+        officeId
+      }, { transaction: t });
+
+      await t.commit();
+
+      await notificationService.createNotification({
+        title: "Chào mừng bạn quay trở lại!",
+        message: "Tài khoản nhân viên của bạn đã được kích hoạt trở lại. Chúc bạn làm việc hiệu quả!",
+        type: "system",
+        userId: targetUser.id,
+      });
+
+      return { success: true, message: "Kích hoạt lại nhân viên thành công", employee: newEmployee };
 
     } catch (error) {
       await t.rollback();
@@ -394,70 +443,104 @@ const employeeService = {
     }
   },
 
-  // Update User
+  // Update Employee 
   async updateEmployee(userId, employeeId, hireDate, shift, status, user, office) {
     const t = await db.sequelize.transaction();
     try {
+      // Xác thực quyền người thực hiện
       const currentUser = await db.User.findOne({
         where: { id: userId },
         attributes: ['id', 'role'],
-        include: [{ model: db.Employee, as: 'employee', attributes: ['officeId'] }]
+        include: [{ model: db.Employee, as: 'employee', attributes: ['officeId'] }],
       });
 
       if (!currentUser || !['admin', 'manager'].includes(currentUser.role)) {
         return { success: false, message: 'Bạn không có quyền thực hiện thao tác này' };
       }
 
+      // Lấy thông tin nhân viên cần cập nhật
       const employee = await db.Employee.findOne({
         where: { id: employeeId },
-        include: [{ model: db.User, as: 'user' }]
+        include: [{ model: db.User, as: 'user' }],
       });
 
       if (!employee) return { success: false, message: 'Nhân viên không tồn tại' };
 
-      // Kiểm tra manager có cùng office không
+      // Manager chỉ được phép chỉnh nhân viên cùng bưu cục
       if (currentUser.role === 'manager' && currentUser.employee.officeId !== employee.officeId) {
         return { success: false, message: 'Bạn không có quyền thao tác với nhân viên bưu cục khác' };
       }
 
-      // Kiểm tra số điện thoại có trùng không (không tính user hiện tại)
-      if (user?.phoneNumber && employee.user.phoneNumber !== user.phoneNumber) {
-        const phoneExists = await db.User.findOne({
-          where: {
-            phoneNumber: user.phoneNumber,
-            id: { [db.Sequelize.Op.ne]: employee.user.id }
-          }
-        });
-        if (phoneExists) {
-          return {
-            success: false,
-            message: 'Số điện thoại này đã được sử dụng cho tài khoản khác'
-          };
+      // Lưu các thay đổi để gửi báo cáo
+      const changes = [];
+      const compare = (key, label, oldVal, newVal) => {
+        if (oldVal?.toString() !== newVal?.toString()) {
+          changes.push(`${label} (${oldVal || 'trống'} → ${newVal || 'trống'})`);
         }
+      };
+
+      const oldHireDate = employee.hireDate ? dayjs(employee.hireDate).format('YYYY-MM-DD') : null;
+      const newHireDate = hireDate ? dayjs(hireDate).format('YYYY-MM-DD') : null;
+
+      if (oldHireDate !== newHireDate) {
+        changes.push(`ngày bắt đầu làm việc (${oldHireDate || 'trống'} → ${newHireDate || 'trống'})`);
       }
+      compare('shift', 'ca làm', employee.shift, shift);
+      compare('status', 'trạng thái', employee.status, status);
+      compare('role', 'vai trò', employee.user.role, user.role);
 
       // Cập nhật Employee
       await employee.update(
         {
-          hireDate: hireDate || employee.hireDate,
-          shift: shift || employee.shift,
-          status: status || employee.status,
-          officeId: currentUser.role === 'admin' && office ? office : employee.officeId
+          hireDate: hireDate ?? employee.hireDate,
+          shift: shift ?? employee.shift,
+          status: status ?? employee.status,
+          officeId: currentUser.role === 'admin' && office ? office : employee.officeId,
         },
         { transaction: t }
       );
 
-      // Cập nhật User (không đổi email)
+      if (changes.length == 0) {
+        return { success: false, message: 'Không có thay đổi nào để cập nhật' };
+      }
+
+      // Cập nhật thông tin User
       if (user && employee.user) {
         await employee.user.update(
           {
-            firstName: user.firstName || employee.user.firstName,
-            lastName: user.lastName || employee.user.lastName,
-            phoneNumber: user.phoneNumber || employee.user.phoneNumber,
-            role: user.role || employee.user.role,
+            firstName: user.firstName ?? employee.user.firstName,
+            lastName: user.lastName ?? employee.user.lastName,
+            phoneNumber: user.phoneNumber ?? employee.user.phoneNumber,
+            role: user.role ?? employee.user.role,
           },
           { transaction: t }
         );
+      }
+
+      // Reload để lấy dữ liệu mới
+      await employee.reload({ include: [{ model: db.User, as: 'user' }] });
+
+      // Gửi thông báo nếu có thay đổi
+      let requireReLogin = false;
+
+      // Kiểm tra role có thay đổi không
+      if (user && employee.user && user.role && user.role !== employee.user.role) {
+        requireReLogin = true;
+      }
+
+      // Gửi notification
+      if (changes.length > 0) {
+        await notificationService.createNotification({
+          title: 'Thông tin của bạn đã được cập nhật',
+          message: `Quản lý đã thay đổi ${changes.join(', ')}.${requireReLogin ? ' Vui lòng đăng nhập lại để quyền mới có hiệu lực.' : ''
+            }`,
+          type: 'system',
+          userId: employee.user.id,
+          targetRole: 'user',
+          relatedId: employee.id,
+          relatedType: 'employee',
+          t,
+        });
       }
 
       await t.commit();
@@ -465,69 +548,249 @@ const employeeService = {
       return {
         success: true,
         message: 'Cập nhật nhân viên thành công',
-        employee: { ...employee.toJSON(), user: employee.user.toJSON() },
+        employee: employee,
       };
     } catch (error) {
       await t.rollback();
-      console.error('Update Employee error:', error);
+      console.error('Lỗi khi cập nhật nhân viên:', error);
       return { success: false, message: 'Lỗi server khi cập nhật nhân viên' };
     }
   },
 
-  // Import Add Employees
-  async importEmployees(userId, employees) {
-    const importedResults = [];
+  async getEmployeePerformance(managerId, page = 1, limit = 10, filters = {}) {
     try {
-      if (!Array.isArray(employees) || employees.length === 0) {
-        return { success: false, message: "Không có dữ liệu nhân viên để import" };
+      const { searchText, startDate, endDate, sort, role } = filters;
+
+      // 1 Lấy bưu cục của manager
+      const manager = await db.Employee.findOne({
+        where: { userId: managerId },
+        include: [{ model: db.Office, as: 'office', attributes: ['id', 'name'] }],
+        attributes: ['id', 'userId', 'officeId']
+      });
+
+      if (!manager || !manager.office) {
+        return { success: false, message: 'Manager không thuộc bưu cục nào.' };
       }
 
+      const officeId = manager.office.id;
+
+      // 2 Chuẩn bị điều kiện where cho User
+      let userWhere = { role: { [Op.not]: 'manager' } }; // luôn loại manager
+      if (role && role !== 'All') {
+        userWhere.role = role; // thêm lọc role nếu role khác 'All'
+      }
+
+      // 3 Lấy danh sách nhân viên active trong bưu cục
+      const employees = await db.Employee.findAll({
+        where: { officeId, status: 'Active' },
+        include: [
+          {
+            model: db.User,
+            as: 'user',
+            attributes: ['firstName', 'lastName', 'role'],
+            where: userWhere
+          }
+        ],
+      });
+
+      // 4 Duyệt từng nhân viên để tính hiệu suất
+      let performanceData = [];
       for (const emp of employees) {
-        const { user, hireDate, shift, status, office } = emp;
+        const fullName = `${emp.user.lastName} ${emp.user.firstName}`;
 
-        // 1. Check trước khi thêm
-        const checkResult = await this.checkBeforeAddEmployee(userId, user.email, user.phoneNumber, office?.id);
+        if (searchText && !fullName.toLowerCase().includes(searchText.toLowerCase())) continue;
 
-        if (!checkResult.success) {
-          importedResults.push({
-            email: user.email,
-            success: false,
-            message: checkResult.message,
-          });
-          continue;
+        const shipmentWhere = { userId: emp.userId };
+        if (startDate && endDate) {
+          shipmentWhere.createdAt = { [Op.between]: [new Date(startDate), new Date(endDate)] };
         }
 
-        // 2. Thêm nhân viên
-        const addResult = await this.addEmployee(userId, hireDate, shift, status, user, office);
+        const shipments = await db.Shipment.findAll({
+          where: shipmentWhere,
+          include: [
+            {
+              model: db.ShipmentOrder,
+              as: 'shipmentOrders',
+              include: [{ model: db.Order, as: 'order', attributes: ['trackingNumber', 'status', 'weight'] }]
+            }
+          ]
+        });
 
-        importedResults.push({
-          email: user.email,
-          success: addResult.success,
-          message: addResult.message,
-          employee: addResult.employee || null,
+        let totalShipments = shipments.length;
+        let totalOrders = 0;
+        let completedOrders = 0;
+        let totalTimeMs = 0;
+
+        shipments.forEach(sh => {
+          totalOrders += sh.shipmentOrders.length;
+          completedOrders += sh.shipmentOrders.filter(so => so.order.status === 'Delivered').length;
+          if (sh.startTime && sh.endTime) totalTimeMs += new Date(sh.endTime) - new Date(sh.startTime);
+        });
+
+        const avgTimePerOrder = totalOrders ? totalTimeMs / totalOrders : 0;
+        const completionRate = totalOrders ? (completedOrders / totalOrders) * 100 : 0;
+
+        performanceData.push({
+          employeeId: emp.id,
+          name: fullName,
+          role: emp.user.role,
+          totalShipments,
+          totalOrders,
+          completedOrders,
+          completionRate: Number(completionRate.toFixed(2)),
+          avgTimePerOrder: Number((avgTimePerOrder / (1000 * 60)).toFixed(2))
         });
       }
 
-      // Phân loại kết quả
-      const createdEmployees = importedResults.filter(r => r.success).map(r => r.email);
-      const failedEmployees = importedResults.filter(r => !r.success).map(r => ({ email: r.email, message: r.message }));
+      // 5 Sort
+      switch (sort) {
+        case 'totalOrdersHigh': performanceData.sort((a, b) => b.totalOrders - a.totalOrders); break;
+        case 'totalOrdersLow': performanceData.sort((a, b) => a.totalOrders - b.totalOrders); break;
+        case 'totalShipmentsHigh': performanceData.sort((a, b) => b.totalShipments - a.totalShipments); break;
+        case 'totalShipmentsLow': performanceData.sort((a, b) => a.totalShipments - b.totalShipments); break;
+        case 'completedOrdersHigh': performanceData.sort((a, b) => b.completedOrders - a.completedOrders); break;
+        case 'completedOrdersLow': performanceData.sort((a, b) => a.completedOrders - b.completedOrders); break;
+        case 'completionRateHigh': performanceData.sort((a, b) => b.completionRate - a.completionRate); break;
+        case 'completionRateLow': performanceData.sort((a, b) => a.completionRate - b.completionRate); break;
+        case 'avgTimePerOrderHigh': performanceData.sort((a, b) => b.avgTimePerOrder - a.avgTimePerOrder); break;
+        case 'avgTimePerOrderLow': performanceData.sort((a, b) => a.avgTimePerOrder - b.avgTimePerOrder); break;
+        default: break;
+      }
+
+      // 6️⃣ Phân trang
+      const total = performanceData.length;
+      const startIndex = (page - 1) * limit;
+      const paginatedData = performanceData.slice(startIndex, startIndex + limit);
 
       return {
         success: true,
-        message: `Import hoàn tất: ${createdEmployees.length} nhân viên mới, ${failedEmployees.length} lỗi`,
-        totalImported: createdEmployees.length,
-        totalFailed: failedEmployees.length,
-        createdEmployees,
-        failedEmployees,
-        results: importedResults,
+        message: 'Lấy dữ liệu hiệu suất nhân viên thành công',
+        total,
+        page,
+        limit,
+        data: paginatedData
       };
+
     } catch (error) {
-      console.error("Import Employees error:", error);
-      return { success: false, message: "Lỗi server khi import nhân viên" };
+      console.error('getEmployeePerformance error:', error);
+      return { success: false, message: 'Lỗi server khi lấy hiệu suất nhân viên' };
     }
   },
 
-  //
+  async exportEmployeePerformance(managerId, filters = {}) {
+    try {
+      const { searchText, startDate, endDate, sort, role } = filters;
+
+      // 1. Lấy bưu cục của manager
+      const manager = await db.Employee.findOne({
+        where: { userId: managerId },
+        include: [{ model: db.Office, as: 'office', attributes: ['id', 'name'] }],
+        attributes: ['id', 'userId', 'officeId']
+      });
+
+      if (!manager || !manager.office) {
+        return { success: false, message: 'Manager không thuộc bưu cục nào.' };
+      }
+
+      const officeId = manager.office.id;
+
+      // 2. Chuẩn bị điều kiện where cho User
+      let userWhere = { role: { [Op.not]: 'manager' } }; // luôn loại manager
+      if (role && role !== 'All') {
+        userWhere.role = role; // thêm lọc role nếu role khác 'All'
+      }
+
+      // 3. Lấy danh sách nhân viên active trong bưu cục
+      const employees = await db.Employee.findAll({
+        where: { officeId, status: 'Active' },
+        include: [
+          {
+            model: db.User,
+            as: 'user',
+            attributes: ['firstName', 'lastName', 'role'],
+            where: userWhere
+          }
+        ],
+      });
+
+      // 4. Duyệt từng nhân viên để tính hiệu suất
+      let performanceData = [];
+      for (const emp of employees) {
+        const fullName = `${emp.user.lastName} ${emp.user.firstName}`;
+        if (searchText && !fullName.toLowerCase().includes(searchText.toLowerCase())) continue;
+
+        const shipmentWhere = { userId: emp.userId };
+        if (startDate && endDate) {
+          shipmentWhere.createdAt = { [Op.between]: [new Date(startDate), new Date(endDate)] };
+        }
+
+        const shipments = await db.Shipment.findAll({
+          where: shipmentWhere,
+          include: [
+            {
+              model: db.ShipmentOrder,
+              as: 'shipmentOrders',
+              include: [{ model: db.Order, as: 'order', attributes: ['trackingNumber', 'status', 'weight'] }]
+            }
+          ]
+        });
+
+        let totalShipments = shipments.length;
+        let totalOrders = 0;
+        let completedOrders = 0;
+        let totalTimeMs = 0;
+
+        shipments.forEach(sh => {
+          totalOrders += sh.shipmentOrders.length;
+          completedOrders += sh.shipmentOrders.filter(so => so.order.status === 'Delivered').length;
+          if (sh.startTime && sh.endTime) totalTimeMs += new Date(sh.endTime) - new Date(sh.startTime);
+        });
+
+        const avgTimePerOrder = totalOrders ? totalTimeMs / totalOrders : 0;
+        const completionRate = totalOrders ? (completedOrders / totalOrders) * 100 : 0;
+
+        performanceData.push({
+          employeeId: emp.id,
+          name: fullName,
+          role: emp.user.role,
+          totalShipments,
+          totalOrders,
+          completedOrders,
+          completionRate: Number(completionRate.toFixed(2)),
+          avgTimePerOrder: Number((avgTimePerOrder / (1000 * 60)).toFixed(2)) // phút
+        });
+      }
+
+      // 5. Sort
+      switch (sort) {
+        case 'totalOrdersHigh': performanceData.sort((a, b) => b.totalOrders - a.totalOrders); break;
+        case 'totalOrdersLow': performanceData.sort((a, b) => a.totalOrders - b.totalOrders); break;
+        case 'totalShipmentsHigh': performanceData.sort((a, b) => b.totalShipments - a.totalShipments); break;
+        case 'totalShipmentsLow': performanceData.sort((a, b) => a.totalShipments - b.totalShipments); break;
+        case 'completedOrdersHigh': performanceData.sort((a, b) => b.completedOrders - a.completedOrders); break;
+        case 'completedOrdersLow': performanceData.sort((a, b) => a.completedOrders - b.completedOrders); break;
+        case 'completionRateHigh': performanceData.sort((a, b) => b.completionRate - a.completionRate); break;
+        case 'completionRateLow': performanceData.sort((a, b) => a.completionRate - b.completionRate); break;
+        case 'avgTimePerOrderHigh': performanceData.sort((a, b) => b.avgTimePerOrder - a.avgTimePerOrder); break;
+        case 'avgTimePerOrderLow': performanceData.sort((a, b) => a.avgTimePerOrder - b.avgTimePerOrder); break;
+        default: break;
+      }
+
+      return {
+        success: true,
+        message: 'Lấy dữ liệu hiệu suất nhân viên thành công',
+        total: performanceData.length,
+        data: performanceData
+      };
+
+    } catch (error) {
+      console.error('getEmployeePerformanceReport error:', error);
+      return { success: false, message: 'Lỗi server khi lấy hiệu suất nhân viên' };
+    }
+  },
+
+  // =========================== Admin ================================================
+
   // List employees with pagination and search
   async listEmployees(params) {
     try {
@@ -714,7 +977,7 @@ const employeeService = {
     try {
       console.log('=== EMPLOYEE SERVICE GET BY USER ID START ===');
       console.log('User ID:', userId);
-      
+
       const employee = await db.Employee.findOne({
         where: { userId },
         include: [
@@ -732,7 +995,7 @@ const employeeService = {
       });
 
       console.log('Employee found:', employee);
-      
+
       if (!employee) {
         console.log('No employee found for userId:', userId);
         return null;

@@ -61,6 +61,9 @@ const employeeController = {
       return res.status(500).json({ success: false, message: 'Lỗi server khi xóa nhân viên' });
     }
   },
+
+  // ================= Manager ======================================
+
   // Get Shift Enum
   async getShiftEnum(req, res) {
     try {
@@ -214,6 +217,57 @@ const employeeController = {
       return res.status(500).json({
         success: false,
         message: "Lỗi server khi import nhân viên",
+      });
+    }
+  },
+
+  async getEmployeePerformance(req, res) {
+    try {
+      const userId = req.user.id;
+
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+
+      const filters = {
+        searchText: req.query.search || undefined,
+        startDate: req.query.startDate || undefined,
+        sort: req.query.sort || undefined,
+        role: req.query.role || undefined,
+        endDate: req.query.endDate || undefined,
+      };
+
+      const result = await employeeService.getEmployeePerformance(userId, page, limit, filters);
+
+      return res.status(200).json(result);
+    } catch (error) {
+      console.error('getEmployeePerformanceError:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi server'
+      });
+    }
+  },
+
+  async exportEmployeePerformance(req, res) {
+    try {
+      const userId = req.user.id;
+
+      const filters = {
+        searchText: req.query.search || undefined,
+        startDate: req.query.startDate || undefined,
+        sort: req.query.sort || undefined,
+        role: req.query.role || undefined,
+        endDate: req.query.endDate || undefined,
+      };
+
+      const result = await employeeService.exportEmployeePerformance(userId, filters);
+
+      return res.status(200).json(result);
+    } catch (error) {
+      console.error('exportEmployeePerformance:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi server'
       });
     }
   },

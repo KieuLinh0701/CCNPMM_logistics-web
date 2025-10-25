@@ -23,6 +23,7 @@ import {
   ClockCircleOutlined,
   ExclamationCircleOutlined,
   BellOutlined,
+  LogoutOutlined,
 } from "@ant-design/icons";
 
 const { SubMenu } = Menu;
@@ -129,7 +130,7 @@ const Sidenav: React.FC<Props> = ({ color }) => {
           },
           {
             key: "/manager/orders/assign",
-            label: "Phân công đơn hàng",
+            label: "Theo dõi nhận đơn",
             path: "/manager/orders/assign",
           },
         ],
@@ -151,9 +152,9 @@ const Sidenav: React.FC<Props> = ({ color }) => {
             path: "/manager/employees/list",
           },
           {
-            key: "/manager/staff/assign",
-            label: "Phân công công việc",
-            path: "/manager/staff/assign",
+            key: "/manager/employees/performance",
+            label: "Hiệu suất nhân viên",
+            path: "/manager/employees/performance",
           },
         ],
       },
@@ -170,24 +171,19 @@ const Sidenav: React.FC<Props> = ({ color }) => {
         icon: <DatabaseOutlined />,
       },
       {
-        key: "finance",
+        key: "/manager/finance",
         label: "Quản lý dòng tiền",
         icon: <DollarOutlined />,
         children: [
           {
-            key: "/manager/finance/tracking",
+            key: "/manager/finance/transactions",
             label: "Theo dõi thu - chi",
-            path: "/manager/finance/tracking",
+            path: "/manager/finance/transactions",
           },
           {
-            key: "/manager/finance/confirm",
-            label: "Xác nhận đối soát",
-            path: "/manager/finance/confirm",
-          },
-          {
-            key: "/manager/finance/history",
-            label: "Lịch sử đối soát",
-            path: "/manager/finance/history",
+            key: "/manager/finance/settlements",
+            label: "Đối soát",
+            path: "/manager/finance/settlements",
           },
         ],
       },
@@ -229,8 +225,8 @@ const Sidenav: React.FC<Props> = ({ color }) => {
         icon: <DropboxOutlined />,
       },
       {
-        key: "finance",
-        label: "Lịch sử giao dịch",
+        key: "/user/transactions",
+        label: "Quản lý giao dịch",
         icon: <DollarOutlined />,
         path: "/user/transactions",
       },
@@ -256,8 +252,14 @@ const Sidenav: React.FC<Props> = ({ color }) => {
           },
         ],
       },
+      {
+        key: "/user/profile",
+        label: "Hồ sơ cá nhân",
+        path: "/user/profile",
+        icon: <ProfileOutlined />,
+      },
     ],
-    shipper: [ 
+    shipper: [
       {
         key: "/shipper/dashboard",
         label: "Tổng quan",

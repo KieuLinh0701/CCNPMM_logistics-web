@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Row, Col, Input, Button, Select, DatePicker } from "antd";
 import { CloseCircleOutlined, CloseOutlined, FilterOutlined, SearchOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -39,6 +39,7 @@ const SearchFilters: React.FC<Props> = ({
   paymentMethods,
   onReset,
 }) => {
+  const [hover, setHover] = useState(false);
   return (
     <>
       <Row gutter={16}>
@@ -90,9 +91,20 @@ const SearchFilters: React.FC<Props> = ({
               type="default"
               icon={<CloseCircleOutlined />}
               onClick={onReset}
-              style={{ height: 36, borderRadius: 8 }}
+              onMouseEnter={() => setHover(true)}
+              onMouseLeave={() => setHover(false)}
+              style={{
+                height: 36,
+                borderRadius: 8,
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                transition: "width 0.2s",
+                width: hover ? 110 : 36,
+                justifyContent: hover ? "center" : "center",
+              }}
             >
-              Bỏ lọc
+              {hover && "Bỏ lọc"}
             </Button>
           </div>
         </Col>

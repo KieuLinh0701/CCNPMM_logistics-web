@@ -1,7 +1,7 @@
 import React from "react";
 import dayjs from 'dayjs';
 import { Table, Button, Space, Tag, Tooltip, message } from "antd";
-import { EyeOutlined, EditOutlined, CloseCircleOutlined, CopyOutlined } from "@ant-design/icons";
+import { EyeOutlined, EditOutlined, CloseCircleOutlined, CopyOutlined, CarryOutOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { ColumnsType } from "antd/es/table";
 import { Order } from "../../../../../types/order";
@@ -141,14 +141,35 @@ const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, onCancel,
       key: "action",
       align: "center",
       render: (_, record) => {
-        const canCancel = ["draft", "pending", "confirmed"].includes(record.status);
+        const canCancel = ["draft", "pending", "confirmed"].includes(record.status) && record.createdByType === "user";
         const canEdit = ["draft", "pending", "confirmed"].includes(record.status);
-
         return (
           <Space>
-            <Button type="link" icon={<EyeOutlined />} onClick={() => navigate(`/${role}/orders/detail/${record.trackingNumber}`)}>Xem</Button>
-            <Button type="link" icon={<EditOutlined />} disabled={!canEdit} onClick={() => canEdit && navigate(`/${role}/orders/edit/${record.trackingNumber}`)}>Sửa</Button>
-            <Button type="link" icon={<CloseCircleOutlined />} disabled={!canCancel} onClick={() => canCancel && record.id && onCancel(record.id)}>Hủy</Button>
+            <Button
+              type="link"
+              icon={<EyeOutlined />}
+              onClick={() => navigate(`/${role}/orders/detail/${record.trackingNumber}`)}
+            >
+              Xem
+            </Button>
+
+            <Button
+              type="link"
+              icon={<EditOutlined />}
+              disabled={!canEdit}
+              onClick={() => canEdit && navigate(`/${role}/orders/edit/${record.trackingNumber}`)}
+            >
+              Sửa
+            </Button>
+
+            <Button
+              type="link"
+              icon={<CloseCircleOutlined />}
+              disabled={!canCancel}
+              onClick={() => canCancel && record.id && onCancel(record.id)}
+            >
+              Hủy
+            </Button>
           </Space>
         );
       },

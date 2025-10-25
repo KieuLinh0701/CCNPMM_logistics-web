@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
-dotenv.config();  // <--- load ngay khi module này được import
+dotenv.config();
+import notificationService from './notificationService';
 
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -8,7 +9,7 @@ import nodemailer from 'nodemailer';
 import db from '../models/index.js';
 import fs from 'fs';
 import path from 'path';
- 
+
 
 const salt = bcrypt.genSaltSync(10);
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_here';
@@ -64,10 +65,10 @@ const comparePassword = (password, hash) => {
 // Generate JWT token
 const generateToken = (user) => {
   return jwt.sign(
-    { 
-      id: user.id, 
-      email: user.email, 
-      role: user.role 
+    {
+      id: user.id,
+      email: user.email,
+      role: user.role
     },
     JWT_SECRET,
     { expiresIn: '24h' }
@@ -103,9 +104,9 @@ const registerUser = async (userData) => {
       // Send OTP via email
       await sendOTPEmail(userData.email, otp, 'register');
 
-      resolve({ 
-        success: true, 
-        message: 'Mã OTP đã được gửi đến email của bạn' 
+      resolve({
+        success: true,
+        message: 'Mã OTP đã được gửi đến email của bạn'
       });
 
     } catch (error) {
@@ -153,6 +154,17 @@ const verifyOTPAndCreateUser = async (email, otp, userData) => {
 
       // Generate token
       const token = generateToken(newUser);
+
+      // Thông báo thành công
+      await notificationService.createNotification({
+        title: 'Chào mừng bạn đến với hệ thống!',
+        message: 'Tài khoản của bạn đã được tạo thành công.',
+        type: 'system',
+        userId: newUser.id,
+        targetRole: 'user',
+        relatedId: newUser.id,
+        relatedType: 'user'
+      });
 
       resolve({
         success: true,
@@ -324,7 +336,7 @@ const verifyResetOTP = async (email, otp) => {
       resolve({
         success: true,
         message: 'Xác thực OTP thành công, bạn có thể đặt lại mật khẩu.'
-      });      
+      });
     } catch (error) {
       reject(error);
     }
@@ -351,7 +363,18 @@ const resetPassword = async (email, newPassword) => {
       }
 
       resolve({ success: true, message: 'Đặt lại mật khẩu thành công' });
-      
+
+      const user = await db.User.findOne({ where: { email } });
+
+      // Thông báo đổi mật khẩu thành công
+      await notificationService.createNotification({
+        title: 'Đổi mật khẩu thành công',
+        message: 'Mật khẩu của bạn đã được thay đổi. Nếu bạn không thực hiện hành động này, vui lòng liên hệ bộ phận hỗ trợ ngay.',
+        type: 'system',
+        userId: user.id,
+        targetRole: 'user'
+      });
+
     } catch (error) {
       reject(error);
     }
@@ -440,7 +463,7 @@ const updateUserAvatar = async (userId, imagePath) => {
 
     // Chỉ lưu tên file vào DB
     const filename = path.basename(imagePath);
-    
+
 
     // Xóa ảnh cũ nếu có và khác tên
     const oldFilename = user.images;
@@ -451,19 +474,19 @@ const updateUserAvatar = async (userId, imagePath) => {
         if (fs.existsSync(oldFull)) {
           fs.unlinkSync(oldFull);
         }
-      } catch (_) {}
+      } catch (_) { }
     }
 
     user.images = filename;
     await user.save();
-    
-    
+
+
     const sanitized = user.toJSON();
     delete sanitized.password;
 
     return { success: true, message: "Cập nhật ảnh đại diện thành công", user: sanitized };
   } catch (error) {
-    
+
     return { success: false, message: "Lỗi server" };
   }
 };
@@ -474,7 +497,7 @@ export default {
   loginUser,
   getUserProfile,
   generateToken,
-  forgotPassword,  
+  forgotPassword,
   verifyResetOTP,
   resetPassword,
   getAssignableRoles,

@@ -16,6 +16,17 @@ export interface Employee {
   };
 }
 
+export interface Data {
+  employeeId: number;
+  name: string;
+  role: string;
+  totalShipments: number;
+  totalOrders: number;
+  completedOrders: number;
+  completionRate: number;
+  avgTimePerOrder: number;
+}
+
 export interface ImportResult {
   email: string;
   success: boolean;
@@ -46,6 +57,7 @@ export interface EmployeeResponse {
 
   // Cho importEmployees
   result?: EmployeeResponseInner; 
+  data: Data[];
 }
 
 export interface EmployeeCheckResult {
@@ -68,6 +80,7 @@ export interface EmployeeState {
   statuses: string[];
   employee: Employee | null;
   employees: Employee[];
+  message: string | null;
   total: number;
   page: number;
   limit: number;
@@ -81,4 +94,5 @@ export interface EmployeeState {
   totalFailed?: number;
   createdEmployees?: string[];
   failedEmployees?: { email: string; message: string }[];
+  data: Data[] | [];
 }

@@ -46,6 +46,13 @@ const OfficeSelectionModal: React.FC<OfficeSelectionModalProps> = ({
     }
   };
 
+  // Hàm lấy địa chỉ hiển thị
+  const getAddress = (office: Office) => {
+    const wardName = wardList.find((w) => w.code === office.codeWard)?.name || "";
+    const cityName = provinceList.find((c) => c.code === office.codeCity)?.name || "";
+    return [office.address, wardName, cityName].filter(Boolean).join(", ");
+  };
+
   return (
     <Modal
       title={
@@ -76,36 +83,36 @@ const OfficeSelectionModal: React.FC<OfficeSelectionModalProps> = ({
       }}
     >
       <Form form={form} layout="vertical">
-        <Card 
-          size="small" 
-          style={{ 
+        <Card
+          size="small"
+          style={{
             marginBottom: '20px',
             border: '1px solid #f0f0f0',
             borderRadius: '8px',
-            textAlign: 'left', 
+            textAlign: 'left',
             backgroundColor: '#f0f6ff',
           }}
-          bodyStyle={{ 
+          bodyStyle={{
             padding: '12px',
-            textAlign: 'left', 
+            textAlign: 'left',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-            <EnvironmentOutlined style={{ 
-              color: '#1C3D90', 
-              fontSize: '16px', 
-              marginTop: '2px' 
+            <EnvironmentOutlined style={{
+              color: '#1C3D90',
+              fontSize: '16px',
+              marginTop: '2px'
             }} />
             <div style={{ textAlign: 'left' }}>
-              <div style={{ 
-                fontWeight: '600', 
+              <div style={{
+                fontWeight: '600',
                 color: '#1C3D90',
                 marginBottom: '4px',
                 fontSize: '14px'
               }}>
                 Địa chỉ người nhận
               </div>
-              <Text style={{ 
+              <Text style={{
                 color: '#666',
                 lineHeight: '1.5',
                 fontSize: '14px',
@@ -129,13 +136,26 @@ const OfficeSelectionModal: React.FC<OfficeSelectionModalProps> = ({
           rules={[{ required: true, message: 'Vui lòng chọn bưu cục' }]}
           style={{ marginTop: 16, textAlign: 'left' }}
         >
-          <Select 
+          <Select
             placeholder="Chọn bưu cục..."
             style={{ textAlign: 'left' }}
+            optionLabelProp="label" 
           >
             {offices.map((o) => (
-              <Select.Option key={o.id} value={o.id}>
-                {o.name}
+              <Select.Option
+                key={o.id}
+                value={o.id}
+                label={ 
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <span style={{ fontWeight: 600 }}>{o.name}</span>
+                  </div>
+                }
+              >
+                {/* phần hiển thị trong dropdown */}
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <span style={{ fontWeight: 600 }}>{o.name}</span>
+                  <span style={{ fontSize: 12, color: "#666" }}>{getAddress(o)}</span>
+                </div>
               </Select.Option>
             ))}
           </Select>

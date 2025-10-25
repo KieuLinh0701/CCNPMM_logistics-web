@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { CloseCircleOutlined, EditOutlined } from "@ant-design/icons";
 import { Switch } from "antd";
-import { styles } from "../../../user/order/style/Order.styles";
+import { styles } from "../../../../user/order/style/Order.styles";
 
 interface Props {
   onEdit: () => void;

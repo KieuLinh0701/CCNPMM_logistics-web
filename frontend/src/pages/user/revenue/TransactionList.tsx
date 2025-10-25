@@ -9,13 +9,16 @@ import Actions from "./components/Actions";
 import { exportUserTransactions, getTransactionTypes, listUserTransactions } from "../../../store/transactionSlice";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
-import { translateTransactionPurpose, translateTransactionType } from "../../../utils/transactionUtils";
+import { translateTransactionMethod, translateTransactionPurpose, translateTransactionType } from "../../../utils/transactionUtils";
+import FlowMoneyCard from "./components/FlowMoneyCard";
+import { getUserConfirmedOrdersSummary, getUserPendingOrdersSummary } from "../../../store/paymentSubmissionSlice";
 
 const TransactionList = () => {
   const dispatch = useAppDispatch();
 
   const { user } = useAppSelector(state => state.auth);
   const { transactions = [], total = 0, types = [] } = useAppSelector((state) => state.transaction);
+  const { pending, confirmed } = useAppSelector(state => state.submission);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -68,7 +71,7 @@ const TransactionList = () => {
         "Loại": translateTransactionType(t.type),
         "Mục đích": translateTransactionPurpose(t.purpose),
         "Số tiền (VNĐ)": t.amount?.toLocaleString("vi-VN"),
-        "Phương thức": t.method,
+        "Phương thức": translateTransactionMethod(t.method),
         "Ngày xác nhận": t.confirmedAt
           ? dayjs(t.confirmedAt).format("DD/MM/YYYY HH:mm")
           : "N/A",
@@ -91,12 +94,61 @@ const TransactionList = () => {
   useEffect(() => {
     dispatch(getTransactionTypes());
     fetchTransactions();
+    dispatch(getUserPendingOrdersSummary());
+    dispatch(getUserConfirmedOrdersSummary());
   }, [dispatch]);
 
   useEffect(() => { setCurrentPage(1); fetchTransactions(1); }, [searchText, filterType, dateRange, filterSort]);
 
   return (
-    <div style={{ padding: 24, background: "#F9FAFB", borderRadius: 12 }}>
+    <div style={{ padding: 16, background: "#F9FAFB", borderRadius: 12 }}>
+      <FlowMoneyCard
+        data1={[
+          {
+            label: 'Tiền đang luân chuyển',
+            value: (pending.totalCOD || 0).toLocaleString() + '\u00A0\u00A0VNĐ',
+            tooltip: 'Tổng tiền các đơn hàng của bạn đang chờ đối soát'
+          },
+          {
+            label: 'Phí thu hộ COD',
+            value: ((pending.totalCOD || 0) * 0.005).toLocaleString() + '\u00A0\u00A0VNĐ',
+            tooltip: 'Phí thu hộ khi nhận tiền từ khách (0.5% giá trị COD)'
+          },
+          {
+            label: 'Phí bảo hiểm',
+            value: ((pending.totalOrderValue || 0) * 0.02).toLocaleString() + '\u00A0\u00A0VNĐ',
+            tooltip: 'Phí bảo hiểm hàng hóa (2% giá trị đơn hàng)'
+          },
+          {
+            label: 'Số đơn hàng',
+            value: (pending.orderCount || 0).toLocaleString() + '\u00A0\u00A0ĐH\u00A0\u00A0',
+            tooltip: 'Số đơn hàng đang chờ đối soát'
+          },
+        ]}
+        data2={[
+          {
+            label: 'Tiền COD đã ký nhận (VNĐ)',
+            value: ((confirmed.totalCOD || 0).toLocaleString()) + '\u00A0\u00A0VNĐ',
+            tooltip: 'Tổng tiền các đơn hàng của bạn đã đối soát'
+          },
+          {
+            label: 'Phí thu hộ COD (VNĐ)',
+            value: (((confirmed.totalCOD || 0) * 0.005).toLocaleString()) + '\u00A0\u00A0VNĐ',
+            tooltip: 'Phí thu hộ khi nhận tiền từ khách (0.5% giá trị COD)'
+          },
+          {
+            label: 'Phí bảo hiểm',
+            value: ((confirmed.totalOrderValue || 0) * 0.02).toLocaleString() + '\u00A0\u00A0VNĐ',
+            tooltip: 'Phí bảo hiểm hàng hóa (2% giá trị đơn hàng)'
+          },
+          {
+            label: 'Số đơn hàng',
+            value: (confirmed.orderCount || 0).toLocaleString() + '\u00A0\u00A0ĐH\u00A0\u00A0',
+            tooltip: 'Số đơn hàng đã đối soát'
+          }
+        ]}
+      />
+
       <SearchFilters
         searchText={searchText}
         setSearchText={setSearchText}
@@ -117,13 +169,9 @@ const TransactionList = () => {
         }}
       />
 
-      <Row justify="end" style={{ marginBottom: 25, marginTop: 40 }}>
-        <Col>
-          {<Actions
-            onExport={handleExportTransactions}
-          />}
-        </Col>
-      </Row>
+      <Actions
+        onExport={handleExportTransactions}
+      />
 
       <Tag color="blue" style={{ fontSize: 14, padding: "4px 8px" }}>Kết quả trả về: {total} giao dịch</Tag>
 

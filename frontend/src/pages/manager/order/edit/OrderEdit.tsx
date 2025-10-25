@@ -10,14 +10,14 @@ import RecipientInfo from "./components/RecipientInfo";
 import NoteCard from "./components/NoteCard";
 import SenderInfo from "./components/SenderInfo";
 import OfficeCard from "./components/OfficeCard";
-import { AppDispatch, RootState } from "../../../store/store";
-import { useAppSelector } from "../../../hooks/redux";
-import { Order } from "../../../types/order";
-import { City, Ward } from "../../../types/location";
-import { Office } from "../../../types/office";
-import { styles } from "../../user/order/style/Order.styles";
-import { getOrderByTrackingNumber, getOrderPayers, getOrderPaymentMethods, updateManagerOrder } from "../../../store/orderSlice";
-import { getOfficesByArea } from "../../../store/officeSlice";
+import { AppDispatch, RootState } from "../../../../store/store";
+import { useAppSelector } from "../../../../hooks/redux";
+import { Order } from "../../../../types/order";
+import { City, Ward } from "../../../../types/location";
+import { Office } from "../../../../types/office";
+import { styles } from "../../../user/order/style/Order.styles";
+import { getOrderByTrackingNumber, getOrderPayers, getOrderPaymentMethods, updateManagerOrder } from "../../../../store/orderSlice";
+import { getOfficesByArea } from "../../../../store/officeSlice";
 
 const OrderEditManager: React.FC = () => {
     // Lấy trackingNumber trên url
@@ -408,6 +408,8 @@ return (
                                 selectedOffice={selectedFromOffice}
                                 offices={fromOffices}
                                 onChange={setSelectedFromOffice}
+                                wards={wards}
+                                cities={provinces}
                             />
                         }
 
@@ -419,6 +421,8 @@ return (
                                 selectedOffice={selectedToOffice}
                                 offices={toOffices}
                                 onChange={setSelectedToOffice}
+                                wards={wards}
+                                cities={provinces}
                             />
                         }
 

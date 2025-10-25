@@ -42,7 +42,6 @@ const OrderList = () => {
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
-  const [importResults, setImportResults] = useState<any[]>([]);
 
   // --- Fetch Orders ---
   const fetchOrders = (page = currentPage, search?: string) => {
@@ -234,7 +233,12 @@ const OrderList = () => {
       <Tag color="blue" style={{ fontSize: 14, padding: "4px 8px" }}>Kết quả trả về: {total} đơn hàng</Tag>
 
       {user &&
-        <OrderTable orders={orders} provinceList={provinceList} wardList={wardList} onCancel={handleCancelOrder} role={user.role} />
+        <OrderTable 
+        orders={orders} 
+        provinceList={provinceList} 
+        wardList={wardList} 
+        onCancel={handleCancelOrder} 
+        role={user.role} />
       }
 
       <Modal title="Kết quả Import đơn hàng" open={importModalOpen} onCancel={() => setImportModalOpen(false)} footer={null} width={800} centered>

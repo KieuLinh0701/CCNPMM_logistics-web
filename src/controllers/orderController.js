@@ -350,6 +350,39 @@ const orderController = {
     }
   },
 
+  async getShipmentOrders(req, res) {
+    try {
+      const userId = req.user.id;
+
+      const { id } = req.params;
+
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+
+      const filters = {
+        searchText: req.query.search || undefined,
+        payer: req.query.payer || undefined,
+        paymentMethod: req.query.paymentMethod || undefined,
+        cod: req.query.cod || undefined,
+        sort: req.query.sort || undefined,
+      };
+
+      const result = await orderService.getShipmentOrders(userId, id, page, limit, filters);
+
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+
+      return res.status(201).json(result);
+    } catch (error) {
+      console.error("getShipmentOrdersError:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Lỗi server khi lấy đơn hàng",
+      });
+    }
+  },
+
   // ==================== KHU VỰC 2: TỪ ORIGIN/DAT ====================
   async list(req, res) {
     try {

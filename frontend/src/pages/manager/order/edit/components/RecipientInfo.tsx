@@ -1,9 +1,9 @@
 import React from "react";
-import { styles } from "../../../user/order/style/Order.styles";
+import { styles } from "../../../../user/order/style/Order.styles";
 import { Card, Col, Form, Input, Row } from "antd";
 import { FormInstance } from "antd/lib";
-import AddressForm from "../../../../components/AdressForm";
-import { Ward } from "../../../../types/location";
+import AddressForm from "../../../../../components/AdressForm";
+import { Ward } from "../../../../../types/location";
 
 interface Props {
     form: FormInstance; 

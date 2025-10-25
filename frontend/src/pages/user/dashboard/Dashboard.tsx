@@ -161,7 +161,7 @@ const UserDashboard: React.FC = () => {
   return (
     <div style={{ paddingBottom: 24, paddingLeft: 24, paddingRight: 24 }}>
       <div style={{ marginBottom: 24 }}>
-        <Title level={2} style={{ color: '#1C3D90' }}>Tổng quan</Title>
+        <Title level={3} style={{ color: '#1C3D90' }}>Tổng quan</Title>
       </div>
 
       <DateFilter dateRange={dateRange} onDateRangeChange={setDateRange} />

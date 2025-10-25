@@ -1,7 +1,7 @@
 import React from "react";
 import { Breadcrumb } from "antd";
 import Title from "antd/es/typography/Title";
-import { styles } from "../../../user/order/style/Order.styles";
+import { styles } from "../../../../user/order/style/Order.styles";
 
 interface Props {
   trackingNumber: string;

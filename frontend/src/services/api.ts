@@ -9,6 +9,9 @@ import { PromotionResponse } from '../types/promotion';
 import { ImportVehiclesResponse, Vehicle, VehicleResponse } from '../types/vehicle';
 import { ShippingRequest, ShippingRequestResponse } from '../types/shippingRequest';
 import { TransactionResponse } from '../types/transaction';
+import { PaymentSubmissionResponse } from '../types/paymentSubmission';
+import { OrderHistoryResponse } from '../types/orderHistory';
+import { ShipmentResponse } from '../types/shipment';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8088/api';
 
@@ -445,6 +448,16 @@ export const employeeAPI = {
       throw new Error(error.response?.data?.message || 'Lỗi khi import nhân viên');
     }
   },
+
+  exportEmployeePerformance: async (query: string): Promise<EmployeeResponse> => {
+    const res = await api.get<EmployeeResponse>(`/employees/perform-export?${query}`);
+    return res.data;
+  },
+
+  getEmployeePerformance: async (query: string): Promise<EmployeeResponse> => {
+    const res = await api.get<EmployeeResponse>(`/employees/perform?${query}`);
+    return res.data;
+  },
 };
 
 export const serviceTypeAPI = {
@@ -717,6 +730,11 @@ export const orderAPI = {
     const res = await api.get<any>(`/payment/check-vnpay${query}`);
     return res.data;
   },
+
+  getShipmentOrders: async (shipmentId: number, query: string): Promise<OrderResponse> => {
+    const res = await api.get<OrderResponse>(`/manager/orders/shipment/${shipmentId}?${query}`);
+    return res.data;
+  },
 }
 
 export const promotionAPI = {
@@ -895,6 +913,11 @@ export const transactionAPI = {
     return response.data;
   },
 
+  getTransactionStatuses: async (): Promise<TransactionResponse> => {
+    const response = await api.get<TransactionResponse>('/protected/transactions/statuses');
+    return response.data;
+  },
+
   listUserTransactions: async (query: string): Promise<TransactionResponse> => {
     const res = await api.get<TransactionResponse>(`/user/transactions?${query}`);
     return res.data;
@@ -903,6 +926,87 @@ export const transactionAPI = {
   exportUserTransactions: async (query: string): Promise<TransactionResponse> => {
     const res = await api.get<TransactionResponse>(`/user/transactions/export?${query}`);
     return res.data;
+  },
+
+  listManagerTransactions: async (query: string): Promise<TransactionResponse> => {
+    const res = await api.get<TransactionResponse>(`/manager/transactions?${query}`);
+    return res.data;
+  },
+
+  exportManagerTransactions: async (query: string): Promise<TransactionResponse> => {
+    const res = await api.get<TransactionResponse>(`/manager/transactions/export?${query}`);
+    return res.data;
+  },
+
+  getManagerTransactionSummary: async (query: string): Promise<TransactionResponse> => {
+    const res = await api.get<TransactionResponse>(`/manager/transactions/summary?${query}`);
+    return res.data;
+  },
+
+  createTransaction: async (formData: FormData): Promise<TransactionResponse> => {
+    const res = await api.post<TransactionResponse>("/manager/transactions", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data;
+  },
+}
+
+export const paymentSubmissionAPI = {
+  getPaymentSubmissionStatuses: async (): Promise<PaymentSubmissionResponse> => {
+    const response = await api.get<PaymentSubmissionResponse>('/protected/submissions/statuses');
+    return response.data;
+  },
+
+  getUserPendingOrdersSummary: async (): Promise<PaymentSubmissionResponse> => {
+    const response = await api.get<PaymentSubmissionResponse>('/user/submissions/pending-summary');
+    return response.data;
+  },
+  getUserConfirmedOrdersSummary: async (): Promise<PaymentSubmissionResponse> => {
+    const response = await api.get<PaymentSubmissionResponse>('/user/submissions/confirmed-summary');
+    return response.data;
+  },
+
+  listManagerPaymentSubmissions: async (query: string): Promise<PaymentSubmissionResponse> => {
+    const res = await api.get<PaymentSubmissionResponse>(`/manager/submissions?${query}`);
+    return res.data;
+  },
+
+  getPaymentSubmissionCountByStatus: async (): Promise<PaymentSubmissionResponse> => {
+    const res = await api.get<PaymentSubmissionResponse>(`/manager/submissions/summary`);
+    return res.data;
+  },
+
+  getOrdersOfPaymentSubmission: async (id: number, query: string): Promise<PaymentSubmissionResponse> => {
+    const res = await api.get<PaymentSubmissionResponse>(`/manager/submissions/${id}?${query}`);
+    return res.data;
+  },
+
+  updatePaymentSubmissionStatus: async (
+    id: number,
+    status: string,
+    notes?: string
+  ): Promise<PaymentSubmissionResponse> => {
+    const res = await api.put<PaymentSubmissionResponse>(`/manager/submissions/${id}`, { status, notes });
+    return res.data;
+  },
+}
+
+export const orderHistoryAPI = {
+  getWarehouseImportExportStatsByManager: async (query: string): Promise<OrderHistoryResponse> => {
+    const response = await api.get<OrderHistoryResponse>(`/manager/order-histories/warehouse?${query}`);
+    return response.data;
+  },
+}
+
+export const shipmentAPI = {
+  listEmployeeShipments: async (id: number, query: string): Promise<ShipmentResponse> => {
+    const res = await api.get<ShipmentResponse>(`/manager/shipments/employee/${id}?${query}`);
+    return res.data;
+  },
+
+  getShipmentStatuses: async (): Promise<ShipmentResponse> => {
+    const response = await api.get<ShipmentResponse>('/protected/shipments/statuses');
+    return response.data;
   },
 }
 

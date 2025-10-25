@@ -2,9 +2,9 @@ import React, { useState, useEffect } from "react";
 import { Card, Col, Form, Input, Row, Button } from "antd";
 import { EditOutlined, RollbackOutlined } from "@ant-design/icons";
 import { FormInstance } from "antd/lib";
-import { Ward } from "../../../../types/location";
-import { styles } from "../../../user/order/style/Order.styles";
-import AddressForm from "../../../../components/AdressForm";
+import { Ward } from "../../../../../types/location";
+import { styles } from "../../../../user/order/style/Order.styles";
+import AddressForm from "../../../../../components/AdressForm";
 
 interface Props {
     form: FormInstance;

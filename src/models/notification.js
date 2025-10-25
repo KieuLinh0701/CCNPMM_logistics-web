@@ -40,15 +40,6 @@ export default (sequelize) => {
         type: DataTypes.INTEGER,
         allowNull: true,
       },
-      // officeId: {
-      //   type: DataTypes.INTEGER,
-      //   allowNull: true,
-      //   references: { model: 'Offices', key: 'id' },
-      // },
-      // targetRole: {
-      //   type: DataTypes.STRING,
-      //   allowNull: true,
-      // },
     },
     {
       sequelize,

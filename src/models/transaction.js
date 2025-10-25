@@ -1,4 +1,5 @@
 import { Model, DataTypes } from 'sequelize';
+import transactionImage from './transactionImage';
 
 export default (sequelize) => {
   class Transaction extends Model {
@@ -30,6 +31,13 @@ export default (sequelize) => {
         onDelete: 'SET NULL',
         onUpdate: 'CASCADE',
       });
+
+      Transaction.hasMany(models.TransactionImage, {
+        as: 'images',
+        foreignKey: 'transactionId',
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+      });
     }
   }
 
@@ -49,6 +57,10 @@ export default (sequelize) => {
     paymentSubmissionId: {
       type: DataTypes.INTEGER,
       allowNull: true,
+    },
+    title: {
+      type: DataTypes.STRING,
+      allowNull: false,
     },
     amount: {
       type: DataTypes.INTEGER,
@@ -72,6 +84,12 @@ export default (sequelize) => {
         'RevenueTransfer'  // 5. Chuyển tiền doanh thu lên tổng hệ thống
       ),
       allowNull: false
+    },
+    status: {
+      type: DataTypes.ENUM('Pending', 'Confirmed', 'Rejected'),
+      allowNull: false,
+      defaultValue: 'Pending',
+      comment: 'Trạng thái xác nhận giao dịch'
     },
     confirmedAt: {
       type: DataTypes.DATE,

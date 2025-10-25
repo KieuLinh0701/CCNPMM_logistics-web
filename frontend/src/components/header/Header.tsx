@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Layout, Button, Space, Typography, Avatar, Dropdown, Menu, Badge, List, Divider } from "antd";
-import { UserOutlined, LogoutOutlined, ProfileOutlined, PlusOutlined, BellOutlined, ShoppingCartOutlined, ClockCircleOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
+import { Layout, Button, Space, Typography, Avatar, Dropdown, Menu, Badge, List, Divider, Modal } from "antd";
+import { UserOutlined, LogoutOutlined, ProfileOutlined, PlusOutlined, BellOutlined, ShoppingCartOutlined, ClockCircleOutlined, ExclamationCircleOutlined, BellFilled, BellTwoTone } from "@ant-design/icons";
 import { useDispatch } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import { logout } from "../../store/authSlice";
@@ -26,16 +26,19 @@ const Header: React.FC<HeaderProps> = () => {
     ? `${user?.firstName || ''} ${user?.lastName || ''}`.trim()
     : (user?.email || 'User');
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState<NotificationItem | null>(null);
+
   const handleLogout = () => {
-    dispatch(logout()); 
-    navigate("/login"); 
+    dispatch(logout());
+    navigate("/login");
   };
 
   const handleProfile = () => {
     if (user?.role) {
       navigate(`/${user.role}/profile`);
     } else {
-      navigate("/profile"); 
+      navigate("/profile");
     }
   };
 
@@ -43,25 +46,25 @@ const Header: React.FC<HeaderProps> = () => {
     if (!str) return "";
     return str
       .split(" ")
-      .filter(Boolean) 
+      .filter(Boolean)
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(" ");
   };
 
   // Fetch notifications từ API
   const fetchNotifications = async () => {
-    if (user?.role !== 'shipper') return;
-    
+    // if (user?.role !== 'shipper') return;
+
     try {
       console.log('Fetching notifications from API...');
       setLoading(true);
-      const response = await notificationService.getNotifications({ 
-        page: 1, 
-        limit: 10 
+      const response = await notificationService.getNotifications({
+        page: 1,
+        limit: 10
       });
-      
+
       console.log('API response:', response);
-      
+
       if (response.success && response.data) {
         console.log('Notifications loaded:', response.data.notifications.length);
         setNotifications(response.data.notifications);
@@ -77,45 +80,41 @@ const Header: React.FC<HeaderProps> = () => {
 
   // Subscribe to WebSocket notifications
   useEffect(() => {
-    if (user?.role === 'shipper') {
-      console.log('Setting up notifications for shipper:', user.id);
-      
-      // Fetch initial notifications from database
-      fetchNotifications();
-      
-      // Connect to WebSocket
-      const socket = getSocket();
-      console.log('Socket connected:', socket.connected);
-      
-      const onServerNotification = (payload: any) => {
-        console.log('Received WebSocket notification:', payload);
-        
-        // Add new notification to the list (notification đã được lưu vào DB từ backend)
-        const newNotification: NotificationItem = {
-          id: payload.id || Date.now(),
-          title: payload.title || 'Thông báo',
-          message: payload.message || '',
-          type: payload.type || 'system',
-          isRead: payload.isRead || false,
-          userId: user.id,
-          createdAt: payload.createdAt || new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        
-        console.log('Adding notification to state:', newNotification);
-        
-        // Thêm vào đầu danh sách và giới hạn 20 thông báo
-        setNotifications(prev => [newNotification, ...prev.slice(0, 19)]);
+    // Fetch initial notifications from database
+    fetchNotifications();
+
+    // Connect to WebSocket
+    const socket = getSocket();
+    console.log('Socket connected:', socket.connected);
+
+    const onServerNotification = (payload: any) => {
+      console.log('Received WebSocket notification:', payload);
+
+      // Add new notification to the list (notification đã được lưu vào DB từ backend)
+      const newNotification: NotificationItem = {
+        id: payload.id || Date.now(),
+        title: payload.title || 'Thông báo',
+        message: payload.message || '',
+        type: payload.type || 'system',
+        isRead: payload.isRead || false,
+        userId: user.id,
+        createdAt: payload.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       };
 
-      socket.on('notification', onServerNotification);
-      console.log('Listening for notification events');
+      console.log('Adding notification to state:', newNotification);
 
-      return () => {
-        console.log('Cleaning up notification listeners');
-        socket.off('notification', onServerNotification);
-      };
-    }
+      // Thêm vào đầu danh sách và giới hạn 20 thông báo
+      setNotifications(prev => [newNotification, ...prev.slice(0, 19)]);
+    };
+
+    socket.on('notification', onServerNotification);
+    console.log('Listening for notification events');
+
+    return () => {
+      console.log('Cleaning up notification listeners');
+      socket.off('notification', onServerNotification);
+    };
   }, [user?.role, user?.id]);
 
   const getNotificationIcon = (type: string) => {
@@ -129,35 +128,21 @@ const Header: React.FC<HeaderProps> = () => {
       case 'cod_reminder':
         return <BellOutlined style={{ color: '#f5222d' }} />;
       default:
-        return <BellOutlined style={{ color: '#1890ff' }} />;
+        return <BellFilled style={{ color: '#1C3D90' }} />;
     }
   };
 
   const handleNotificationClick = async (notification: NotificationItem) => {
     try {
-      // Đánh dấu đã đọc nếu chưa đọc
       if (!notification.isRead) {
         await notificationService.markAsRead(notification.id);
-        setNotifications(prev => 
+        setNotifications(prev =>
           prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n)
         );
       }
-      
-      // Điều hướng theo loại thông báo
-      switch (notification.type) {
-        case 'new_order':
-        case 'delivery_assigned':
-          navigate('/shipper/orders');
-          break;
-        case 'route_change':
-          navigate('/shipper/route');
-          break;
-        case 'cod_reminder':
-          navigate('/shipper/cod');
-          break;
-        default:
-          navigate('/shipper/orders');
-      }
+
+      setSelectedNotification(notification);
+      setIsModalOpen(true);
     } catch (error) {
       console.error('Error handling notification click:', error);
     }
@@ -170,13 +155,13 @@ const Header: React.FC<HeaderProps> = () => {
     const now = new Date();
     const notificationTime = new Date(createdAt);
     const diffInMinutes = Math.floor((now.getTime() - notificationTime.getTime()) / (1000 * 60));
-    
+
     if (diffInMinutes < 1) return 'Vừa xong';
     if (diffInMinutes < 60) return `${diffInMinutes} phút trước`;
-    
+
     const diffInHours = Math.floor(diffInMinutes / 60);
     if (diffInHours < 24) return `${diffInHours} giờ trước`;
-    
+
     const diffInDays = Math.floor(diffInHours / 24);
     return `${diffInDays} ngày trước`;
   };
@@ -194,17 +179,53 @@ const Header: React.FC<HeaderProps> = () => {
 
   // Menu dropdown cho thông báo
   const notificationMenu = (
-    <div style={{ width: 350, maxHeight: 400, overflowY: 'auto' }}>
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0' }}>
-        <Text strong>Thông báo</Text>
-        {unreadCount > 0 && (
-          <Badge count={unreadCount} style={{ marginLeft: 8 }} />
-        )}
+    <div
+      style={{
+        width: 400,
+        maxHeight: 500,
+        overflowY: 'auto',
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          padding: '14px 18px',
+          borderBottom: '1px solid #f0f0f0',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Text strong style={{ fontSize: 16 }}>
+            Thông báo
+          </Text>
+          {unreadCount > 0 && (
+            <Badge
+              count={unreadCount}
+              color="#d32029"
+              style={{
+                boxShadow: '0 0 0 2px #fff',
+                fontSize: 13,
+              }}
+            />
+          )}
+        </div>
       </div>
-      
+
+      {/* Content */}
       {notifications.length === 0 ? (
-        <div style={{ padding: '20px', textAlign: 'center', color: '#999' }}>
-          <BellOutlined style={{ fontSize: 24, marginBottom: 8 }} />
+        <div
+          style={{
+            padding: '32px 20px',
+            textAlign: 'center',
+            color: '#999',
+          }}
+        >
+          <BellOutlined style={{ fontSize: 28, marginBottom: 8, color: '#d9d9d9' }} />
           <div>Chưa có thông báo nào</div>
         </div>
       ) : (
@@ -213,25 +234,66 @@ const Header: React.FC<HeaderProps> = () => {
           renderItem={(notification) => (
             <List.Item
               style={{
-                padding: '12px 16px',
+                padding: '14px 18px',
                 cursor: 'pointer',
                 backgroundColor: notification.isRead ? '#fff' : '#f6ffed',
-                borderBottom: '1px solid #f0f0f0'
+                transition: 'background-color 0.2s ease',
               }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = notification.isRead ? '#fafafa' : '#e9fbe5')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = notification.isRead ? '#fff' : '#f6ffed')}
               onClick={() => handleNotificationClick(notification)}
             >
               <List.Item.Meta
                 avatar={getNotificationIcon(notification.type)}
                 title={
-                  <Space>
-                    <Text strong={!notification.isRead}>{notification.title}</Text>
-                    <Text type="secondary" style={{ fontSize: '12px' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: 8,
+                    }}
+                  >
+                    <Text
+                      strong={!notification.isRead}
+                      style={{
+                        flex: 1,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                      title={notification.title}
+                    >
+                      {notification.title}
+                    </Text>
+
+                    <Text
+                      type="secondary"
+                      style={{
+                        fontSize: 12,
+                        flexShrink: 0,
+                        whiteSpace: 'nowrap',
+                        marginLeft: 8,
+                      }}
+                    >
                       {formatTime(notification.createdAt)}
                     </Text>
-                  </Space>
+                  </div>
                 }
                 description={
-                  <Text type="secondary" style={{ fontSize: '12px' }}>
+                  <Text
+                    type="secondary"
+                    style={{
+                      fontSize: 13,
+                      lineHeight: '1.4',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 1,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      maxHeight: '1.4em',
+                    }}
+                  >
                     {notification.message}
                   </Text>
                 }
@@ -240,87 +302,196 @@ const Header: React.FC<HeaderProps> = () => {
           )}
         />
       )}
-      
-      <Divider style={{ margin: 0 }} />
-      <div style={{ padding: '8px 16px', textAlign: 'center' }}>
-        <Button 
-          type="link" 
+
+      {/* Footer */}
+      <Divider style={{ margin: '0 0 4px 0' }} />
+      <div style={{ padding: '10px 16px', textAlign: 'center' }}>
+        <Button
+          type="text"
           size="small"
-          onClick={() => navigate('/shipper/orders')}
+          onClick={() => navigate(`/${user.role}/notifications`)}
+          style={{
+            fontWeight: 500,
+            color: '#1C3D90',
+            transition: 'color 0.2s ease',
+          }}
         >
-          Xem đơn hàng
+          Xem thêm
         </Button>
       </div>
     </div>
   );
 
+  const getNotificationLink = (type?: string) => {
+    switch (type) {
+      case "new_order":
+        return `/${user.role}/orders`;
+      case "delivery_assigned":
+        return `/${user.role}/deliveries`;
+      case "cod_reminder":
+        return `/${user.role}/payments`;
+      case "ShippingRequest":
+        return `/${user.role}/orders/requests`;
+      case "order":
+        return `/${user.role}/orders`;
+      default:
+        return null;
+    }
+  };
+
   return (
-    <AntHeader
-      style={{
-        background: "#1C3D90", // xanh trầm hơn
-        padding: "0 24px",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-      }}
-    >
-      {/* Góc trái - Tên website */}
-      <Link to="/home">
-        <Text strong style={{ fontSize: "18px", color: "#fff" }}>
-          MyWebsite
-        </Text>
-      </Link>
+    <>
+      <AntHeader
+        style={{
+          background: "#1C3D90",
+          padding: "0 24px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+        }}
+      >
+        {/* Góc trái - Tên website */}
+        <Link to="/home">
+          <Text strong style={{ fontSize: "18px", color: "#fff" }}>
+            MyWebsite
+          </Text>
+        </Link>
 
-      {/* Góc phải */}
-      <Space size="middle">
-        {(user?.role === "manager" || user?.role === "user") && (
-          <Button
-            type="primary"
-            ghost
-            style={{ borderColor: "#fff", color: "#fff" }}
-            icon={<PlusOutlined />}
-            onClick={() => navigate(`/${user.role}/orders/create`)}
+        {/* Góc phải */}
+        <Space size="middle">
+          {(user?.role === "manager" || user?.role === "user") && (
+            <Button
+              type="primary"
+              ghost
+              style={{ borderColor: "#fff", color: "#fff" }}
+              icon={<PlusOutlined />}
+              onClick={() => navigate(`/${user.role}/orders/create`)}
+            >
+              Tạo đơn hàng
+            </Button>
+          )}
+
+          <Dropdown
+            overlay={notificationMenu}
+            placement="bottomRight"
+            trigger={["click"]}
+            getPopupContainer={(trigger) => trigger.parentElement!}
+            overlayStyle={{
+              marginTop: 0,
+              right: 30,
+            }}
           >
-            Tạo đơn hàng
-          </Button>
-        )}
-
-        {/* Thông báo cho shipper */}
-        {user?.role === "shipper" && (
-          <Dropdown overlay={notificationMenu} placement="bottomRight" trigger={["click"]}>
-            <Badge count={unreadCount} size="small">
+            <Badge count={unreadCount} size="small" offset={[0, 2]}>
               <Button
                 type="text"
                 icon={<BellOutlined />}
-                style={{ 
-                  color: "#fff", 
-                  fontSize: "18px",
-                  border: "none",
-                  background: "transparent"
-                }}
+                style={{ color: "#fff", fontSize: 18 }}
               />
             </Badge>
           </Dropdown>
-        )}
 
-        <Dropdown overlay={menu} placement="bottomRight" trigger={["click"]}>
-          <Space style={{ cursor: "pointer", color: "#fff" }}>
-            <Avatar src={avatarSrc} icon={<UserOutlined />} 
+          <Dropdown overlay={menu} placement="bottomRight" trigger={["click"]}>
+            <Space style={{ cursor: "pointer", color: "#fff" }}>
+              <Avatar src={avatarSrc} icon={<UserOutlined />}
+                style={{
+                  background: "linear-gradient(135deg, #3a7bd5, #00d2ff)",
+                  color: "#fff",
+                  fontWeight: "bold",
+                }} />
+              <Text style={{ color: "#fff" }}>
+                {user?.firstName && user?.lastName
+                  ? `${capitalize(user.firstName)} ${capitalize(user.lastName)}`
+                  : "User"}
+              </Text>
+            </Space>
+          </Dropdown>
+        </Space>
+      </AntHeader>
+
+      <Modal
+        centered
+        title={
+          <div
             style={{
-              background: "linear-gradient(135deg, #3a7bd5, #00d2ff)",
-              color: "#fff",
-              fontWeight: "bold",
-            }}/>
-            <Text style={{ color: "#fff" }}>
-              {user?.firstName && user?.lastName
-                ? `${capitalize(user.firstName)} ${capitalize(user.lastName)}`
-                : "User"}
-            </Text>
-          </Space>
-        </Dropdown>
-      </Space>
-    </AntHeader>
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-start",
+              gap: 2,
+            }}
+          >
+            {/* Tiêu đề */}
+            <span style={{ color: "#1C3D90", fontWeight: 600, fontSize: 18 }}>
+              {selectedNotification?.title || "Chi tiết thông báo"}
+            </span>
+
+            {/* Thời gian */}
+            <span
+              style={{
+                fontStyle: "italic",
+                color: "#999",
+                fontSize: 13,
+                marginTop: 2,
+              }}
+            >
+              {formatTime(selectedNotification?.createdAt || "")}
+            </span>
+          </div>
+        }
+        open={isModalOpen}
+        onCancel={() => setIsModalOpen(false)}
+        footer={[
+          <Button
+            key="close"
+            style={{ borderColor: "#1C3D90", color: "#1C3D90" }}
+            onClick={() => setIsModalOpen(false)}
+          >
+            Đóng
+          </Button>,
+        ]}
+      >
+        {/* Phần nội dung */}
+        <div style={{ marginTop: 10, marginBottom: 20 }}>
+          <p
+            style={{
+              fontSize: 15,
+              lineHeight: 1.7,
+              color: "#333",
+              marginBottom: 0,
+            }}
+          >
+            {selectedNotification?.message}
+          </p>
+        </div>
+
+        {/* Link điều hướng */}
+        {getNotificationLink(selectedNotification?.type) && (
+          <div style={{ textAlign: "right", marginTop: 12 }}>
+            <a
+              onClick={() => {
+                setIsModalOpen(false);
+                navigate(getNotificationLink(selectedNotification?.type)!);
+              }}
+              style={{
+                color: "#1C3D90",
+                fontWeight: 500,
+                cursor: "pointer",
+                textDecoration: "none",
+                fontSize: 15,
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.textDecoration = "underline")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.textDecoration = "none")
+              }
+            >
+              Xem chi tiết →
+            </a>
+          </div>
+        )}
+      </Modal>
+    </>
   );
 };
 

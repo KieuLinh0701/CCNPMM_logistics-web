@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, Collapse, Form, Input } from "antd";
-import { styles } from "../../../user/order/style/Order.styles";
+import { styles } from "../../../../user/order/style/Order.styles";
 
 interface Props {
   notes?: string;

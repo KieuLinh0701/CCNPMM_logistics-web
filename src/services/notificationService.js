@@ -2,19 +2,22 @@ import db from '../models/index.js';
 
 const notificationService = {
   // Tạo thông báo mới
-  async createNotification(data) {
+  async createNotification(data, transaction = null) {
     try {
-      const notification = await db.Notification.create({
-        title: data.title,
-        message: data.message,
-        type: data.type,
-        isRead: false,
-        relatedId: data.relatedId || null,
-        relatedType: data.relatedType || null,
-        userId: data.userId,
-        officeId: data.officeId || null,
-        targetRole: data.targetRole || 'shipper'
-      });
+      const notification = await db.Notification.create(
+        {
+          title: data.title,
+          message: data.message,
+          type: data.type,
+          isRead: false,
+          relatedId: data.relatedId || null,
+          relatedType: data.relatedType || null,
+          userId: data.userId,
+          officeId: data.officeId || null,
+          targetRole: data.targetRole || 'shipper'
+        },
+        { transaction } 
+      );
 
       return {
         success: true,

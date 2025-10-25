@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Input, Select, DatePicker, Button, Row, Col } from 'antd';
 import { CloseCircleOutlined, SearchOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -41,7 +41,6 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
   onClearFilters,
   onHoverChange,
 }) => {
-  
   const handleDateRangeChange = (
     dates: [Dayjs | null, Dayjs | null] | null, 
     dateStrings: [string, string]

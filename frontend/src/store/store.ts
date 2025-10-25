@@ -9,6 +9,9 @@ import promotionReducer from './promotionSlice';
 import vehicleReducer from './vehicleSlice';
 import shippingRequestReducer from './shippingRequestSlice';
 import transactionReducer from './transactionSlice';
+import paymentSubmissionReducer from './paymentSubmissionSlice';
+import orderHistoryReducer from './orderHistorySlice';
+import shipmentReducer from './shipmentSlice';
 
 export const store = configureStore({
   reducer: {
@@ -22,6 +25,9 @@ export const store = configureStore({
     vehicle: vehicleReducer,
     request: shippingRequestReducer,
     transaction: transactionReducer,
+    submission: paymentSubmissionReducer,
+    orderHistory: orderHistoryReducer,
+    shipment: shipmentReducer,
   },
 });
 

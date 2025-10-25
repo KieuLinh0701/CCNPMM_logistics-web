@@ -259,14 +259,12 @@ const OrderListManager = () => {
         }}
       />
 
-      <Row justify="end" style={{ marginBottom: 25, marginTop: 40 }}>
-        <Col>
+      <Row justify="end" style={{ marginBottom: 30, marginTop: 40 }}>
           {user &&
             <OrderActions
               onAdd={() => navigate(`/${user.role}/orders/create`)}
             />
           }
-        </Col>
       </Row>
 
       <Tag color="blue" style={{ fontSize: 14, padding: "4px 8px" }}>Kết quả trả về: {total} đơn hàng</Tag>
