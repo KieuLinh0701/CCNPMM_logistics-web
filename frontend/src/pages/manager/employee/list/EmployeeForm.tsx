@@ -26,7 +26,7 @@ import {
 import * as XLSX from "xlsx";
 import dayjs from "dayjs";
 import { ColumnsType } from "antd/es/table";
-import { useAppDispatch, useAppSelector } from "../../../hooks/redux";
+import { useAppDispatch, useAppSelector } from "../../../../hooks/redux";
 import {
   addEmployee,
   getEmployeesByOffice,
@@ -35,12 +35,13 @@ import {
   checkBeforeAddEmployee,
   updateEmployee,
   importEmployees,
-} from "../../../store/employeeSlice";
-import { getAssignableRoles } from "../../../store/authSlice";
-import { getByUserId } from "../../../store/officeSlice";
-import { Employee, EmployeeCheckResult } from "../../../types/employee";
-import { styles } from "../../user/order/style/Order.styles";
+} from "../../../../store/employeeSlice";
+import { getAssignableRoles } from "../../../../store/authSlice";
+import { getByUserId } from "../../../../store/officeSlice";
+import { Employee, EmployeeCheckResult } from "../../../../types/employee";
+import { styles } from "../../../user/order/style/Order.styles";
 import Title from "antd/es/typography/Title";
+import EmployeeSummaryCard from "./EmployeeSummaryCard";
 
 // Interface thêm key cho bảng
 interface EmployeeTable extends Employee {
@@ -71,6 +72,8 @@ const EmployeeForm = () => {
     statuses = [],
     employees = [],
     total = 0,
+    statusSummary = [],
+    shiftSummary = [],
   } = useAppSelector((state) => state.employee);
   const { roles = [], user } = useAppSelector((state) => state.auth);
   const { office } = useAppSelector((state) => state.office);
@@ -157,19 +160,18 @@ const EmployeeForm = () => {
           okText: "Tiếp tục",
           cancelText: "Hủy",
           okButtonProps: {
-            style: {
-              backgroundColor: "#1C3D90",
-              borderRadius: "8px",
-              color: "#fff",
+                style: {
+                    backgroundColor: "#1C3D90",
+                    color: "#fff",
+                },
             },
-          },
-          cancelButtonProps: {
-            style: {
-              border: "1px solid #1C3D90",
-              borderRadius: "8px",
-              color: "#1C3D90",
+            cancelButtonProps: {
+                style: {
+                    backgroundColor: "#ffffff",
+                    borderColor: "#1C3D90",
+                    color: "#1C3D90",
+                },
             },
-          },
           centered: true,
           width: 600,
           icon: null,
@@ -442,6 +444,11 @@ const EmployeeForm = () => {
 
   return (
     <div style={{ padding: 24, background: "#F9FAFB", borderRadius: 12 }}>
+      <EmployeeSummaryCard
+        statusSummary={statusSummary || []}
+        shiftSummary={shiftSummary || []}
+      />
+
       {/* Bộ lọc */}
       <Row gutter={16} style={{ marginBottom: 30 }}>
         <Col span={24}>

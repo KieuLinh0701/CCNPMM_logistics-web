@@ -54,7 +54,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
             render: (_, record) => (
                 record.order?.trackingNumber ? (
                     <span
-                        style={{ fontWeight: 600, cursor: "pointer", userSelect: "text", color: '#1C3D90' }}
+                        style={{ fontWeight: 600, cursor: "pointer", userSelect: "text", color: '#1890ff' }}
                         onClick={() => navigate(`/manager/orders/detail/${record.order.trackingNumber}`)}
                     >
                         {record.order.trackingNumber}

@@ -490,7 +490,7 @@ const shippingRequestService = {
     try {
       const { Op } = db.Sequelize;
 
-      // Kiểm tra user tồn tại và có phải manager không
+      // 1. Kiểm tra người dùng có tồn tại hay không
       const user = await db.User.findOne({
         where: { id: userId },
         attributes: ['id', 'role']
@@ -500,12 +500,12 @@ const shippingRequestService = {
         return { success: false, message: 'Người dùng không tồn tại' };
       }
 
-      // Chỉ cho phép manager
+      // 2. Chỉ cho phép manager truy cập
       if (user.role !== 'manager') {
         return { success: false, message: 'Chỉ manager mới có quyền truy cập' };
       }
 
-      // Kiểm tra office có tồn tại không
+      // 3. Kiểm tra văn phòng có tồn tại
       const office = await db.Office.findOne({
         where: { id: officeId },
         attributes: ['id', 'name']
@@ -515,7 +515,7 @@ const shippingRequestService = {
         return { success: false, message: 'Văn phòng không tồn tại' };
       }
 
-      // Kiểm tra manager có phải Active Employee tại office này không
+      // 4. Kiểm tra người dùng có là nhân viên hoạt động tại văn phòng này không
       const employee = await db.Employee.findOne({
         where: {
           userId: userId,
@@ -533,19 +533,17 @@ const shippingRequestService = {
         return { success: false, message: 'Bạn không thuộc văn phòng này hoặc không có quyền truy cập' };
       }
 
+      // 5. Xây dựng điều kiện lọc
       let whereCondition = {
         officeId: officeId,
-        status: {
-          [Op.not]: 'Cancelled'
-        }
+        status: { [Op.not]: 'Cancelled' }
       };
 
-      // Lọc dữ liệu 
       const { searchText, requestType, status, startDate, endDate, sort } = filters || {};
 
+      // Lọc theo từ khóa
       if (searchText) {
         const words = searchText.trim().split(/\s+/);
-
         whereCondition[Op.or] = [
           { '$order.trackingNumber$': { [Op.like]: `%${searchText}%` } },
           { '$user.phoneNumber$': { [Op.like]: `%${searchText}%` } },
@@ -554,7 +552,6 @@ const shippingRequestService = {
           { contactPhoneNumber: { [Op.like]: `%${searchText}%` } },
           { contactEmail: { [Op.like]: `%${searchText}%` } },
           {
-            // Tìm tất cả từ trong firstName hoặc lastName
             [Op.and]: words.map(word => ({
               [Op.or]: [
                 { '$user.firstName$': { [Op.like]: `%${word}%` } },
@@ -565,17 +562,17 @@ const shippingRequestService = {
         ];
       }
 
-      // Lọc theo loại request
+      // Lọc theo loại yêu cầu
       if (requestType && requestType !== 'All') {
         whereCondition.requestType = requestType;
       }
 
-      // Lọc theo status
+      // Lọc theo trạng thái
       if (status && status !== 'All') {
         whereCondition.status = status;
       }
 
-      // Lọc theo ngày tạo và ngày phản hồi
+      // Lọc theo thời gian tạo hoặc phản hồi
       if (startDate && endDate) {
         whereCondition[Op.or] = [
           { createdAt: { [Op.between]: [startDate, endDate] } },
@@ -583,15 +580,12 @@ const shippingRequestService = {
         ];
       }
 
-      // Sắp xếp
+      // 6. Sắp xếp
       let order = [['createdAt', 'DESC']];
-      if (sort === 'newest') {
-        order = [['createdAt', 'DESC']];
-      } else if (sort === 'oldest') {
-        order = [['createdAt', 'ASC']];
-      }
+      if (sort === 'newest') order = [['createdAt', 'DESC']];
+      else if (sort === 'oldest') order = [['createdAt', 'ASC']];
 
-      // Query ShippingRequests với include Order 
+      // 7. Lấy danh sách yêu cầu theo trang
       const requestsResult = await db.ShippingRequest.findAndCountAll({
         where: whereCondition,
         include: [
@@ -610,14 +604,39 @@ const shippingRequestService = {
         offset: (page - 1) * limit,
       });
 
+      // 8. Thống kê số lượng theo ENUM status (không lọc)
+      const STATUS_ENUM = db.ShippingRequest.rawAttributes.status.values || [];
+
+      // Lấy dữ liệu thực tế từ DB
+      const rawStats = await db.ShippingRequest.findAll({
+        where: { officeId },
+        attributes: ['status', [db.Sequelize.fn('COUNT', db.Sequelize.col('status')), 'count']],
+        group: ['status'],
+      });
+
+      // Chuyển dữ liệu thống kê thành dạng map
+      const countMap = {};
+      rawStats.forEach(r => {
+        countMap[r.status] = Number(r.dataValues.count);
+      });
+
+      // Ghép đầy đủ danh sách enum (kể cả những trạng thái chưa có dữ liệu)
+      const statusSummary = STATUS_ENUM.map(s => ({
+        label: s,
+        value: countMap[s] || 0
+      }));
+
+      // 9. Trả kết quả
       return {
         success: true,
-        message: `Lấy danh sách yêu cầu thành công`,
+        message: 'Lấy danh sách yêu cầu thành công',
         requests: requestsResult.rows,
         total: requestsResult.count,
         page,
         limit,
+        statusSummary
       };
+
     } catch (error) {
       console.error('Get Requests By Office error:', error);
       return { success: false, message: 'Lỗi server' };

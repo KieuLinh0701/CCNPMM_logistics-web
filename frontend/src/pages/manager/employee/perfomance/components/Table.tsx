@@ -11,9 +11,20 @@ import { Data } from "../../../../../types/employee";
 interface Props {
   data: Data[];
   onDetail: (employeeId: number) => void;
+  currentPage: number;
+  pageSize: number;
+  total: number;
+  onPageChange: (page: number, pageSize?: number) => void;
 }
 
-const EmployeeTable: React.FC<Props> = ({ data, onDetail }) => {
+const EmployeeTable: React.FC<Props> = ({
+  data,
+  onDetail,
+  currentPage,
+  pageSize,
+  total,
+  onPageChange,
+}) => {
 
   const tableData = data.map((o) => ({ ...o, key: String(o.employeeId) }));
 
@@ -72,18 +83,17 @@ const EmployeeTable: React.FC<Props> = ({ data, onDetail }) => {
       render: (value: number) => value.toFixed(2),
     },
     {
-      title: "Hành động",
+      title: "",
       key: "action",
       align: "center",
       render: (_: any, record: Data) => {
         return (
           <Button
             type="link"
-            icon={<EyeOutlined />}
             size="small"
             onClick={() => onDetail(record.employeeId)}
           >
-            Xem
+            DS chuyến đi
           </Button>
         );
       }
@@ -95,7 +105,14 @@ const EmployeeTable: React.FC<Props> = ({ data, onDetail }) => {
     dataSource={tableData}
     rowKey="key"
     scroll={{ x: "max-content" }}
-    style={{ borderRadius: 12, overflow: "hidden", background: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }} />;
+    style={{ borderRadius: 12, overflow: "hidden", background: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
+    pagination={{
+      current: currentPage,
+      pageSize,
+      total,
+      onChange: onPageChange,
+    }}
+  />;
 };
 
 export default EmployeeTable;

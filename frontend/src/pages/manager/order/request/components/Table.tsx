@@ -60,33 +60,32 @@ const RequestTable: React.FC<TableProps> = ({
       dataIndex: ['order', 'trackingNumber'],
       key: 'trackingNumber',
       align: 'center',
-      render: (text, record) => (
-        <Space>
-          <Button
-            type="link"
-            onClick={() => navigate(`/${role}/orders/detail/${record.order?.trackingNumber}`)}
-            style={{ padding: 0 }}
-          >
-            {text}
-          </Button>
-          {text && text.trim() !== '' ? (
-            <Tooltip title="Copy mã đơn hàng">
-              <Button
-                type="text"
-                size="small"
-                icon={<CopyOutlined />}
-                onClick={() => {
-                  navigator.clipboard.writeText(text);
-                  message.success('Đã copy mã đơn hàng!');
-                }}
-                style={{ color: '#1890ff' }}
-              />
-            </Tooltip>
-          ) : (
-            <Tag color="default">N/A</Tag>
-          )}
-        </Space>
-      )
+      render: (text, record) => {
+        const trackingNumber = record?.order?.trackingNumber;
+        if (!trackingNumber || trackingNumber.trim() === '') {
+          return <Tag color="default">N/A</Tag>;
+        }
+
+        return (
+          <Tooltip title="Click để xem chi tiết đơn hàng">
+            <span
+              onClick={() => navigate(`/${role}/orders/detail/${trackingNumber}`)}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                navigator.clipboard.writeText(trackingNumber);
+                message.success('Đã copy mã đơn hàng!');
+              }}
+              style={{
+                color: '#1890ff',
+                cursor: 'pointer',
+                userSelect: 'text',
+              }}
+            >
+              {trackingNumber}
+            </span>
+          </Tooltip>
+        );
+      },
     },
     {
       title: 'Người gửi',
@@ -122,7 +121,7 @@ const RequestTable: React.FC<TableProps> = ({
                 </div>
               }
             >
-              <EyeOutlined style={{ marginLeft: 6, color: '#1890ff', cursor: 'pointer' }} />
+              <InfoCircleOutlined style={{ marginLeft: 6, color: '#bfbfbf', cursor: 'pointer' }} />
             </Tooltip>
           </div>
         );

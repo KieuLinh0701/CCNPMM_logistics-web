@@ -24,6 +24,8 @@ import orderHistoryController from "../controllers/orderHistoryController.js";
 import shipmentController from "../controllers/shipmentController.js";
 import financialController from "../controllers/financialController.js";
 import exportController from "../controllers/exportController.js";
+import bankAccountController from "../controllers/bankAccountController.js";
+import incidentReportController from "../controllers/incidentReportController.js";
 
 let router = express.Router();
 
@@ -75,6 +77,7 @@ let initApiRoutes = (app) => {
     router.get('/protected/shipments/statuses', verifyToken, shipmentController.getShipmentStatuses);
 
     // Manager Shipment Routes
+    router.get('/manager/shipments/employee/:id/export', verifyToken, shipmentController.exportEmployeeShipments);
     router.get('/manager/shipments/employee/:id', verifyToken, shipmentController.listEmployeeShipments);
 
     // Service Type routes
@@ -102,6 +105,7 @@ let initApiRoutes = (app) => {
     // ======================= Manager =======================
     router.put('/manager/orders/cancel', verifyToken, orderController.cancelManagerOrder);
     router.put('/manager/orders/confirm', verifyToken, orderController.confirmAndAssignOrder);
+    router.get('/manager/orders/dashboard', verifyToken, orderController.getManagerOrdersDashboard);
     router.get('/manager/orders/:officeId', verifyToken, orderController.getOrdersByOfficeId);
     router.post('/manager/orders', verifyToken, orderController.createManagerOrder);
     router.put('/manager/orders', verifyToken, orderController.updateManagerOrder);
@@ -111,6 +115,12 @@ let initApiRoutes = (app) => {
     // Promotion validation for orders
     router.post("/orders/validate-promotion", promotionController.validatePromotionCode);
 
+    // Protected
+    router.get('/protected/incidents/statuses', verifyToken, incidentReportController.getIncidentStatuses);
+    router.get('/protected/incidents/types', verifyToken, incidentReportController.getIncidentTypes);
+    // Manager Incident
+    router.get('/manager/incidents', verifyToken, incidentReportController.listOfficeIncidents);
+    router.patch('/manager/incidents/:id', verifyToken, incidentReportController.handleIncident);
 
     // Transaction Route
     // ======================= Protected =======================
@@ -237,7 +247,7 @@ let initApiRoutes = (app) => {
     router.get('/admin/financial/stats', verifyToken, requireRole(['admin']), financialController.getFinancialStats);
     router.get('/admin/financial/reconciliation', verifyToken, requireRole(['admin']), financialController.getReconciliationHistory);
     router.get('/admin/financial/report', verifyToken, requireRole(['admin']), financialController.getComprehensiveReport);
-    
+
     // EXPORT
     router.post('/admin/export/excel', verifyToken, requireRole(['admin']), exportController.exportFinancialReportExcel);
     router.post('/admin/export/pdf', verifyToken, requireRole(['admin']), exportController.exportFinancialReportPDF);
@@ -262,7 +272,7 @@ let initApiRoutes = (app) => {
     router.get('/shipper/cod', verifyToken, requireRole(['shipper']), shipperController.getCODTransactions);
     router.post('/shipper/cod/submit', verifyToken, requireRole(['shipper']), shipperController.submitCOD);
     router.get('/shipper/cod/history', verifyToken, requireRole(['shipper']), shipperController.getCODSubmissionHistory);
-    
+
     // Shipper Incident Report
     router.post('/shipper/incident', verifyToken, requireRole(['shipper']), shipperController.reportIncident);
     router.get('/shipper/incidents', verifyToken, requireRole(['shipper']), shipperController.getIncidentReports);
@@ -349,7 +359,18 @@ let initApiRoutes = (app) => {
 
     // OrderHistory Route Manager
     router.get('/manager/order-histories/warehouse', verifyToken, requireRole(['manager']), orderHistoryController.getWarehouseImportExportStatsByManager)
-    
+
+    // Bank Api
+    router.get('/user/accounts', verifyToken, bankAccountController.list);
+    // Thêm tài khoản mới
+    router.post('/user/accounts', verifyToken, bankAccountController.add);
+    // Sửa tài khoản
+    router.put('/user/accounts/:id', verifyToken, bankAccountController.update);
+    // Xóa tài khoản
+    router.delete('/user/accounts/:id', verifyToken, bankAccountController.remove);
+    // Đặt mặc định
+    router.patch('/user/accounts/:id/default', verifyToken, bankAccountController.setDefault);
+
     // Test routes
     router.get('/test', (req, res) => {
         return res.json({

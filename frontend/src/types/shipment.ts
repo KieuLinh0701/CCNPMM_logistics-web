@@ -15,6 +15,7 @@ export interface ShipmentResponse {
   message?: string;
   shipment?: Shipment;
   shipments: Shipment[];
+  exportShipments: Shipment[];
   total?: number,
   page?: number,
   limit?: number,
@@ -26,6 +27,7 @@ export interface ShipmentState {
   loading: boolean;
   error: string | null;
   shipments: Shipment[];
+  exportShipments: Shipment[];
   total: number;
   page: number;
   limit: number;

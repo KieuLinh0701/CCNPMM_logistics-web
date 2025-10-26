@@ -11,9 +11,21 @@ interface Props {
   transactions: Transaction[];
   role: string;
   onViewTransaction: (transaction: Transaction) => void;
+  currentPage: number;
+  pageSize: number;
+  total: number;
+  onPageChange: (page: number, pageSize?: number) => void;
 }
 
-const RevenueTable: React.FC<Props> = ({ transactions, role, onViewTransaction }) => {
+const RevenueTable: React.FC<Props> = ({
+  transactions,
+  role,
+  onViewTransaction,
+  currentPage,
+  pageSize,
+  total,
+  onPageChange,
+}) => {
   const navigate = useNavigate();
 
   const typeTag = (type: string) => {
@@ -60,30 +72,28 @@ const RevenueTable: React.FC<Props> = ({ transactions, role, onViewTransaction }
       align: "center",
       render: (text, record) => {
         const trackingNumber = record?.order?.trackingNumber;
-        if (!trackingNumber) return <Tag color="default">N/A</Tag>;
+        if (!trackingNumber || trackingNumber.trim() === "") {
+          return <Tag color="default">N/A</Tag>;
+        }
 
         return (
-          <Space size="small">
-            <Button
-              type="link"
+          <Tooltip title="Click để xem chi tiết đơn hàng">
+            <span
               onClick={() => navigate(`/${role}/orders/detail/${trackingNumber}`)}
-              style={{ padding: 0 }}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                navigator.clipboard.writeText(trackingNumber);
+                message.success("Đã copy mã đơn hàng!");
+              }}
+              style={{
+                color: "#1890ff",
+                cursor: "pointer",
+                userSelect: "text",
+              }}
             >
               {trackingNumber}
-            </Button>
-            <Tooltip title="Copy mã đơn hàng">
-              <Button
-                type="text"
-                size="small"
-                icon={<CopyOutlined />}
-                onClick={() => {
-                  navigator.clipboard.writeText(trackingNumber);
-                  message.success('Đã copy mã đơn hàng!');
-                }}
-                style={{ color: '#1890ff' }}
-              />
-            </Tooltip>
-          </Space>
+            </span>
+          </Tooltip>
         );
       },
     },
@@ -110,16 +120,18 @@ const RevenueTable: React.FC<Props> = ({ transactions, role, onViewTransaction }
       align: "center",
       render: (_, record) => record.method ? record.method : <Tag color="default">N/A</Tag>
     },
-    { title: "Thời điểm tạo", 
-      dataIndex: "createdAt", 
-      key: "createdAt", 
-      align: "center", 
+    {
+      title: "Thời điểm tạo",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      align: "center",
       render: (date) => date ? dayjs(date).format('DD/MM/YYYY HH:mm:ss') : <Tag color="default">N/A</Tag>
     },
-    { title: "Thời điểm giao dịch", 
-      dataIndex: "confirmedAt", 
-      key: "confirmedAt", 
-      align: "center", 
+    {
+      title: "Thời điểm giao dịch",
+      dataIndex: "confirmedAt",
+      key: "confirmedAt",
+      align: "center",
       render: (date) => date ? dayjs(date).format('DD/MM/YYYY HH:mm:ss') : <Tag color="default">N/A</Tag>
     },
     {
@@ -144,6 +156,12 @@ const RevenueTable: React.FC<Props> = ({ transactions, role, onViewTransaction }
     dataSource={tableData}
     rowKey="key"
     scroll={{ x: "max-content" }}
+    pagination={{
+      current: currentPage,
+      pageSize,
+      total,
+      onChange: onPageChange,
+    }}
     style={{
       borderRadius: 12,
       overflow: 'hidden',

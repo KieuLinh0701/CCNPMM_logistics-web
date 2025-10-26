@@ -103,6 +103,14 @@ const ShipmentOrder = () => {
         orders={orders}
         role={user?.role}
         onDetail={handleViewOrderDetail}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        total={total}
+        onPageChange={(page, size) => {
+          setCurrentPage(page);
+          if (size) setPageSize(size);
+          fetchOrders(page);
+        }}
       />
     </div>
   );

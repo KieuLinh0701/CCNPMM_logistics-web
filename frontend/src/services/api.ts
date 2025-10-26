@@ -12,6 +12,8 @@ import { TransactionResponse } from '../types/transaction';
 import { PaymentSubmissionResponse } from '../types/paymentSubmission';
 import { OrderHistoryResponse } from '../types/orderHistory';
 import { ShipmentResponse } from '../types/shipment';
+import { BankAccount, BankAccountResponse } from '../types/bankAccount';
+import { IncidentReportResponse } from '../types/incidentReport';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8088/api';
 
@@ -735,6 +737,11 @@ export const orderAPI = {
     const res = await api.get<OrderResponse>(`/manager/orders/shipment/${shipmentId}?${query}`);
     return res.data;
   },
+
+  getManagerOrdersDashboard: async (query: string): Promise<OrderResponse> => {
+    const res = await api.get<OrderResponse>(`/manager/orders/dashboard?${query}`);
+    return res.data;
+  },
 }
 
 export const promotionAPI = {
@@ -999,6 +1006,11 @@ export const orderHistoryAPI = {
 }
 
 export const shipmentAPI = {
+  exportEmployeeShipments: async (id: number, query: string): Promise<ShipmentResponse> => {
+    const res = await api.get<ShipmentResponse>(`/manager/shipments/employee/${id}/export?${query}`);
+    return res.data;
+  },
+
   listEmployeeShipments: async (id: number, query: string): Promise<ShipmentResponse> => {
     const res = await api.get<ShipmentResponse>(`/manager/shipments/employee/${id}?${query}`);
     return res.data;
@@ -1009,5 +1021,79 @@ export const shipmentAPI = {
     return response.data;
   },
 }
+
+export const bankAccountAPI = {
+  // Lấy danh sách tài khoản của user
+  list: async (): Promise<BankAccountResponse> => {
+    const res = await api.get<BankAccountResponse>('/user/accounts');
+    return res.data;
+  },
+
+  // Thêm tài khoản mới
+  add: async (payload: Partial<BankAccount>): Promise<BankAccountResponse> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("Không tìm thấy token xác thực");
+
+    const res = await api.post<BankAccountResponse>('/user/accounts', payload, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.data;
+  },
+
+  // Sửa tài khoản
+  update: async (id: number, payload: Partial<BankAccount>): Promise<BankAccountResponse> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("Không tìm thấy token xác thực");
+
+    const res = await api.put<BankAccountResponse>(`/user/accounts/${id}`, payload, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.data;
+  },
+
+  // Xóa tài khoản
+  remove: async (id: number): Promise<BankAccountResponse> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("Không tìm thấy token xác thực");
+
+    const res = await api.delete<BankAccountResponse>(`/user/accounts/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.data;
+  },
+
+  // Đặt tài khoản mặc định
+  setDefault: async (id: number): Promise<BankAccountResponse> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("Không tìm thấy token xác thực");
+
+    const res = await api.patch<BankAccountResponse>(`/user/accounts/${id}/default`, {}, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.data;
+  },
+};
+
+export const incidentAPI = {
+  listOfficeIncidents: async (query: string): Promise<IncidentReportResponse> => {
+    const res = await api.get<IncidentReportResponse>(`/manager/incidents?${query}`);
+    return res.data;
+  },
+
+  handleIncident: async (id: number, data: { status?: string; resolution?: string }): Promise<IncidentReportResponse> => {
+    const res = await api.patch<IncidentReportResponse>(`/manager/incidents/${id}`, data);
+    return res.data;
+  },
+
+  getIncidentTypes: async (): Promise<IncidentReportResponse> => {
+    const response = await api.get<IncidentReportResponse>('/protected/incidents/types');
+    return response.data;
+  },
+
+  getIncidentStatuses: async (): Promise<IncidentReportResponse> => {
+    const response = await api.get<IncidentReportResponse>('/protected/incidents/statuses');
+    return response.data;
+  },
+};
 
 export default api;

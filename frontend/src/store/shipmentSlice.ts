@@ -11,6 +11,7 @@ const initialState: ShipmentState = {
   page: 1,
   limit: 10,
   statuses: [],
+  exportShipments: [],
 };
 
 export const getShipmentStatuses = createAsyncThunk(
@@ -59,6 +60,36 @@ export const listEmployeeShipments = createAsyncThunk<
   }
 );
 
+export const exportEmployeeShipments = createAsyncThunk<
+  ShipmentResponse,
+  {
+    employeeId: number;
+    status?: string;
+    sort?: string;
+    startDate?: string;
+    endDate?: string;
+  },
+  { rejectValue: string }
+>(
+  'shipments/exportEmployeeShipments',
+  async ({ employeeId, status, sort, startDate, endDate }, thunkAPI) => {
+    try {
+      // Build query param
+      const params = new URLSearchParams({
+      });
+      if (status) params.append("status", status);
+      if (sort) params.append("sort", sort);
+      if (startDate) params.append("startDate", startDate);
+      if (endDate) params.append("endDate", endDate);
+
+      const data = await shipmentAPI.exportEmployeeShipments(employeeId, params.toString());
+      return data;
+    } catch (err: any) {
+      return thunkAPI.rejectWithValue(err.response?.data?.message || 'Lỗi khi lấy danh sách chuyến xe của nhân viên để xuất báo cáo');
+    }
+  }
+);
+
 const shipmentSlice = createSlice({
   name: 'shipment',
   initialState,
@@ -102,6 +133,25 @@ const shipmentSlice = createSlice({
         }
       })
       .addCase(listEmployeeShipments.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+    builder
+      .addCase(exportEmployeeShipments.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(exportEmployeeShipments.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload.success) {
+          state.exportShipments = action.payload.exportShipments || [];
+          state.total = action.payload.total || 0;
+          state.page = action.payload.page || 1;
+          state.limit = action.payload.limit || 10;
+        }
+      })
+      .addCase(exportEmployeeShipments.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

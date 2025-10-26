@@ -10,9 +10,21 @@ interface Props {
   orders: Order[];
   role?: string;
   onDetail: (trackingNumber: string) => void;
+  currentPage: number;
+  pageSize: number;
+  total: number;
+  onPageChange: (page: number, pageSize?: number) => void;
 }
 
-const OrderTable: React.FC<Props> = ({ orders, role, onDetail }) => {
+const OrderTable: React.FC<Props> = ({
+  orders,
+  role,
+  onDetail,
+  currentPage,
+  pageSize,
+  total,
+  onPageChange,
+}) => {
   const navigate = useNavigate();
 
   const tableData = orders.map((o) => ({ ...o, key: String(o.id) }));
@@ -24,27 +36,19 @@ const OrderTable: React.FC<Props> = ({ orders, role, onDetail }) => {
       key: "trackingNumber",
       align: "center",
       render: (text, record) => (
-        <Space size="small">
-          <Button
-            type="link"
+        <Tooltip title="Click để xem chi tiết đơn hàng">
+          <span
             onClick={() => navigate(`/${role}/orders/detail/${record.trackingNumber}`)}
-            style={{ padding: 0 }}
+            style={{
+              color: '#1890ff',
+              cursor: 'pointer',
+              userSelect: 'text',
+              whiteSpace: 'nowrap',
+            }}
           >
-            {record.trackingNumber}
-          </Button>
-          <Tooltip title="Copy mã đơn hàng">
-            <Button
-              type="text"
-              size="small"
-              icon={<CopyOutlined />}
-              onClick={() => {
-                navigator.clipboard.writeText(text);
-                message.success('Đã copy mã đơn hàng!');
-              }}
-              style={{ color: '#1890ff' }}
-            />
-          </Tooltip>
-        </Space>
+            {record.trackingNumber || 'N/A'}
+          </span>
+        </Tooltip>
       ),
     },
     { title: "Giá trị đơn (VNĐ)", dataIndex: "orderValue", key: "orderValue", align: "center" },
@@ -70,10 +74,10 @@ const OrderTable: React.FC<Props> = ({ orders, role, onDetail }) => {
       )
     },
     {
-      title: "Hành động",
+      title: "",
       key: "action",
       align: "center",
-      width: 250,
+      width: 100,
       render: (_, record: Order) => {
 
         return (
@@ -81,11 +85,10 @@ const OrderTable: React.FC<Props> = ({ orders, role, onDetail }) => {
             {/* Nút Xem */}
             <Button
               type="link"
-              icon={<EyeOutlined />}
               size="small"
               onClick={() => onDetail(record.trackingNumber)}
             >
-              Xem
+              Chi tiết ĐH
             </Button>
           </Space>
         );
@@ -93,7 +96,18 @@ const OrderTable: React.FC<Props> = ({ orders, role, onDetail }) => {
     }
   ];
 
-  return <Table columns={columns} dataSource={tableData} rowKey="key" scroll={{ x: "max-content" }} />;
+  return <Table
+    columns={columns}
+    dataSource={tableData}
+    rowKey="key"
+    scroll={{ x: "max-content" }}
+    pagination={{
+      current: currentPage,
+      pageSize,
+      total,
+      onChange: onPageChange,
+    }}
+  />;
 };
 
 export default OrderTable;

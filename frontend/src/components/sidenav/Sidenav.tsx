@@ -24,6 +24,7 @@ import {
   ExclamationCircleOutlined,
   TruckOutlined,
   EnvironmentOutlined,
+  BankOutlined,
 } from "@ant-design/icons";
 
 const { SubMenu } = Menu;
@@ -119,7 +120,7 @@ const Sidenav: React.FC<Props> = ({ color }) => {
         icon: <DashboardOutlined />,
       },
       {
-        key: "orders",
+        key: "/manager/orders",
         label: "Quản lý đơn hàng",
         icon: <ShoppingOutlined />,
         children: [
@@ -127,6 +128,11 @@ const Sidenav: React.FC<Props> = ({ color }) => {
             key: "/manager/orders",
             label: "Danh sách đơn hàng",
             path: "/manager/orders",
+          },
+          {
+            key: "/manager/orders/incidents",
+            label: "Báo cáo sự cố",
+            path: "/manager/orders/incidents",
           },
           {
             key: "/manager/orders/assign",
@@ -229,6 +235,12 @@ const Sidenav: React.FC<Props> = ({ color }) => {
         label: "Quản lý giao dịch",
         icon: <DollarOutlined />,
         path: "/user/transactions",
+      },
+      {
+        key: "/user/bank-accounts",
+        label: "Tài khoản ngân hàng",
+        icon: <BankOutlined />,
+        path: "/user/bank-accounts",
       },
       {
         key: "tracking",

@@ -5,10 +5,15 @@ export interface Vehicle {
   licensePlate?: string;
   type: 'Truck' | 'Van';
   capacity: number;
-  status: 'Available' | 'InUse' | 'Maintenance';
+  status: 'Available' | 'InUse' | 'Maintenance' | 'Archived';
   description: string;
   office: Office;
   createdAt: Date;
+}
+
+export interface VehicleStatusCount {
+  status: string;
+  total: number;
 }
 
 export interface VehicleResponse {
@@ -21,6 +26,7 @@ export interface VehicleResponse {
   limit?: number,
   statuses: string[];
   types: string[];
+  statusCounts: VehicleStatusCount[];
 }
 
 export interface ImportVehicleResult {
@@ -51,4 +57,5 @@ export interface VehicleState {
   importResults: ImportVehicleResult[] | null;
   totalImported: number;
   totalFailed: number;
+  statusCounts: VehicleStatusCount[] | [];
 }

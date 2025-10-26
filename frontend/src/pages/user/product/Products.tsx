@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import * as XLSX from "xlsx";
-import { Form, message } from 'antd';
+import { Col, Form, message, Row } from 'antd';
 import dayjs from 'dayjs';
 import { product } from '../../../types/product';
 import { useAppDispatch, useAppSelector } from '../../../hooks/redux';
@@ -10,6 +10,7 @@ import Actions from './components/Actions';
 import ProductTable from './components/Table';
 import AddEditModal from './components/AddEditModal';
 import ImportResults from './components/ImportResults';
+import Title from 'antd/es/typography/Title';
 
 const Products: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -274,17 +275,29 @@ const Products: React.FC = () => {
         onHoverChange={setHover}
       />
 
-      <Actions
-        total={total}
-        onAddProduct={() => {
-          setIsModalOpen(true);
-          setModalMode('create');
-          setNewProduct({});
-          form.resetFields();
-        }}
-        onImportExcel={handleExcelUpload}
-        onDownloadTemplate={handleDownloadTemplate}
-      />
+      <Row style={{ marginBottom: 20 }} justify="space-between" align="middle">
+        {/* Tiêu đề bên trái */}
+        <Col>
+          <Title level={3} style={{ color: '#1C3D90', margin: 0 }}>
+            Danh sách sản phẩm
+          </Title>
+        </Col>
+
+        {/* Các nút bên phải */}
+        <Col>
+          <Actions
+            total={total}
+            onAddProduct={() => {
+              setIsModalOpen(true);
+              setModalMode('create');
+              setNewProduct({});
+              form.resetFields();
+            }}
+            onImportExcel={handleExcelUpload}
+            onDownloadTemplate={handleDownloadTemplate}
+          />
+        </Col>
+      </Row>
 
       <ProductTable
         data={products}

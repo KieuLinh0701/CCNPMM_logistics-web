@@ -16,6 +16,9 @@ const initialState: OrderState = {
   payers: [],
   paymentStatuses: [],
   paymentUrl: null,
+  summary: null,
+  statusChart: [],
+  ordersByDate: [],
 };
 
 // Tính phí vận chuyển
@@ -407,6 +410,32 @@ export const getShipmentOrders = createAsyncThunk<
   }
 );
 
+export const getManagerOrdersDashboard = createAsyncThunk<
+  OrderResponse,
+  {
+    startDate?: string;
+    endDate?: string;
+  },
+  { rejectValue: string }
+>(
+  'order/getManagerOrdersDashboard',
+  async ({ startDate, endDate }, thunkAPI) => {
+    try {
+      // Build query param
+      const params = new URLSearchParams({
+      });
+      if (startDate) params.append("startDate", startDate);
+      if (endDate) params.append("endDate", endDate);
+
+      const data = await orderAPI.getManagerOrdersDashboard(params.toString());
+      return data;
+    } catch (err: any) {
+      return thunkAPI.rejectWithValue(err.response?.data?.message || 'Lỗi khi lấy danh sách đơn hàng của cửa hàng');
+    }
+  }
+);
+
+
 const orderSlice = createSlice({
   name: 'order',
   initialState,
@@ -762,6 +791,24 @@ const orderSlice = createSlice({
         }
       })
       .addCase(getShipmentOrders.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+      builder
+      .addCase(getManagerOrdersDashboard.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getManagerOrdersDashboard.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload.success) {
+          state.summary = action.payload.summary;
+          state.statusChart = action.payload.statusChart;
+          state.ordersByDate = action.payload.ordersByDate;
+        }
+      })
+      .addCase(getManagerOrdersDashboard.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

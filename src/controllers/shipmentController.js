@@ -28,6 +28,30 @@ const shipmentController = {
     }
   },
 
+  async exportEmployeeShipments(req, res) {
+    try {
+      const userId = req.user.id;
+
+      const { id } = req.params;
+
+      const filters = {
+        status: req.query.status || undefined,
+        sort: req.query.sort || undefined,
+        startDate: req.query.startDate || undefined,
+        endDate: req.query.endDate || undefined,
+      };
+
+      const result = await shipmentService.exportEmployeeShipments(userId, id, filters);
+      return res.status(200).json(result);
+    } catch (error) {
+      console.error('exportEmployeeShipmentsError:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi server'
+      });
+    }
+  },
+
   async getShipmentStatuses(req, res) {
     try {
       const userId = req.user.id;

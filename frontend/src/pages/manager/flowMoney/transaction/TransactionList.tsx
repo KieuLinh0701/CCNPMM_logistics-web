@@ -65,8 +65,19 @@ const OfficeTransactionList = () => {
       content: "Giao dịch sau khi tạo sẽ không thể chỉnh sửa. Bạn có chắc chắn muốn tiếp tục?",
       okText: "Xác nhận",
       cancelText: "Hủy",
-      okButtonProps: { style: { backgroundColor: "#1C3D90", color: "white" } },
-      cancelButtonProps: { style: { borderColor: "#1C3D90", backgroundColor: "white", color: "#1C3D90" } },
+      okButtonProps: {
+        style: {
+          backgroundColor: "#1C3D90",
+          color: "#fff",
+        },
+      },
+      cancelButtonProps: {
+        style: {
+          backgroundColor: "#ffffff",
+          borderColor: "#1C3D90",
+          color: "#1C3D90",
+        },
+      },
       icon: null,
       async onOk() {
         try {
@@ -195,7 +206,16 @@ const OfficeTransactionList = () => {
         <RevenueTable
           transactions={transactions}
           role={user.role}
-          onViewTransaction={handleViewTransaction} />
+          onViewTransaction={handleViewTransaction}
+          currentPage={currentPage}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={(page, size) => {
+            setCurrentPage(page);
+            if (size) setPageSize(size);
+            fetchTransactions(page);
+          }}
+        />
       }
 
       <AddTransactionModal

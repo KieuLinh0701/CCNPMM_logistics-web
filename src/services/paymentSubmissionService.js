@@ -48,7 +48,7 @@ const paymentSubmissionService = {
 
       const userOrderIds = userOrders.map(o => o.id);
 
-      // ✅ Cho phép truyền 1 status hoặc nhiều status
+      // Cho phép truyền 1 status hoặc nhiều status
       const statusCondition = Array.isArray(status)
         ? { [Op.in]: status }
         : status;
@@ -104,7 +104,7 @@ const paymentSubmissionService = {
       const { Op } = db.Sequelize;
       const { status, sort, startDate, endDate, searchText } = filters;
 
-      // 1️⃣ Lấy officeId mà manager phụ trách
+      // 1 Lấy officeId mà manager phụ trách
       const employee = await db.Employee.findOne({
         where: { userId: managerId },
         attributes: ['officeId'],
@@ -116,14 +116,14 @@ const paymentSubmissionService = {
 
       const officeId = employee.officeId;
 
-      // 2️⃣ Điều kiện lọc chính
+      // 2 Điều kiện lọc chính
       const whereCondition = { officeId };
       if (status) whereCondition.status = status;
       if (startDate && endDate) {
         whereCondition.createdAt = { [Op.between]: [startDate, endDate] };
       }
 
-      // 3️⃣ Tìm kiếm nâng cao
+      // 3 Tìm kiếm nâng cao
       if (searchText && searchText.trim() !== '') {
         const keyword = `%${searchText.trim()}%`;
 
@@ -196,7 +196,7 @@ const paymentSubmissionService = {
         }
       }
 
-      // 4️⃣ Sắp xếp
+      // 4 Sắp xếp
       let order = [['createdAt', 'DESC']];
       switch (sort) {
         case 'oldest':
@@ -210,7 +210,7 @@ const paymentSubmissionService = {
           break;
       }
 
-      // 5️⃣ Query chính có phân trang (findAndCountAll)
+      // 5 Query chính có phân trang (findAndCountAll)
       const submissionsResult = await db.PaymentSubmission.findAndCountAll({
         where: whereCondition,
         order,
@@ -300,7 +300,7 @@ const paymentSubmissionService = {
   async updatePaymentSubmissionStatus({ userId, submissionId, status, notes }) {
     const t = await db.sequelize.transaction();
     try {
-      // 1️⃣ Kiểm tra Manager có thuộc bưu cục
+      // 1 Kiểm tra Manager có thuộc bưu cục
       const employee = await db.Employee.findOne({
         where: { userId },
         attributes: ['officeId'],
@@ -312,7 +312,7 @@ const paymentSubmissionService = {
 
       const officeId = employee.officeId;
 
-      // 2️⃣ Lấy PaymentSubmission
+      // 2 Lấy PaymentSubmission
       const submission = await db.PaymentSubmission.findOne({
         where: { id: submissionId, officeId },
         transaction: t,
@@ -324,7 +324,7 @@ const paymentSubmissionService = {
 
       const currentStatus = submission.status;
 
-      // 3️⃣ Kiểm tra chuyển trạng thái hợp lệ
+      // 3 Kiểm tra chuyển trạng thái hợp lệ
       const allowedTransitions = {
         Pending: ['Confirmed', 'Rejected'],
         Rejected: ['Adjusted'],
@@ -338,7 +338,7 @@ const paymentSubmissionService = {
         };
       }
 
-      // 4️⃣ Cập nhật trạng thái và ghi chú
+      // 4 Cập nhật trạng thái và ghi chú
       submission.status = status;
       submission.notes = notes || submission.notes;
 
@@ -347,7 +347,7 @@ const paymentSubmissionService = {
         submission.confirmedById = userId;
         submission.reconciledAt = new Date();
 
-        // 5️⃣ Lấy chi tiết các đơn hàng trong lô để tạo transaction
+        // 5 Lấy chi tiết các đơn hàng trong lô để tạo transaction
         const orders = await db.Order.findAll({
           where: { id: submission.orderIds },
           transaction: t,
@@ -399,7 +399,7 @@ const paymentSubmissionService = {
     try {
       const { Op } = db.Sequelize;
 
-      // 1️⃣ Lấy bưu cục của manager
+      // 1 Lấy bưu cục của manager
       const employee = await db.Employee.findOne({
         where: { userId: managerId },
         attributes: ['officeId'],
@@ -411,10 +411,10 @@ const paymentSubmissionService = {
 
       const officeId = employee.officeId;
 
-      // 2️⃣ Lấy danh sách các trạng thái từ enum của model
+      // 2 Lấy danh sách các trạng thái từ enum của model
       const statuses = db.PaymentSubmission.rawAttributes.status.values;
 
-      // 3️⃣ Đếm và tính tổng theo từng trạng thái
+      // 3 Đếm và tính tổng theo từng trạng thái
       const results = await Promise.all(
         statuses.map(async (status) => {
           const whereCondition = { officeId, status };
@@ -437,7 +437,7 @@ const paymentSubmissionService = {
         })
       );
 
-      // 4️⃣ Trả kết quả
+      // 4 Trả kết quả
       return {
         success: true,
         message: 'Thống kê số lượng và tổng tiền đối soát theo trạng thái thành công',

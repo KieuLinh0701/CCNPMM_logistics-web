@@ -86,12 +86,12 @@ export default (sequelize) => {
         onUpdate: 'CASCADE',
       });
 
-      Order.hasMany(models.PaymentSubmission, {
-        foreignKey: 'orderId',
-        as: 'paymentSubmissions',
-        onDelete: 'CASCADE',
-        onUpdate: 'CASCADE',
-      });
+      // Order.hasMany(models.PaymentSubmission, {
+      //   foreignKey: 'orderId',
+      //   as: 'paymentSubmissions',
+      //   onDelete: 'CASCADE',
+      //   onUpdate: 'CASCADE',
+      // });
     }
   }
 

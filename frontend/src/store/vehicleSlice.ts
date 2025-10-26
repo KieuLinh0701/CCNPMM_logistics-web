@@ -15,6 +15,7 @@ const initialState: VehicleState = {
   importResults: [], 
   totalImported: 0,
   totalFailed: 0,
+  statusCounts: [],
 };
 
 export const getTypesEnum = createAsyncThunk(
@@ -193,6 +194,7 @@ const vehicleSlice = createSlice({
           state.total = action.payload.total || 0;
           state.page = action.payload.page || 1;
           state.limit = action.payload.limit || 10;
+          state.statusCounts = action.payload.statusCounts || [];
         }
       })
       .addCase(getVehiclesByOffice.rejected, (state, action) => {

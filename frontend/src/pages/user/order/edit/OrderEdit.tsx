@@ -292,16 +292,15 @@ const OrderEdit: React.FC = () => {
             icon: null,
             okButtonProps: {
                 style: {
-                    ...styles.button,
                     backgroundColor: "#1C3D90",
                     color: "#fff",
                 },
             },
             cancelButtonProps: {
                 style: {
-                    ...styles.button,
-                    backgroundColor: "#e0e0e0",
-                    color: "#333",
+                    backgroundColor: "#ffffff",
+                    borderColor: "#1C3D90",
+                    color: "#1C3D90",
                 },
             },
             onOk: async () => {

@@ -13,9 +13,22 @@ interface Props {
   wardList: { code: number; name: string }[];
   onCancel: (id: number) => void;
   role: string;
+  currentPage: number;
+  pageSize: number;
+  total: number;
+  onPageChange: (page: number, pageSize?: number) => void;
 }
 
-const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, onCancel, role }) => {
+const OrderTable: React.FC<Props> = ({
+  orders,
+  provinceList,
+  wardList,
+  onCancel,
+  role,
+  currentPage,
+  pageSize,
+  total,
+  onPageChange }) => {
   const navigate = useNavigate();
 
   const statusTag = (status: string) => {
@@ -46,27 +59,23 @@ const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, onCancel,
       key: "trackingNumber",
       align: "center",
       render: (text, record) => (
-        <Space size="small">
-          <Button
-            type="link"
+        <Tooltip title="Click để xem chi tiết đơn hàng">
+          <span
             onClick={() => navigate(`/${role}/orders/detail/${record.trackingNumber}`)}
-            style={{ padding: 0 }}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              navigator.clipboard.writeText(record.trackingNumber);
+              message.success("Đã copy mã đơn hàng!");
+            }}
+            style={{
+              color: '#1890ff',
+              cursor: 'pointer',
+              userSelect: 'text',
+            }}
           >
             {record.trackingNumber}
-          </Button>
-          <Tooltip title="Copy mã đơn hàng">
-            <Button
-              type="text"
-              size="small"
-              icon={<CopyOutlined />}
-              onClick={() => {
-                navigator.clipboard.writeText(text);
-                message.success('Đã copy mã đơn hàng!');
-              }}
-              style={{ color: '#1890ff' }}
-            />
-          </Tooltip>
-        </Space>
+          </span>
+        </Tooltip>
       ),
     },
     { title: "Tên người nhận", dataIndex: "recipientName", key: "recipientName", align: "center" },
@@ -186,7 +195,8 @@ const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, onCancel,
       overflow: 'hidden',
       background: '#fff',
       boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-    }} />;
+    }}
+    pagination={{ current: currentPage, pageSize, total, onChange: onPageChange }} />;
 };
 
 export default OrderTable;

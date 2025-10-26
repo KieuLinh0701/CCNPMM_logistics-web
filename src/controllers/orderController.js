@@ -383,6 +383,29 @@ const orderController = {
     }
   },
 
+  async getManagerOrdersDashboard(req, res) {
+    try {
+      const userId = req.user.id;
+
+      const startDate = req.query.startDate || undefined;
+      const endDate = req.query.endDate || undefined;
+
+      const result = await orderService.getManagerOrdersDashboard(userId, startDate, endDate);
+
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+
+      return res.status(201).json(result);
+    } catch (error) {
+      console.error("getManagerOrdersDashboardError:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Lỗi server khi tạo đơn hàng",
+      });
+    }
+  },
+
   // ==================== KHU VỰC 2: TỪ ORIGIN/DAT ====================
   async list(req, res) {
     try {

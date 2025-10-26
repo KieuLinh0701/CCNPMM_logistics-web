@@ -59,64 +59,52 @@ const vehicleService = {
     try {
       const { Op } = db.Sequelize;
 
-      // Kiểm tra user và quyền
+      // Kiểm tra user
       const user = await db.User.findOne({
         where: { id: userId },
-        attributes: ['id', 'role'] // Chỉ lấy các field cần thiết
+        attributes: ['id', 'role']
       });
 
       if (!user) return { success: false, message: 'Người dùng không tồn tại' };
-      if (user.role == "user") return { success: false, message: 'Người dùng không có quyền lấy trạng thái phương tiện' };
+      if (user.role === "user")
+        return { success: false, message: 'Người dùng không có quyền lấy phương tiện' };
 
-      if (!officeId) {
+      // Kiểm tra office
+      if (!officeId)
         return { success: false, message: 'officeId là bắt buộc' };
-      }
 
-      // Kiểm tra office có tồn tại không (optional)
-      const office = await db.Office.findOne({
-        where: { id: officeId }
-      });
-
-      if (!office) {
+      const office = await db.Office.findByPk(officeId);
+      if (!office)
         return { success: false, message: 'Chi nhánh không tồn tại' };
-      }
 
-      // Điều kiện where - lấy vehicles theo officeId
-      let whereCondition = { officeId };
-
-      // Lọc dữ liệu
+      // Điều kiện where (có filters)
       const { searchText, type, status, startDate, endDate, sort } = filters || {};
+      const whereCondition = { officeId };
 
-      if (searchText) {
+      if (searchText)
         whereCondition.licensePlate = { [Op.like]: `%${searchText}%` };
-      }
-      if (type && type !== 'All') whereCondition.type = type;
-      if (status && status !== 'All') whereCondition.status = status;
-      if (startDate && endDate) {
+
+      if (type && type !== 'All')
+        whereCondition.type = type;
+
+      if (status && status !== 'All')
+        whereCondition.status = status;
+
+      if (startDate && endDate)
         whereCondition.createdAt = { [Op.between]: [startDate, endDate] };
-      }
 
+      // Sắp xếp
       let order = [['createdAt', 'DESC']];
-
       if (sort && sort !== 'none') {
         switch (sort) {
-          case 'newest':
-            order = [['createdAt', 'DESC']];
-            break;
-          case 'oldest':
-            order = [['createdAt', 'ASC']];
-            break;
-          case 'capacityHigh':
-            order = [['capacity', 'DESC']];
-            break;
-          case 'capacityLow':
-            order = [['capacity', 'ASC']];
-            break;
-          default:
-            order = [['createdAt', 'DESC']];
+          case 'newest': order = [['createdAt', 'DESC']]; break;
+          case 'oldest': order = [['createdAt', 'ASC']]; break;
+          case 'capacityHigh': order = [['capacity', 'DESC']]; break;
+          case 'capacityLow': order = [['capacity', 'ASC']]; break;
         }
       }
 
+      // Query 1: Lấy danh sách xe theo bộ lọc
       const vehiclesResult = await db.Vehicle.findAndCountAll({
         where: whereCondition,
         order,
@@ -125,20 +113,45 @@ const vehicleService = {
         include: [{
           model: db.Office,
           as: 'office',
+          attributes: ['id', 'name']
         }]
       });
 
+      // Query 2: Đếm số lượng xe theo trạng thái (KHÔNG dùng filters)
+      const statusCountsRaw = await db.Vehicle.findAll({
+        where: { officeId },
+        attributes: [
+          'status',
+          [db.Sequelize.fn('COUNT', db.Sequelize.col('status')), 'total']
+        ],
+        group: ['status'],
+        raw: true
+      });
+
+      // Đảm bảo luôn trả đủ các trạng thái (nếu một trạng thái không có, thêm vào với 0)
+      const allStatuses = ['Available', 'InUse', 'Maintenance', 'Archived'];
+      const statusCounts = allStatuses.map(status => {
+        const found = statusCountsRaw.find(s => s.status === status);
+        return {
+          status,
+          total: found ? parseInt(found.total, 10) : 0
+        };
+      });
+
+      // Trả về kết quả
       return {
         success: true,
         message: 'Lấy danh sách phương tiện theo chi nhánh thành công',
         vehicles: vehiclesResult.rows,
-        total: Array.isArray(vehiclesResult.count) ? vehiclesResult.count.length : vehiclesResult.count,
+        total: vehiclesResult.count,
         page,
         limit,
+        statusCounts 
       };
+
     } catch (error) {
-      console.error('Get Vehicles By Office error:', error);
-      return { success: false, message: 'Lỗi server' };
+      console.error('getVehiclesByOffice error:', error);
+      return { success: false, message: 'Lỗi server', error: error.message };
     }
   },
 

@@ -11,14 +11,14 @@ export default (sequelize) => {
         onUpdate: 'CASCADE',
       });
 
-      IncidentReport.belongsTo(models.User, { // Shipper báo cáo
+      IncidentReport.belongsTo(models.User, {
         foreignKey: 'shipperId',
         as: 'shipper',
         onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
       });
 
-      IncidentReport.belongsTo(models.User, { // Admin/Manager xử lý
+      IncidentReport.belongsTo(models.User, { 
         foreignKey: 'handledBy',
         as: 'handler',
         onDelete: 'SET NULL',

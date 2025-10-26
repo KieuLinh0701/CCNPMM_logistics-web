@@ -13,9 +13,21 @@ interface Props {
   submissions: PaymentSubmission[];
   onProcess: (submission: PaymentSubmission) => void;
   onDetail: (submissionId: number) => void;
+  currentPage: number;
+  pageSize: number;
+  total: number;
+  onPageChange: (page: number, pageSize?: number) => void;
 }
 
-const SubmissionTable: React.FC<Props> = ({ submissions, onProcess, onDetail }) => {
+const SubmissionTable: React.FC<Props> = ({
+  submissions,
+  onProcess,
+  onDetail,
+  currentPage,
+  pageSize,
+  total,
+  onPageChange,
+}) => {
   const navigate = useNavigate();
 
   const statusTag = (status: string) => {
@@ -147,6 +159,12 @@ const SubmissionTable: React.FC<Props> = ({ submissions, onProcess, onDetail }) 
     dataSource={tableData}
     rowKey="key"
     scroll={{ x: "max-content" }}
+    pagination={{
+      current: currentPage,
+      pageSize,
+      total,
+      onChange: onPageChange,
+    }}
     style={{
       borderRadius: 12,
       overflow: 'hidden',

@@ -26,7 +26,6 @@ import AdminReports from './pages/admin/Reports';
 import AdminVehicles from './pages/admin/Vehicles';
 import PromotionManagement from './pages/admin/PromotionManagement';
 import FinancialManagement from './pages/admin/FinancialManagement';
-import ManagerDashboard from './pages/manager/Dashboard';
 import ManagerLayout from './layouts/ManagerLayout';
 import { PrivateRoute } from './components/PrivateRoute';
 import ForgotPasswordForm from './pages/ForgotPasswordForm';
@@ -77,9 +76,13 @@ import OfficeTransactionList from './pages/manager/flowMoney/transaction/Transac
 import OfficeSettlementList from './pages/manager/flowMoney/settlement/SettlementList';
 import OrderEditManager from './pages/manager/order/edit/OrderEdit';
 import EmployeePerformance from './pages/manager/employee/perfomance/EmployeePerformance';
-import EmployeeForm from './pages/manager/employee/EmployeeForm';
+import EmployeeForm from './pages/manager/employee/list/EmployeeForm';
 import EmployeeShipment from './pages/manager/employee/shipment/EmployeeShipment';
 import ShipmentOrders from './pages/manager/employee/order/ShipmentOrders';
+import BankAccounts from './pages/user/bankAcount/BankAccounts';
+import ManagerOrderDetail from './pages/manager/order/detail/OrderDetail';
+import ManagerDashboard from './pages/manager/dashboard/Dashboard';
+import IncidentList from './pages/manager/order/incident/IncidentList';
 
 const App: React.FC = () => {
   const user = JSON.parse(localStorage.getItem('user') || 'null');
@@ -146,6 +149,8 @@ const App: React.FC = () => {
               <Route path="notifications/:id" element={<NotificationDetail />} />
               <Route path="finance/transactions" element={<OfficeTransactionList />} />
               <Route path="finance/settlements" element={<OfficeSettlementList />} />
+              <Route path="orders/detail/:trackingNumber" element={<ManagerOrderDetail />} />
+              <Route path="orders/incidents" element={<IncidentList />} />
             </Route>
 
             <Route path="/user" element={<PrivateRoute roles={["user"]}><UserLayout /></PrivateRoute>}>
@@ -166,6 +171,7 @@ const App: React.FC = () => {
               <Route path="transactions" element={<TransactionList />} />
               <Route path="notifications" element={<NotificationList />} />
               <Route path="notifications/:id" element={<NotificationDetail />} />
+              <Route path="bank-accounts" element={<BankAccounts />} />
             </Route>
 
             <Route path="/shipper" element={<PrivateRoute roles={["shipper"]}><ShipperLayout /></PrivateRoute>}>

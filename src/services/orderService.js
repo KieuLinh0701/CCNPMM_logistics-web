@@ -512,12 +512,13 @@ const orderService = {
 
       await t.commit();
 
-      await db.OrderHistory.create({
-        orderId: order.id,      
-        action: 'ReadyForPickup',
-        actionTime: new Date() 
-      });
-
+      if (order.status == 'pending') {
+        await db.OrderHistory.create({
+          orderId: order.id,
+          action: 'ReadyForPickup',
+          actionTime: new Date()
+        });
+      }
 
       // 15. Load lại order đầy đủ
       const createdOrder = await db.Order.findByPk(order.id, {
@@ -902,9 +903,11 @@ const orderService = {
         // Customer chỉ xem đơn của mình
         whereCondition.userId = userId;
       } else if (user.role === "manager") {
-        // Manager chỉ xem đơn gửi đến bưu cục của họ
-        whereCondition.toOfficeId = user.employee.office.id;
-        whereCondition.fromOfficeId = user.employee.office.id;
+        // Manager chỉ xem đơn có liên quan đến bưu cục của họ (gửi đi hoặc nhận về)
+        whereCondition[Op.or] = [
+          { fromOfficeId: user.employee.office.id },
+          { toOfficeId: user.employee.office.id },
+        ];
       }
       // Admin không cần thêm điều kiện, xem tất cả
 
@@ -922,6 +925,15 @@ const orderService = {
           { model: db.Office, as: "fromOffice" },
           { model: db.Office, as: "toOffice" },
           { model: db.User, as: "user" },
+          {
+            model: db.OrderHistory,
+            as: "histories",
+            attributes: ['action', 'actionTime'],
+            include: [
+              { model: db.Office, as: 'fromOffice', attributes: ['name'] },
+              { model: db.Office, as: 'toOffice', attributes: ['name'] },
+            ],
+          },
         ],
       });
 
@@ -1331,6 +1343,14 @@ const orderService = {
       await notificationService.createNotification({ data, transaction: t });
 
       await t.commit();
+
+      if (order.status == 'pending') {
+        await db.OrderHistory.create({
+          orderId: order.id,
+          action: 'ReadyForPickup',
+          actionTime: new Date()
+        });
+      }
 
       return {
         success: true,
@@ -1929,7 +1949,7 @@ const orderService = {
       await t.commit();
 
       await db.OrderHistory.create({
-        orderId: order.id,      
+        orderId: order.id,
         action: 'Imported',
         actionTime: new Date(),
         fromOfficeId: null,
@@ -2370,6 +2390,118 @@ const orderService = {
     }
   },
 
+  async getManagerOrdersDashboard(userId, startDate, endDate) {
+    try {
+      // 1️⃣ Lấy thông tin user và bưu cục
+      const currentUser = await db.User.findByPk(userId, {
+        include: [
+          {
+            model: db.Employee,
+            as: "employee",
+            include: [{ model: db.Office, as: "office" }],
+          },
+        ],
+      });
+
+      if (!currentUser) {
+        return { success: false, message: "Người dùng không tồn tại" };
+      }
+
+      // 2️⃣ Kiểm tra quyền
+      if (currentUser.role !== "manager" || currentUser.employee.status !== "Active") {
+        return { success: false, message: "Người dùng không có quyền hoặc nhân viên không hoạt động" };
+      }
+
+      const officeId = currentUser.employee.office.id;
+
+      // 3️⃣ Lọc theo ngày (nếu có)
+      const whereCondition = {};
+      if (startDate && endDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        whereCondition.createdAt = { [db.Sequelize.Op.between]: [start, end] };
+      }
+
+      // 4️⃣ Trạng thái theo vai trò (loại bỏ draft và cancelled)
+      const fromOfficeStatuses = ["pending", "confirmed", "picked_up", "in_transit", "returned"];
+      const toOfficeStatuses = ["delivering", "delivered", "returning"];
+
+      // 5️⃣ Lấy danh sách đơn thuộc bưu cục
+      const orders = await db.Order.findAll({
+        where: {
+          ...whereCondition,
+          [db.Sequelize.Op.or]: [
+            { fromOfficeId: officeId, status: { [db.Sequelize.Op.in]: fromOfficeStatuses } },
+            { toOfficeId: officeId, status: { [db.Sequelize.Op.in]: toOfficeStatuses } },
+          ],
+        },
+        attributes: ["id", "status", "createdAt", "weight"],
+        order: [["createdAt", "ASC"]],
+        raw: true,
+      });
+
+      // =============== 1️⃣ SUMMARY CARDS ===============
+      const totalOrders = orders.length;
+      const completedOrders = orders.filter((o) => o.status === "delivered").length;
+      const returnedOrders = orders.filter((o) => o.status === "returned").length;
+      const inTransitOrders = orders.filter((o) =>
+        ["in_transit", "delivering"].includes(o.status)
+      ).length;
+      const totalWeight = orders.reduce((sum, o) => sum + (parseFloat(o.weight) || 0), 0);
+
+      // 2️⃣ STATUS CHART (đếm theo status, loại bỏ draft và cancelled)
+      const statusesEnum = db.Order.rawAttributes.status.values.filter(
+        (s) => s !== "draft" && s !== "cancelled"
+      );
+      const statusMap = orders.reduce((acc, order) => {
+        acc[order.status] = (acc[order.status] || 0) + 1;
+        return acc;
+      }, {});
+      const statusChart = statusesEnum.map((status) => ({
+        label: status,
+        value: statusMap[status] || 0,
+      }));
+
+      // 3️⃣ ORDERS BY DATE (đếm số đơn theo ngày)
+      const ordersByDateMap = {};
+
+      for (const order of orders) {
+        // Lấy ngày và set giờ về 00:00:00 để thống nhất
+        const date = new Date(order.createdAt);
+        date.setHours(0, 0, 0, 0);
+
+        const timeKey = date.getTime(); // dùng timestamp làm key
+        ordersByDateMap[timeKey] = (ordersByDateMap[timeKey] || 0) + 1;
+      }
+
+      // Chuyển sang mảng với date kiểu Date
+      const ordersByDate = Object.entries(ordersByDateMap).map(([time, count]) => ({
+        date: new Date(Number(time)), // convert lại thành Date
+        count,
+      }));
+
+      // ✅ Trả kết quả đầy đủ
+      return {
+        success: true,
+        message: "Lấy dữ liệu dashboard thành công",
+        summary: {
+          totalOrders,
+          completedOrders,
+          returnedOrders,
+          inTransitOrders,
+          totalWeight,
+        },
+        statusChart,
+        ordersByDate,
+      };
+    } catch (error) {
+      console.error("getManagerOrdersDashboardError:", error);
+      return { success: false, message: "Lỗi server khi lấy đơn hàng dashboard" };
+    }
+  },
+
   // ===================== Admin ==================================/
 
   // Track Order
@@ -2575,7 +2707,7 @@ const orderService = {
       } = filters;
 
       const offset = (page - 1) * limit;
-      const where = { 
+      const where = {
         toOfficeId: officeId,
         status: 'arrived_at_office', // Chỉ lấy đơn hàng đã đến bưu cục đích
         createdByType: 'user' // Chỉ lấy đơn hàng do user tạo, không lấy đơn manager tạo tại bưu cục
@@ -2930,7 +3062,7 @@ const orderService = {
 
       // Tính tổng kết dựa trên ShippingCollection và PaymentSubmission
       console.log('Calculating summary for COD transactions...');
-      
+
       let totalCollected = 0;
       let totalSubmitted = 0;
       let totalPending = 0;
@@ -2939,20 +3071,20 @@ const orderService = {
         const codAmount = order.cod || 0;
         const hasCollection = order.shippingCollections && order.shippingCollections.length > 0;
         const hasSubmission = order.paymentSubmissions && order.paymentSubmissions.length > 0;
-        
+
         // Chỉ tính các đơn hàng có COD > 0
         if (codAmount > 0) {
           if (hasCollection) {
             totalCollected += codAmount;
           }
-          
+
           if (hasSubmission) {
             totalSubmitted += codAmount;
           } else if (hasCollection) {
             totalPending += codAmount;
           }
         }
-        
+
         console.log(`Order ${index + 1}: ID=${order.id}, COD=${codAmount}, Collected=${hasCollection}, Submitted=${hasSubmission}`);
       });
 
@@ -2970,9 +3102,9 @@ const orderService = {
         const codAmount = order.cod || 0;
         const hasCollection = order.shippingCollections && order.shippingCollections.length > 0;
         const hasSubmission = order.paymentSubmissions && order.paymentSubmissions.length > 0;
-        
+
         let status = 'pending'; // Mặc định là chờ thu
-        
+
         // Nếu đơn hàng không có COD, luôn hiển thị là "delivered"
         if (codAmount === 0) {
           status = 'delivered';
@@ -2984,7 +3116,7 @@ const orderService = {
             status = 'collected'; // Đã thu
           }
         }
-        
+
         return {
           id: order.id,
           trackingNumber: order.trackingNumber,
