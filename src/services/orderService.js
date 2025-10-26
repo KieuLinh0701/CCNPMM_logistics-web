@@ -3085,6 +3085,30 @@ const orderService = {
         };
       }
 
+      // Chuẩn bị include với filter shipperId nếu có
+      const include = [
+        { model: db.User, as: 'user', attributes: ['id', 'firstName', 'lastName'] },
+        { model: db.Office, as: 'fromOffice', attributes: ['id', 'name'] },
+        { model: db.Office, as: 'toOffice', attributes: ['id', 'name'] },
+        {
+          model: db.ShippingCollection,
+          as: 'shippingCollections',
+          required: false, // LEFT JOIN để lấy cả đơn chưa thu tiền
+          attributes: ['id', 'shipperId', 'amountCollected', 'discrepancy', 'notes', 'createdAt'],
+          include: [{
+            model: db.User,
+            as: 'shipper',
+            attributes: ['id', 'firstName', 'lastName', 'phoneNumber']
+          }]
+        }
+      ];
+
+      // Nếu có filter theo shipperId, thêm điều kiện vào ShippingCollection
+      if (shipperId) {
+        include[3].where = { shipperId: shipperId };
+        include[3].required = true; // INNER JOIN để chỉ lấy đơn của shipper này
+      }
+
       console.log('COD where clause:', where);
 
       const { rows, count } = await db.Order.findAndCountAll({
@@ -3092,17 +3116,7 @@ const orderService = {
         limit: parseInt(limit),
         offset,
         order: [['deliveredAt', 'DESC']],
-        include: [
-          { model: db.User, as: 'user', attributes: ['id', 'firstName', 'lastName'] },
-          { model: db.Office, as: 'fromOffice', attributes: ['id', 'name'] },
-          { model: db.Office, as: 'toOffice', attributes: ['id', 'name'] },
-          {
-            model: db.ShippingCollection,
-            as: 'shippingCollections',
-            required: false, // LEFT JOIN để lấy cả đơn chưa thu tiền
-            attributes: ['id', 'amountCollected', 'discrepancy', 'notes', 'createdAt']
-          }
-        ]
+        include
       });
 
       // Lấy thông tin PaymentSubmission riêng biệt
@@ -3152,15 +3166,15 @@ const orderService = {
           trackingNumber: rows[0].trackingNumber,
           cod: rows[0].cod,
           status: rows[0].status,
-          shipperId: rows[0].shipperId,
-          toOfficeId: rows[0].toOfficeId
+          toOfficeId: rows[0].toOfficeId,
+          shippingCollections: rows[0].shippingCollections
         });
       } else {
         console.log('No orders found with current filters');
         // Let's check if there are any orders at all for this office
         const allOrders = await db.Order.findAll({
           where: { toOfficeId: officeId },
-          attributes: ['id', 'trackingNumber', 'cod', 'status', 'shipperId'],
+          attributes: ['id', 'trackingNumber', 'cod', 'status'],
           limit: 5
         });
         console.log('Sample orders for this office:', allOrders);
@@ -3235,7 +3249,12 @@ const orderService = {
           status: status,
           collectedAt: hasCollection ? order.shippingCollections[0].createdAt : null,
           submittedAt: hasSubmission ? order.paymentSubmissions[0].createdAt : null,
-          notes: hasCollection ? order.shippingCollections[0].notes : null
+          notes: hasCollection ? order.shippingCollections[0].notes : null,
+          shipper: hasCollection && order.shippingCollections[0].shipper ? {
+            id: order.shippingCollections[0].shipper.id,
+            name: `${order.shippingCollections[0].shipper.firstName} ${order.shippingCollections[0].shipper.lastName}`,
+            phone: order.shippingCollections[0].shipper.phoneNumber
+          } : null
         };
       });
 
