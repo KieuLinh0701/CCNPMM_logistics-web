@@ -571,6 +571,8 @@ const employeeService = {
         requireReLogin = true;
       }
 
+      await t.commit();
+
       // Gửi notification
       if (changes.length > 0) {
         await notificationService.createNotification({
@@ -582,11 +584,8 @@ const employeeService = {
           targetRole: 'user',
           relatedId: employee.id,
           relatedType: 'employee',
-          t,
         });
       }
-
-      await t.commit();
 
       return {
         success: true,
