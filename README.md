@@ -140,6 +140,7 @@ EMAIL_PASS=
 
 # File Upload Configuration
 UPLOAD_PATH=./uploads
+```
 
 ### Bước 5: Khởi chạy ứng dụng
 
