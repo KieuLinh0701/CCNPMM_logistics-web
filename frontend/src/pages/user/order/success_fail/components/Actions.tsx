@@ -23,7 +23,7 @@ const Actions: React.FC<OrderActionsProps> = ({
   const navigate = useNavigate();
 
   const canEdit = ['draft', 'pending', 'confirmed'].includes(order.status);
-  const canCancel = ['draft', 'pending', 'confirmed'].includes(order.status);
+  const canCancel = ["draft", "pending", "confirmed"].includes(order.status) && order.createdByType === "user";
   const canPay = ['pending'].includes(order.status);
 
   return (

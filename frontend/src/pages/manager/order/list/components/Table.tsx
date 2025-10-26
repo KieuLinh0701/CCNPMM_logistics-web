@@ -17,9 +17,26 @@ interface Props {
   onEdit: (trackingNumber: string) => void;
   onApprove: (order: Order) => void;
   oncancel: (orderId: number) => void;
+  currentPage: number;
+  pageSize: number;
+  total: number;
+  onPageChange: (page: number, pageSize?: number) => void;
 }
 
-const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, role, officeId, onDetail, onEdit, onApprove, oncancel }) => {
+const OrderTable: React.FC<Props> = ({ 
+  orders, 
+  provinceList, 
+  wardList, 
+  role, 
+  officeId, 
+  onDetail, 
+  onEdit, 
+  onApprove, 
+  oncancel, 
+  currentPage,
+  pageSize,
+  total, 
+  onPageChange }) => {
   const navigate = useNavigate();
 
   const statusTag = (status: string) => {
@@ -47,29 +64,30 @@ const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, role, off
       dataIndex: "trackingNumber",
       key: "trackingNumber",
       align: "center",
-      render: (text, record) => (
-        <Space size="small">
-          <Button
-            type="link"
-            onClick={() => navigate(`/${role}/orders/detail/${record.trackingNumber}`)}
-            style={{ padding: 0 }}
-          >
-            {record.trackingNumber}
-          </Button>
-          <Tooltip title="Copy mã đơn hàng">
-            <Button
-              type="text"
-              size="small"
-              icon={<CopyOutlined />}
-              onClick={() => {
-                navigator.clipboard.writeText(text);
-                message.success('Đã copy mã đơn hàng!');
+      render: (text, record) => {
+        const trackingNumber = record?.trackingNumber;
+        if (!trackingNumber) return <Tag color="default">N/A</Tag>;
+
+        return (
+          <Tooltip title="Click để xem chi tiết đơn hàng">
+            <span
+              onClick={() => navigate(`/${role}/orders/detail/${trackingNumber}`)}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                navigator.clipboard.writeText(trackingNumber);
+                message.success("Đã copy mã đơn hàng!");
               }}
-              style={{ color: '#1890ff' }}
-            />
+              style={{
+                color: '#1890ff',
+                cursor: 'pointer',
+                userSelect: 'text',
+              }}
+            >
+              {trackingNumber}
+            </span>
           </Tooltip>
-        </Space>
-      ),
+        );
+      },
     },
     {
       title: "Điểm gửi",
@@ -256,7 +274,7 @@ const OrderTable: React.FC<Props> = ({ orders, provinceList, wardList, role, off
     }
   ];
 
-  return <Table columns={columns} dataSource={tableData} rowKey="key" scroll={{ x: "max-content" }} />;
+  return <Table columns={columns} dataSource={tableData} rowKey="key" scroll={{ x: "max-content" }} pagination={{ current: currentPage, pageSize, total, onChange: onPageChange }} />;
 };
 
 export default OrderTable;

@@ -12,9 +12,20 @@ import { Shipment } from "../../../../../types/shipment";
 interface Props {
   shipments: Shipment[];
   onDetail: (employeeId: number) => void;
+  currentPage: number;
+  pageSize: number;
+  total: number;
+  onPageChange: (page: number, pageSize?: number) => void;
 }
 
-const ShipmentTable: React.FC<Props> = ({ shipments, onDetail }) => {
+const ShipmentTable: React.FC<Props> = ({ 
+  shipments, 
+  onDetail,
+  currentPage,
+  pageSize,
+  total,
+  onPageChange,
+}) => {
 
   const statusTag = (status: string) => {
     switch (status) {
@@ -92,18 +103,17 @@ const ShipmentTable: React.FC<Props> = ({ shipments, onDetail }) => {
       render: (value: string | number) => value ? dayjs(value).locale('vi').format('DD/MM/YYYY HH:mm') : <Tag color="default">N/A</Tag>,
     },
     {
-      title: "Hành động",
+      title: "",
       key: "action",
       align: "center",
       render: (_: any, record: Shipment) => {
         return (
           <Button
             type="link"
-            icon={<EyeOutlined />}
             size="small"
             onClick={() => onDetail(record.id)}
           >
-            Xem
+            DS đơn hàng
           </Button>
         );
       }
@@ -115,6 +125,12 @@ const ShipmentTable: React.FC<Props> = ({ shipments, onDetail }) => {
     dataSource={tableData}
     rowKey="key"
     scroll={{ x: "max-content" }}
+    pagination={{
+      current: currentPage,
+      pageSize,
+      total,
+      onChange: onPageChange,
+    }}
     style={{ borderRadius: 12, overflow: "hidden", background: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }} />;
 };
 

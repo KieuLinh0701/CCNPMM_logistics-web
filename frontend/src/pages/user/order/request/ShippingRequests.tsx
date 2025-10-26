@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Form, message, Modal } from 'antd';
+import { Col, Form, message, Modal, Row } from 'antd';
 import dayjs from 'dayjs';
 import SearchFilters from './components/SearchFilters';
 import Actions from './components/Actions';
@@ -11,6 +11,7 @@ import { createRequest, cancelRequest, listUserRequests, getRequestStatuses, get
 import DetailModal from './components/DetailModal';
 import { useNavigate } from 'react-router-dom';
 import { City, Ward } from '../../../../types/location';
+import Title from 'antd/es/typography/Title';
 
 const ShippingRequests: React.FC = () => {
   const navigate = useNavigate();
@@ -108,8 +109,9 @@ const ShippingRequests: React.FC = () => {
       },
       cancelButtonProps: {
         style: {
-          backgroundColor: "#e0e0e0",
-          color: "#333",
+          backgroundColor: "#ffffff",
+          borderColor: "#1C3D90",
+          color: "#1C3D90",
         },
       },
       onOk: async () => {
@@ -238,15 +240,28 @@ const ShippingRequests: React.FC = () => {
         onHoverChange={setHover}
       />
 
-      <Actions
-        total={total}
-        onAddRequest={() => {
-          setIsModalOpen(true);
-          setModalMode('create');
-          setNewRequest({});
-          form.resetFields();
-        }}
-      />
+      <Row style={{ marginBottom: 20 }} justify="space-between" align="middle">
+        {/* Tiêu đề bên trái */}
+        <Col>
+          <Title level={3} style={{ color: '#1C3D90', margin: 0 }}>
+            Lịch sử yêu cầu
+          </Title>
+        </Col>
+
+        {/* Các nút bên phải */}
+        <Col>
+          <Actions
+            total={total}
+            onAddRequest={() => {
+              setIsModalOpen(true);
+              setModalMode('create');
+              setNewRequest({});
+              form.resetFields();
+            }}
+          />
+        </Col>
+      </Row>
+
       {user &&
         <RequestTable
           data={requests}

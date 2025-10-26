@@ -1,5 +1,6 @@
 import { User } from "./auth";
 import { Office } from "./office";
+import { OrderHistory } from "./orderHistory";
 import { OrderProduct } from "./orderProduct";
 import { Promotion } from "./promotion";
 import { serviceType } from "./serviceType";
@@ -21,19 +22,19 @@ export interface Order {
   recipientDetailAddress: string;
 
   weight: number;
-  serviceType: serviceType; 
+  serviceType: serviceType;
   cod: number;
   orderValue: number;
 
-  payer: 'Customer' |  'Shop';
+  payer: 'Customer' | 'Shop';
   paymentMethod: 'Cash' | 'BankTransfer' | 'VNPay' | 'ZaloPay';
-  paymentStatus: 'Paid' | 'Unpaid'  | 'Refunded';
+  paymentStatus: 'Paid' | 'Unpaid' | 'Refunded';
 
   notes: string;
 
   user?: User | null;
 
-  promotion?: Promotion | null; 
+  promotion?: Promotion | null;
 
   discountAmount: number;
   shippingFee: number;
@@ -54,14 +55,39 @@ export interface Order {
 
   refundedAt?: Date;
   paidAt?: Date;
+  histories: OrderHistory[];
+}
+
+export interface DashboardSummary {
+  totalOrders: number;
+  completedOrders: number;
+  returnedOrders: number;
+  inTransitOrders: number;
+  totalWeight: number;
+}
+
+export interface StatusChartItem {
+  label: string;
+  value: number;
+}
+
+export interface OrdersByDateItem {
+  date: Date;
+  count: number;
+}
+
+export interface OrderByDateItem {
+  date: Date;
+  displayDate: string;
+  count: number;
 }
 
 export interface OrderResponse {
   success: boolean;
-  message?: string; 
+  message?: string;
   order?: Order;
-  orders: Order[];  
-  shippingFee: number, 
+  orders: Order[];
+  shippingFee: number,
   total?: number,
   page?: number,
   limit?: number,
@@ -70,6 +96,9 @@ export interface OrderResponse {
   payers?: string[];
   paymentStatuses?: string[];
   paymentUrl?: string;
+  summary: DashboardSummary;
+  statusChart: StatusChartItem[];
+  ordersByDate: OrdersByDateItem[];
 }
 
 export interface OrderState {
@@ -79,11 +108,14 @@ export interface OrderState {
   paymentMethods: string[];
   loading: boolean;
   error: string | null;
-  shippingFee: number | 0; 
+  shippingFee: number | 0;
   total: number;
   page: number;
   limit: number;
   payers: string[];
   paymentStatuses: string[];
   paymentUrl: string | null;
+  summary: DashboardSummary | null;
+  statusChart: StatusChartItem[];
+  ordersByDate: OrdersByDateItem[];
 }

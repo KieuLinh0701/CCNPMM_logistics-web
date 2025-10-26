@@ -17,6 +17,7 @@ import OrderActions from "./components/Actions";
 import { styles } from "../style/Order.styles";
 import { userInfo } from "os";
 import { useAppSelector } from "../../../../hooks/redux";
+import OrderHistoryCard from "./components/OrderHistoryCard";
 
 const OrderDetail: React.FC = () => {
     const { trackingNumber } = useParams<{ trackingNumber: string }>();
@@ -83,16 +84,15 @@ const OrderDetail: React.FC = () => {
             icon: null,
             okButtonProps: {
                 style: {
-                    ...styles.button,
                     backgroundColor: "#1C3D90",
                     color: "#fff",
                 },
             },
             cancelButtonProps: {
                 style: {
-                    ...styles.button,
-                    backgroundColor: "#e0e0e0",
-                    color: "#333",
+                    backgroundColor: "#ffffff",
+                    borderColor: "#1C3D90",
+                    color: "#1C3D90",
                 },
             },
             onOk: async () => {
@@ -122,16 +122,15 @@ const OrderDetail: React.FC = () => {
             icon: null,
             okButtonProps: {
                 style: {
-                    ...styles.button,
                     backgroundColor: "#1C3D90",
                     color: "#fff",
                 },
             },
             cancelButtonProps: {
                 style: {
-                    ...styles.button,
-                    backgroundColor: "#e0e0e0",
-                    color: "#333",
+                    backgroundColor: "#ffffff",
+                    borderColor: "#1C3D90",
+                    color: "#1C3D90",
                 },
             },
             onOk: async () => {
@@ -172,14 +171,14 @@ const OrderDetail: React.FC = () => {
     const canPayStatus = ["pending"].includes(order.status);
     const canPay =
         order.paymentMethod !== "Cash" && order.paymentStatus === "Unpaid" && canPayStatus;
-    const canCancel = ["draft", "pending", "confirmed"].includes(order.status);
+    const canCancel = ["draft", "pending", "confirmed"].includes(order.status) && order.createdByType === "user";
 
     return (
         <div style={styles.container}>
             {user && (
                 <Header
                     trackingNumber={order.trackingNumber!}
-                    role={user.role} 
+                    role={user.role}
                 />
             )}
             <OrderSenderRecipient
@@ -202,6 +201,7 @@ const OrderDetail: React.FC = () => {
             />
             <OrderInfo order={order} />
             <OrderProducts products={order.orderProducts || []} />
+            <OrderHistoryCard histories={order.histories} />
             <OrderPayment order={order} totalServiceFee={totalServiceFee} />
             <OrderActions
                 canPublic={canPublic}

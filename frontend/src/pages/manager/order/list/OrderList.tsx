@@ -80,6 +80,8 @@ const OrderListManager = () => {
   };
 
   const handleViewOrderDetail = (trackingNumber: string) => {
+    if (!user) return;
+    navigate(`/${user.role}/orders/detail/${trackingNumber}`);
   };
 
   const handleEditOrder = (trackingNumber: string) => {
@@ -155,8 +157,9 @@ const OrderListManager = () => {
       },
       cancelButtonProps: {
         style: {
-          backgroundColor: "#e0e0e0",
-          color: "#333",
+          backgroundColor: "#ffffff",
+          borderColor: "#1C3D90",
+          color: "#1C3D90",
         },
       },
       onOk: async () => {
@@ -174,7 +177,6 @@ const OrderListManager = () => {
       },
     });
   };
-
 
   useEffect(() => {
     dispatch(getOrderPaymentMethods());
@@ -201,7 +203,7 @@ const OrderListManager = () => {
       .then((res) => setProvinceList(res.data))
       .catch((err) => console.error(err));
 
-      console.log("province", provinceList);
+    console.log("province", provinceList);
 
     // Fetch wards
     axios
@@ -260,11 +262,11 @@ const OrderListManager = () => {
       />
 
       <Row justify="end" style={{ marginBottom: 30, marginTop: 40 }}>
-          {user &&
-            <OrderActions
-              onAdd={() => navigate(`/${user.role}/orders/create`)}
-            />
-          }
+        {user &&
+          <OrderActions
+            onAdd={() => navigate(`/${user.role}/orders/create`)}
+          />
+        }
       </Row>
 
       <Tag color="blue" style={{ fontSize: 14, padding: "4px 8px" }}>Kết quả trả về: {total} đơn hàng</Tag>
@@ -279,6 +281,14 @@ const OrderListManager = () => {
         onEdit={handleEditOrder}
         onApprove={handleApprove}
         oncancel={handleCancelOrder}
+        currentPage={currentPage}
+        total={total}
+        pageSize={pageSize}
+        onPageChange={(page, size) => {
+          setCurrentPage(page);
+          if (size) setPageSize(size);
+          fetchOrders(page);
+        }}
       />
       {selectedOrder && <OfficeSelectionModal
         open={isOfficeSelectionModalVisible}

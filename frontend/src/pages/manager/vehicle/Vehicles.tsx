@@ -11,6 +11,7 @@ import ImportResults from './components/ImportResults';
 import { addVehicle, getStatusesEnum, getTypesEnum, getVehiclesByOffice, importVehicles, updateVehicle } from '../../../store/vehicleSlice';
 import { getByUserId } from '../../../store/officeSlice';
 import { Vehicle } from '../../../types/vehicle';
+import VehicleStatusCards from './components/VehicleStatusCards';
 
 const Vehicles: React.FC = () => {
   const { user } = useAppSelector(state => state.auth);
@@ -37,7 +38,8 @@ const Vehicles: React.FC = () => {
     types = [],
     importResults = [],
     totalImported = 0,
-    totalFailed = 0
+    totalFailed = 0,
+    statusCounts = [],
   } = useAppSelector((state) => state.vehicle);
 
   const dispatch = useAppDispatch();
@@ -229,6 +231,8 @@ const Vehicles: React.FC = () => {
 
   return (
     <div style={{ padding: 24, background: '#F9FAFB', borderRadius: 12 }}>
+      <VehicleStatusCards statusCounts={statusCounts} />
+
       <SearchFilters
         searchText={searchText}
         filterType={filterType}

@@ -60,7 +60,7 @@ const EmployeePerformance = () => {
 
       const resultAction = await dispatch(exportEmployeePerformance(params));
       const payload = resultAction.payload as any;
-      const data = Array.isArray(payload) ? payload : payload?.data ?? [];
+      const data = Array.isArray(payload) ? payload : payload?.exportData ?? [];
 
       if (data.length === 0) {
         return message.info("Không có dữ liệu để xuất Excel");
@@ -148,7 +148,18 @@ const EmployeePerformance = () => {
       </Tag>
 
       {/* EmployeeTable */}
-      <EmployeeTable data={data} onDetail={handleViewEmployeeShipmentsDetail} />
+      <EmployeeTable
+        data={data}
+        onDetail={handleViewEmployeeShipmentsDetail}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        total={total}
+        onPageChange={(page, size) => {
+          setCurrentPage(page);
+          if (size) setPageSize(size);
+          fetchEmployees(page);
+        }}
+      />
     </div>
   );
 };

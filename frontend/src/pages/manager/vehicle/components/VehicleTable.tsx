@@ -27,11 +27,13 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
   const statusTag = (status: string) => {
     switch (status) {
       case 'Available':
-        return <Tag color="green">Khả dụng</Tag>;
+        return <Tag color="green">Sẵn sàng</Tag>;
       case 'InUse':
         return <Tag color="blue">Đang sử dụng</Tag>;
       case 'Maintenance':
-        return <Tag color="orange">Bảo trì</Tag>;
+        return <Tag color="orange">Đang bảo trì</Tag>;
+      case 'Archived':
+        return <Tag color="orange">Ngưng hoạt động</Tag>;
       default:
         return <Tag color="gray">{status}</Tag>;
     }
@@ -51,40 +53,40 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
   const columns: ColumnsType<Vehicle> = [
     { title: 'ID', dataIndex: 'id', key: 'id', align: 'center', width: 80 },
     { title: 'Biển số xe', dataIndex: 'licensePlate', key: 'licensePlate', align: 'center' },
-    { 
-      title: 'Loại xe', 
-      dataIndex: 'type', 
-      key: 'type', 
+    {
+      title: 'Loại xe',
+      dataIndex: 'type',
+      key: 'type',
       align: 'center',
       render: (type) => typeTag(type)
     },
-    { 
-      title: 'Tải trọng (kg)', 
-      dataIndex: 'capacity', 
-      key: 'capacity', 
+    {
+      title: 'Tải trọng (kg)',
+      dataIndex: 'capacity',
+      key: 'capacity',
       align: 'center',
       render: (capacity) => `${capacity}`
     },
-    { 
-      title: 'Trạng thái', 
-      dataIndex: 'status', 
-      key: 'status', 
-      align: 'center', 
-      render: (status) => statusTag(status) 
+    {
+      title: 'Trạng thái',
+      dataIndex: 'status',
+      key: 'status',
+      align: 'center',
+      render: (status) => statusTag(status)
     },
-    { 
-      title: 'Mô tả', 
-      dataIndex: 'description', 
-      key: 'description', 
+    {
+      title: 'Mô tả',
+      dataIndex: 'description',
+      key: 'description',
       align: 'center',
       render: (desc) => desc || '---'
     },
-    { 
-      title: 'Ngày tạo', 
-      dataIndex: 'createdAt', 
-      key: 'createdAt', 
-      align: 'center', 
-      render: (date) => dayjs(date).format('YYYY-MM-DD hh:mm:ss') 
+    {
+      title: 'Ngày tạo',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      align: 'center',
+      render: (date) => dayjs(date).format('YYYY-MM-DD hh:mm:ss')
     },
     {
       title: 'Hành động',
@@ -115,7 +117,7 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
       <Tag color="blue" style={{ fontSize: 14, padding: '4px 8px' }}>
         Kết quả trả về: {total} phương tiện
       </Tag>
-      
+
       <Table
         columns={columns}
         dataSource={tableData}

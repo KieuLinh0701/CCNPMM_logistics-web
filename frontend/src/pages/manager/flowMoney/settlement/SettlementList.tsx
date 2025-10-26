@@ -210,6 +210,14 @@ const OfficeSettlementList = () => {
           submissions={paymentSubmissions}
           onDetail={handleViewOrders}
           onProcess={handleProcessPaymentSubmission}
+          currentPage={currentPage}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={(page, size) => {
+            setCurrentPage(page);
+            if (size) setPageSize(size);
+            fetchSettlements(page);
+          }}
         />
       </div>
 

@@ -11,6 +11,8 @@ import { useNavigate } from 'react-router-dom';
 import { getByUserId } from '../../../../store/officeSlice';
 import { City, Ward } from '../../../../types/location';
 import axios from "axios";
+import RequestStatusSummaryCard from './components/RequestStatusSummaryCard';
+import Title from 'antd/es/typography/Title';
 
 const SupportManager: React.FC = () => {
   const navigate = useNavigate();
@@ -32,7 +34,7 @@ const SupportManager: React.FC = () => {
   const [form] = Form.useForm();
 
   const dispatch = useAppDispatch();
-  const { requests = [], total = 0, requestTypes = [], statuses = [] } = useAppSelector((state) => state.request);
+  const { requests = [], total = 0, requestTypes = [], statuses = [], statusSummary = [] } = useAppSelector((state) => state.request);
 
   const [requestModalVisible, setRequestModalVisible] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<ShippingRequest | null>(null);
@@ -202,6 +204,14 @@ const SupportManager: React.FC = () => {
 
   return (
     <div style={{ padding: 24, background: '#F9FAFB', borderRadius: 12 }}>
+      <Title level={3} style={{ color: '#1C3D90', margin: 0, marginBottom: 20 }}>
+        Hỗ trợ & Khiếu nại
+      </Title>
+
+      <RequestStatusSummaryCard 
+        data={statusSummary}
+      />
+
       <SearchFilters
         searchText={searchText}
         filterRrequestType={filterRrequestType}

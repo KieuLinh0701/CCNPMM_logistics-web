@@ -21,6 +21,9 @@ const initialState: EmployeeState = {
   createdEmployees: [],
   failedEmployees: [],
   data: [],
+  statusSummary: [],
+  shiftSummary: [],
+  exportData: [],
 };
 
 // Lấy Shift Enum
@@ -279,6 +282,8 @@ const employeeSlice = createSlice({
         state.loading = false;
         if (action.payload.success) {
           state.employees = action.payload.employees || [];
+          state.statusSummary = action.payload.statusSummary || [];
+          state.shiftSummary = action.payload.shiftSummary || [];
           state.total = action.payload.total || 0;
           state.page = action.payload.page || 1;
           state.limit = action.payload.limit || 10;
@@ -402,7 +407,7 @@ const employeeSlice = createSlice({
         state.error = action.payload as string;
       });
 
-      builder
+    builder
       .addCase(exportEmployeePerformance.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -410,7 +415,7 @@ const employeeSlice = createSlice({
       .addCase(exportEmployeePerformance.fulfilled, (state, action) => {
         state.loading = false;
         if (action.payload.success) {
-          state.data = action.payload.data ?? [];
+          state.exportData = action.payload.exportData ?? [];
         }
       })
       .addCase(exportEmployeePerformance.rejected, (state, action) => {

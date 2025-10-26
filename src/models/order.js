@@ -87,6 +87,12 @@ export default (sequelize) => {
       });
 
       // PaymentSubmission relationship removed due to orderIds JSON field structure
+      // Order.hasMany(models.PaymentSubmission, {
+      //   foreignKey: 'orderId',
+      //   as: 'paymentSubmissions',
+      //   onDelete: 'CASCADE',
+      //   onUpdate: 'CASCADE',
+      // });
     }
   }
 

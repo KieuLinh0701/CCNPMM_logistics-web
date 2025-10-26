@@ -17,6 +17,7 @@ import * as XLSX from "xlsx";
 import { Order } from "../../../../types/order";
 import SearchFilters from "./components/SearchFilters";
 import OrderTable from "./components/Table";
+import Title from "antd/es/typography/Title";
 
 const OrderList = () => {
   const navigate = useNavigate();
@@ -80,8 +81,9 @@ const OrderList = () => {
       },
       cancelButtonProps: {
         style: {
-          backgroundColor: "#e0e0e0",
-          color: "#333",
+          backgroundColor: "#ffffff",
+          borderColor: "#1C3D90",
+          color: "#1C3D90",
         },
       },
       onOk: async () => {
@@ -188,7 +190,7 @@ const OrderList = () => {
     fetchOrders();
   }, [dispatch]);
 
-  useEffect(() => { setCurrentPage(1); fetchOrders(1); }, [searchText, filterStatus, filterPayment, filterPayer, filterPaymentStatus, filterCOD, dateRange, filterSort ]);
+  useEffect(() => { setCurrentPage(1); fetchOrders(1); }, [searchText, filterStatus, filterPayment, filterPayer, filterPaymentStatus, filterCOD, dateRange, filterSort]);
 
   return (
     <div style={{ padding: 24, background: "#F9FAFB", borderRadius: 12 }}>
@@ -213,32 +215,53 @@ const OrderList = () => {
         paymentStatuses={paymentStatuses}
         paymentMethods={paymentMethods}
         onReset={() => {
-          setSearchText(""); setFilterStatus("All"); 
+          setSearchText(""); setFilterStatus("All");
           setFilterPayment("All"); setFilterSort("newest");
           setFilterPayer("All"); setFilterPaymentStatus("All"); setFilterCOD("All");
-          setDateRange(null); setCurrentPage(1); 
+          setDateRange(null); setCurrentPage(1);
         }}
       />
 
-      <Row justify="end" style={{ marginBottom: 25, marginTop: 40 }}>
+      <Row style={{ marginBottom: 25, marginTop: 30 }} justify="space-between" align="middle">
+        {/* Tiêu đề bên trái */}
         <Col>
-          {user && <OrderActions
-            onAdd={handleAdd}
-            onUpload={handleExcelUpload}
-            onDownloadTemplate={handleDownloadTemplate}
-          />}
+          <Title level={3} style={{ color: '#1C3D90', margin: 0 }}>
+            Danh sách đơn hàng
+          </Title>
+        </Col>
+
+        {/* Các nút bên phải */}
+        <Col>
+          {user && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <OrderActions
+                onAdd={handleAdd}
+                onUpload={handleExcelUpload}
+                onDownloadTemplate={handleDownloadTemplate}
+              />
+            </div>
+          )}
         </Col>
       </Row>
 
       <Tag color="blue" style={{ fontSize: 14, padding: "4px 8px" }}>Kết quả trả về: {total} đơn hàng</Tag>
 
       {user &&
-        <OrderTable 
-        orders={orders} 
-        provinceList={provinceList} 
-        wardList={wardList} 
-        onCancel={handleCancelOrder} 
-        role={user.role} />
+        <OrderTable
+          orders={orders}
+          provinceList={provinceList}
+          wardList={wardList}
+          onCancel={handleCancelOrder}
+          role={user.role}
+          currentPage={currentPage}
+          total={total}
+          pageSize={pageSize}
+          onPageChange={(page, size) => {
+            setCurrentPage(page);
+            if (size) setPageSize(size);
+            fetchOrders(page);
+          }}
+        />
       }
 
       <Modal title="Kết quả Import đơn hàng" open={importModalOpen} onCancel={() => setImportModalOpen(false)} footer={null} width={800} centered>

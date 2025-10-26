@@ -22,6 +22,11 @@ export interface ShippingRequest {
   responseAt?: Date;
 }
 
+export interface Summary {
+  label: string;
+  value: number;
+}
+
 export interface ShippingRequestResponse {
   success: boolean;
   message?: string;
@@ -32,7 +37,7 @@ export interface ShippingRequestResponse {
   limit: number;
   requestTypes: string[];
   statuses: string[];
-
+  statusSummary: Summary[];
 }
 
 export interface ShippingRequestState {
@@ -45,4 +50,5 @@ export interface ShippingRequestState {
   limit: number;
   requestTypes: string[];
   statuses: string[];
+  statusSummary: Summary[] | [];
 }

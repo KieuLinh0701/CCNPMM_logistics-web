@@ -1,56 +1,53 @@
 import React from "react";
-import { styles } from "../../style/Order.styles";
 import { Order } from "../../../../../types/order";
 import { translateOrderStatus } from "../../../../../utils/orderUtils";
+import { Tag } from "antd";
+import Title from "antd/es/typography/Title";
 
 interface Props {
   order: Order;
 }
 
 const OrderInfo: React.FC<Props> = ({ order }) => (
-  <div style={styles.paymentAndDetailsContainer}>
-    <div style={styles.orderInfo}> 
-      <h3>Thông tin đơn hàng</h3>
-      <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: '200px', paddingRight: '40px' }}>
-          <p style={styles.feeRow}>
-            <span><strong>Ngày tạo:</strong></span>
-            <span>{order.createdAt ? new Date(order.createdAt).toLocaleString() : "---"}</span>
-          </p>
-          <p style={styles.feeRow}>
-            <span><strong>Ngày giao hàng:</strong></span>
-            <span>{order.deliveredAt ? new Date(order.deliveredAt).toLocaleString() : "---"}</span>
-          </p>
-          <p style={styles.feeRow}>
-            <span><strong>Trạng thái đơn hàng:</strong></span>
-            <span>{translateOrderStatus(order.status)}</span>
-          </p>
-          <p style={styles.feeRow}>
-            <span><strong>Bưu cục gửi:</strong></span>
-            <span>{order.fromOffice.name || "---"}</span>
-          </p>
-        </div>
+  <div style={{ paddingLeft: 32, paddingRight: 32, background: "#fff", borderRadius: 8, boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
+    <Title level={5} style={{ color: "#1C3D90" }}>Thông tin đơn hàng</Title>
 
-        <div style={{ flex: 1, minWidth: '200px', borderLeft: '2px solid #e8e8e8', paddingLeft: '40px' }}>
-          <p style={styles.feeRow}>
-            <span><strong>Dịch vụ vận chuyển:</strong></span>
-            <span>{order.serviceType.name}</span>
-          </p>
-          <p style={styles.feeRow}>
-            <span><strong>Trọng lượng:</strong></span>
-            <span>{order.weight} kg</span>
-          </p>
-          <p style={styles.feeRow}>
-            <span><strong>Giá trị đơn hàng:</strong></span>
-            <span>{order.orderValue.toLocaleString()} VNĐ</span>
-          </p>
-          <p style={styles.feeRow}>
-            <span><strong>COD:</strong></span>
-            <span>{order.cod?.toLocaleString()} VNĐ</span>
-          </p>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 60 }}>
+      {/* Cột 1 */}
+      <div style={{ flex: 1, minWidth: 220 }}>
+        <div style={{ marginBottom: 10 }}>
+          <strong>Ngày tạo:</strong> {order.createdAt ? new Date(order.createdAt).toLocaleString() : <Tag>N/A</Tag>}
+        </div>
+        <div style={{ marginBottom: 10 }}>
+          <strong>Ngày giao hàng:</strong> {order.deliveredAt ? new Date(order.deliveredAt).toLocaleString() : <Tag>N/A</Tag>}
+        </div>
+        <div style={{ marginBottom: 10 }}>
+          <strong>Trạng thái đơn hàng:</strong> {translateOrderStatus(order.status)}
+        </div>
+        <div style={{ marginBottom: 10 }}>
+          <strong>Bưu cục gửi:</strong> {order.fromOffice?.name || <Tag>N/A</Tag>}
         </div>
       </div>
-      <p><strong>Ghi chú:</strong> {order.notes || "---"}</p>
+
+      {/* Cột 2 */}
+      <div style={{ flex: 1, minWidth: 220 }}>
+        <div style={{ marginBottom: 10 }}>
+          <strong>Dịch vụ vận chuyển:</strong> {order.serviceType?.name || <Tag>N/A</Tag>}
+        </div>
+        <div style={{ marginBottom: 10 }}>
+          <strong>Trọng lượng:</strong> {order.weight} kg
+        </div>
+        <div style={{ marginBottom: 10 }}>
+          <strong>Giá trị đơn hàng:</strong> {order.orderValue.toLocaleString()} VNĐ
+        </div>
+        <div style={{ marginBottom: 10 }}>
+          <strong>COD:</strong> {order.cod?.toLocaleString() || 0} VNĐ
+        </div>
+      </div>
+    </div>
+
+    <div style={{ marginTop: 2 }}>
+      <strong>Ghi chú:</strong> {order.notes || <Tag>N/A</Tag>}
     </div>
   </div>
 );

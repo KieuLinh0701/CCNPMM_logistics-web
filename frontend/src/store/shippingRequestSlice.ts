@@ -12,6 +12,7 @@ const initialState: ShippingRequestState = {
   limit: 10,
   requestTypes: [],
   statuses: [],
+  statusSummary: [],
 };
 
 export const getRequestTypes = createAsyncThunk(
@@ -304,6 +305,7 @@ const shippingRequestSlice = createSlice({
           state.total = action.payload.total || 0;
           state.page = action.payload.page || 1;
           state.limit = action.payload.limit || 10;
+          state.statusSummary = action.payload.statusSummary || [];
         }
       })
       .addCase(listOfficeRequests.rejected, (state, action) => {

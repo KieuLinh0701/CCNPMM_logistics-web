@@ -83,8 +83,9 @@ const OrderSuccess: React.FC = () => {
       },
       cancelButtonProps: {
         style: {
-          backgroundColor: "#e0e0e0",
-          color: "#333",
+          backgroundColor: "#ffffff",
+          borderColor: "#1C3D90",
+          color: "#1C3D90",
         },
       },
       onOk: async () => {

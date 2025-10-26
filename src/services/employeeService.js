@@ -76,7 +76,9 @@ const employeeService = {
   async getEmployeesByOffice(userId, officeId, page, limit, filters) {
     try {
       const offset = (page - 1) * limit;
+      const { Op } = db.Sequelize;
 
+      // === Kiểm tra quyền truy cập ===
       const user = await db.User.findOne({
         where: { id: userId },
         include: {
@@ -87,25 +89,22 @@ const employeeService = {
         attributes: ['id', 'role'],
       });
 
-      if (!user) return { success: false, message: 'Người dùng không tồn tại' };
+      if (!user) return { success: false, message: 'User not found' };
       if (!['admin', 'manager'].includes(user.role)) {
-        return { success: false, message: 'Bạn không có quyền xem danh sách nhân viên' };
+        return { success: false, message: 'You do not have permission to view this list' };
       }
 
       let whereCondition = { officeId };
 
       if (user.role === 'manager') {
         if (!user.employee || user.employee.officeId !== parseInt(officeId)) {
-          return { success: false, message: 'Bạn không có quyền xem nhân viên bưu cục này' };
+          return { success: false, message: 'You cannot view employees from another office' };
         }
-
-        // Loại trừ chính manager khỏi danh sách
-        whereCondition.id = { [db.Sequelize.Op.ne]: user.employee.id };
+        whereCondition.id = { [Op.ne]: user.employee.id };
       }
 
-      // Áp dụng filter
+      // === Lọc dữ liệu ===
       const { searchText, shift, status, role, startDate, endDate } = filters || {};
-      const { Op } = db.Sequelize;
 
       if (searchText) {
         whereCondition[Op.or] = [
@@ -124,6 +123,7 @@ const employeeService = {
         whereCondition.hireDate = { [Op.between]: [startDate, endDate] };
       }
 
+      // === Lấy danh sách nhân viên ===
       const { rows: employees, count: total } = await db.Employee.findAndCountAll({
         where: whereCondition,
         attributes: ['id', 'hireDate', 'shift', 'status'],
@@ -136,7 +136,7 @@ const employeeService = {
           {
             model: db.Office,
             as: 'office',
-            attributes: ['id'],
+            attributes: ['id', 'name'],
           },
         ],
         limit,
@@ -144,17 +144,60 @@ const employeeService = {
         order: [['id', 'ASC']],
       });
 
+      // === Lấy danh sách enum trực tiếp từ model ===
+      const STATUS_ENUM = db.Employee.rawAttributes.status.values || [];
+      const SHIFT_ENUM = db.Employee.rawAttributes.shift.values || [];
+
+      // === Lấy thống kê thực tế ===
+      const [statusStats, shiftStats] = await Promise.all([
+        db.Employee.findAll({
+          where: { officeId },
+          attributes: ['status', [db.Sequelize.fn('COUNT', db.Sequelize.col('status')), 'count']],
+          group: ['status'],
+        }),
+        db.Employee.findAll({
+          where: { officeId },
+          attributes: ['shift', [db.Sequelize.fn('COUNT', db.Sequelize.col('shift')), 'count']],
+          group: ['shift'],
+        }),
+      ]);
+
+      // === Map thành { key: count } để fill thiếu = 0 ===
+      const statusCountMap = {};
+      statusStats.forEach(s => {
+        statusCountMap[s.status] = Number(s.dataValues.count);
+      });
+
+      const shiftCountMap = {};
+      shiftStats.forEach(s => {
+        shiftCountMap[s.shift] = Number(s.dataValues.count);
+      });
+
+      const statusSummary = STATUS_ENUM.map(value => ({
+        label: value,
+        value: statusCountMap[value] || 0,
+      }));
+
+      const shiftSummary = SHIFT_ENUM.map(value => ({
+        label: value,
+        value: shiftCountMap[value] || 0,
+      }));
+
+      // === Kết quả cuối ===
       return {
         success: true,
-        message: 'Lấy danh sách nhân viên thành công',
+        message: 'Employees fetched successfully',
         employees,
         total,
         page,
         limit,
+        statusSummary,
+        shiftSummary,
       };
+
     } catch (error) {
-      console.error('Get Employees By Office error:', error);
-      return { success: false, message: 'Lỗi server' };
+      console.error('getEmployeesByOffice error:', error);
+      return { success: false, message: 'Server error' };
     }
   },
 
@@ -780,7 +823,7 @@ const employeeService = {
         success: true,
         message: 'Lấy dữ liệu hiệu suất nhân viên thành công',
         total: performanceData.length,
-        data: performanceData
+        exportData: performanceData
       };
 
     } catch (error) {

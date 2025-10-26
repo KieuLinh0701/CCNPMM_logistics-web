@@ -1,10 +1,10 @@
 // Hàm dịch trạng thái phương tiện
 export const translateVehicleStatus = (status: string): string => {
   switch (status) {
-    case 'Available': return 'Khả dụng';
+    case 'Available': return 'Sẵn sàng';
     case 'InUse': return 'Đang sử dụng';
     case 'Maintenance': return 'Đang bảo trì';
-    case 'Archived': return 'Đã lưu trữ';
+    case 'Archived': return 'Ngưng hoạt động';
     default: return status;
   }
 };

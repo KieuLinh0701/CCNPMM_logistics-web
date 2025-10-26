@@ -27,6 +27,11 @@ export interface Data {
   avgTimePerOrder: number;
 }
 
+export interface Summary {
+  label: string;
+  value: number;
+}
+
 export interface ImportResult {
   email: string;
   success: boolean;
@@ -58,6 +63,10 @@ export interface EmployeeResponse {
   // Cho importEmployees
   result?: EmployeeResponseInner; 
   data: Data[];
+  exportData: Data[];
+
+  statusSummary: Summary[];
+  shiftSummary: Summary[];
 }
 
 export interface EmployeeCheckResult {
@@ -95,4 +104,7 @@ export interface EmployeeState {
   createdEmployees?: string[];
   failedEmployees?: { email: string; message: string }[];
   data: Data[] | [];
+  exportData: Data[] | [];
+  statusSummary: Summary[] | [];
+  shiftSummary: Summary[] | [];
 }

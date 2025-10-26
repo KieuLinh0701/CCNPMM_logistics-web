@@ -10,9 +10,20 @@ import { translateTransactionPurpose, translateTransactionType } from "../../../
 interface Props {
   transactions: Transaction[];
   role: string;
+  currentPage: number;
+  pageSize: number;
+  total: number;
+  onPageChange: (page: number, pageSize?: number) => void;
 }
 
-const RevenueTable: React.FC<Props> = ({ transactions, role }) => {
+const RevenueTable: React.FC<Props> = ({ 
+  transactions, 
+  role,
+  currentPage,
+  pageSize,
+  total,
+  onPageChange,
+}) => {
   const navigate = useNavigate();
 
   const typeTag = (type: string) => {
@@ -53,27 +64,23 @@ const RevenueTable: React.FC<Props> = ({ transactions, role }) => {
         if (!trackingNumber) return <Tag color="default">N/A</Tag>;
 
         return (
-          <Space size="small">
-            <Button
-              type="link"
+          <Tooltip title="Click để xem chi tiết đơn hàng">
+            <span
               onClick={() => navigate(`/${role}/orders/detail/${trackingNumber}`)}
-              style={{ padding: 0 }}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                navigator.clipboard.writeText(trackingNumber);
+                message.success("Đã copy mã đơn hàng!");
+              }}
+              style={{
+                color: '#1890ff',
+                cursor: 'pointer',
+                userSelect: 'text',
+              }}
             >
               {trackingNumber}
-            </Button>
-            <Tooltip title="Copy mã đơn hàng">
-              <Button
-                type="text"
-                size="small"
-                icon={<CopyOutlined />}
-                onClick={() => {
-                  navigator.clipboard.writeText(trackingNumber);
-                  message.success('Đã copy mã đơn hàng!');
-                }}
-                style={{ color: '#1890ff' }}
-              />
-            </Tooltip>
-          </Space>
+            </span>
+          </Tooltip>
         );
       },
     },
@@ -106,7 +113,14 @@ const RevenueTable: React.FC<Props> = ({ transactions, role }) => {
       overflow: 'hidden',
       background: '#fff',
       boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-    }} />;
+    }}
+    pagination={{
+      current: currentPage,
+      pageSize,
+      total,
+      onChange: onPageChange,
+    }}
+  />;
 };
 
 export default RevenueTable;

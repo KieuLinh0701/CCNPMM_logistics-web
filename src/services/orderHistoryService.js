@@ -44,11 +44,11 @@ const orderHistoryService = {
             const exportedOrders = [];
 
             for (const h of latestHistories) {
-                if (h.action === 'Imported' && h.toOfficeId === officeId) inWarehouseOrders.push(h);
-                else if (h.action === 'Exported' && h.fromOfficeId === officeId) exportedOrders.push(h);
+                if (h.action === 'Imported' && h.toOfficeId === officeId && h.order.status != "cancelled") inWarehouseOrders.push(h);
+                else if (h.action === 'Exported' && h.fromOfficeId === officeId && h.order.status != "cancelled") exportedOrders.push(h);
                 else if (
-                    (h.action === 'PickedUp' || h.action === 'ReadyForPickup' || h.action === 'Exported')
-                    && h.toOfficeId === officeId
+                    (((h.action === 'PickedUp' || h.action === 'ReadyForPickup') && h.order.fromOfficeId === officeId) || ( h.action === 'Exported'
+                    && h.toOfficeId === officeId) && h.order.status != "cancelled")
                 ) {
                     incomingOrders.push(h);
                 }

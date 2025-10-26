@@ -9,7 +9,8 @@ import Actions from "./components/Actions";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { useNavigate, useParams } from "react-router-dom";
-import { getShipmentStatuses, listEmployeeShipments } from "../../../../store/shipmentSlice";
+import { exportEmployeeShipments, getShipmentStatuses, listEmployeeShipments } from "../../../../store/shipmentSlice";
+import { translateShipmentStatus } from "../../../../utils/shipmentUtils";
 
 const EmployeeShipment = () => {
   const dispatch = useAppDispatch();
@@ -27,7 +28,7 @@ const EmployeeShipment = () => {
   const [filterStatus, setFilterStatus] = useState("All");
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
 
-  const { shipments = [], statuses = [], total = 0 } = useAppSelector(state => state.shipment);
+  const { shipments = [], statuses = [], total = 0, exportShipments = [] } = useAppSelector(state => state.shipment);
 
   const fetchShipments = (page = currentPage, search?: string) => {
     if (!empId) return;
@@ -51,63 +52,68 @@ const EmployeeShipment = () => {
     navigate(`/manager/employees/performance/${empId}/shipments/${shipmentId}/orders`);
   };
 
-  const handleExportEmployeesPerformance = async () => {
-    // try {
-    //   const params: any = {
-    //     searchText: searchText || undefined,
-    //     sort: filterSort !== "none" ? filterSort : undefined,
-    //     role: filterRole !== "All" ? filterRole : undefined,
-    //   };
+  const handleExportEmployeeShipments = async () => {
+    try {
+      const params: any = {
+        employeeId: empId,
+        sort: filterSort !== "none" ? filterSort : undefined,
+        status: filterStatus !== "All" ? filterStatus : undefined,
+      };
 
-    //   if (dateRange) {
-    //     params.startDate = dateRange[0].startOf("day").toISOString();
-    //     params.endDate = dateRange[1].endOf("day").toISOString();
-    //   }
+      if (dateRange) {
+        params.startDate = dateRange[0].startOf("day").toISOString();
+        params.endDate = dateRange[1].endOf("day").toISOString();
+      }
 
-    //   const resultAction = await dispatch(exportEmployeePerformance(params));
-    //   const payload = resultAction.payload as any;
-    //   const data = Array.isArray(payload) ? payload : payload?.data ?? [];
+      const resultAction = await dispatch(exportEmployeeShipments(params));
+      const payload = resultAction.payload as any;
+      const data = Array.isArray(payload) ? payload : payload?.exportShipments ?? [];
 
-    //   if (data.length === 0) {
-    //     return message.info("Không có dữ liệu để xuất Excel");
-    //   }
+      if (data.length === 0) {
+        return message.info("Không có dữ liệu để xuất Excel");
+      }
 
-    //   const exportData = data.map((t: any) => ({
-    //     "Mã nhân viên": t.employeeId,
-    //     "Tên nhân viên": t.name,
-    //     "Chức vụ": t.role,
-    //     "Tổng số chuyến giao": t.totalShipments,
-    //     "Tổng số đơn giao": t.totalOrders,
-    //     "Số đơn giao thành công": t.completedOrders,
-    //     "Tỉ lệ đơn thành công (%)": t.completionRate?.toFixed(2),
-    //     "Thời gian trung bình/đơn (phút)": t.avgTimePerOrder?.toFixed(2),
-    //   }));
+      // Map dữ liệu xuất Excel theo bảng hiển thị
+      const exportData = data.map((t: any) => ({
+        "Mã chuyến": t.id,
+        "Trạng thái": translateShipmentStatus(t.status) || "N/A",
+        "Biển số phương tiện": t.vehicle?.licensePlate || "N/A",
+        "Tải trọng xe (kg)": t.vehicle?.capacity || "N/A",
+        "Tổng số đơn": t.orderCount ?? 0,
+        "Tổng trọng lượng (kg)": Number(t.totalWeight || 0).toFixed(2),
+        "Thời gian bắt đầu": t.startTime
+          ? dayjs(t.startTime).locale("vi").format("DD/MM/YYYY HH:mm")
+          : "N/A",
+        "Thời gian kết thúc": t.endTime
+          ? dayjs(t.endTime).locale("vi").format("DD/MM/YYYY HH:mm")
+          : "N/A",
+      }));
 
-    //   const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
 
-    //   // Chỉnh độ rộng cột
-    //   worksheet['!cols'] = [
-    //     { wch: 15 }, // "Mã nhân viên"
-    //     { wch: 20 }, // "Tên nhân viên"
-    //     { wch: 15 }, // "Chức vụ"
-    //     { wch: 20 }, // "Tổng số chuyến giao"
-    //     { wch: 20 }, // "Tổng số đơn giao"
-    //     { wch: 25 }, // "Số đơn giao thành công"
-    //     { wch: 25 }, // "Tỉ lệ đơn thành công (%)"
-    //     { wch: 30 }, // "Thời gian trung bình/đơn (phút)"
-    //   ];
+      // Căn chỉnh độ rộng cột (dựa trên độ dài tên cột và dữ liệu)
+      worksheet["!cols"] = [
+        { wch: 12 }, // Mã chuyến
+        { wch: 15 }, // Trạng thái
+        { wch: 18 }, // Biển số phương tiện
+        { wch: 20 }, // Tên phương tiện
+        { wch: 18 }, // Tổng số đơn
+        { wch: 22 }, // Tổng trọng lượng (kg)
+        { wch: 22 }, // Thời gian bắt đầu
+        { wch: 22 }, // Thời gian kết thúc
+      ];
 
-    //   const workbook = XLSX.utils.book_new();
-    //   XLSX.utils.book_append_sheet(workbook, worksheet, "Hiệu suất nhân viên");
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Danh sách chuyến giao");
 
-    //   const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-    //   const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
+      const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+      const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
 
-    //   saveAs(blob, `HieuSuatNhanVien${dayjs().format("YYYYMMDD_HHmm")}.xlsx`);
-    // } catch (error) {
-    //   console.error(error);
-    //   message.error("Xuất Excel thất bại!");
-    // }
+      saveAs(blob, `DanhSachChuyenGiao_${dayjs().format("YYYYMMDD_HHmm")}.xlsx`);
+    } catch (error) {
+      console.error(error);
+      message.error("Xuất Excel thất bại!");
+    }
   };
 
   useEffect(() => {
@@ -151,7 +157,7 @@ const EmployeeShipment = () => {
 
       {/* Actions */}
       <div style={{ marginBottom: 16 }}>
-        <Actions onExport={handleExportEmployeesPerformance} />
+        <Actions onExport={handleExportEmployeeShipments} />
       </div>
 
       {/* Tag */}
@@ -160,7 +166,18 @@ const EmployeeShipment = () => {
       </Tag>
 
       {/* ShipmentTable */}
-      <ShipmentTable shipments={shipments} onDetail={handleViewOrderShipmentsDetail} />
+      <ShipmentTable
+        shipments={shipments}
+        onDetail={handleViewOrderShipmentsDetail}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        total={total}
+        onPageChange={(page, size) => {
+          setCurrentPage(page);
+          if (size) setPageSize(size);
+          fetchShipments(page);
+        }}
+      />
     </div>
   );
 };

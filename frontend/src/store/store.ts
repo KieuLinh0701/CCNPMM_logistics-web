@@ -12,6 +12,8 @@ import transactionReducer from './transactionSlice';
 import paymentSubmissionReducer from './paymentSubmissionSlice';
 import orderHistoryReducer from './orderHistorySlice';
 import shipmentReducer from './shipmentSlice';
+import bankAccountReducer from './bankAccountSlice';
+import incidentReportReducer from './incidentReportSlice';
 
 export const store = configureStore({
   reducer: {
@@ -28,6 +30,8 @@ export const store = configureStore({
     submission: paymentSubmissionReducer,
     orderHistory: orderHistoryReducer,
     shipment: shipmentReducer,
+    bankAccount: bankAccountReducer,
+    incident: incidentReportReducer,
   },
 });
 

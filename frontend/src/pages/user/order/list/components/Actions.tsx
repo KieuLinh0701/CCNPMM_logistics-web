@@ -1,6 +1,7 @@
 import React from "react";
 import { Space, Button, Upload } from "antd";
 import { PlusOutlined, UploadOutlined, DownloadOutlined } from "@ant-design/icons";
+import Title from "antd/es/typography/Title";
 
 interface Props {
   onAdd: () => void;

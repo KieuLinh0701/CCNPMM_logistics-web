@@ -10,10 +10,10 @@ interface Props {
 
 const Header: React.FC<Props> = ({ trackingNumber, role }) => (
   <div>
-    <Title level={3} style={styles.title}>
+    <Title level={3} style={{ color: "#1C3D90", paddingLeft: 32, paddingRight: 32 }}>
       Chi tiết đơn hàng #{trackingNumber}
     </Title>
-    <Breadcrumb separator="/" style={{ marginBottom: 30 }}>
+    <Breadcrumb separator="/" style={{ marginBottom: 10, paddingLeft: 32, paddingRight: 32 }}>
       <Breadcrumb.Item>
          <a href={`/${role}/orders`}>Danh sách đơn hàng</a>
       </Breadcrumb.Item>

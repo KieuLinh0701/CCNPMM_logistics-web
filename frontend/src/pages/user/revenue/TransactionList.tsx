@@ -178,7 +178,16 @@ const TransactionList = () => {
       {user &&
         <RevenueTable
           transactions={transactions}
-          role={user.role} />
+          role={user.role}
+          currentPage={currentPage}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={(page, size) => {
+            setCurrentPage(page);
+            if (size) setPageSize(size);
+            fetchTransactions(page);
+          }}
+        />
       }
     </div>
   );

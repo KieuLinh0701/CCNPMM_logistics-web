@@ -56,7 +56,7 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
   };
 
   return (
-    <Row gutter={16} style={{ marginBottom: 40 }}>
+    <Row gutter={16} style={{ marginBottom: 30 }}>
       <Col span={24}>
         <div style={{ display: 'flex', gap: 8 }}>
           <Input

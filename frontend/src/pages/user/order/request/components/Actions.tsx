@@ -14,8 +14,6 @@ const Actions: React.FC<ActionsProps> = ({
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div></div> 
-        
         <Space>
           <Button
             type="primary"
