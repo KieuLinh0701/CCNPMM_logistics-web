@@ -79,14 +79,6 @@ const HeaderHome: React.FC = () => {
     }
   };
 
-  const handleAvatarClick = () => {
-    if (user?.role) {
-      navigate(getDashboardPath(user.role));
-    } else {
-      navigate("/dashboard");
-    }
-  };
-
   return (
     <AntHeader
       style={{
@@ -120,7 +112,7 @@ const HeaderHome: React.FC = () => {
                 borderBottom: 'none',
                 lineHeight: '100px',
                 width: '100%',
-                maxWidth: 'calc(100% - 400px)',
+                maxWidth: 'calc(100% - 300px)',
               }}
               theme="light"
             >
@@ -143,7 +135,7 @@ const HeaderHome: React.FC = () => {
                 </Menu.Item>
               </Menu.SubMenu>
 
-              <Menu.Item key="/promotions"><Link to="/promotions">Khuyến mãi</Link></Menu.Item>
+              <Menu.Item key="/info/promotions"><Link to="/info/promotions">Khuyến mãi</Link></Menu.Item>
               <Menu.Item key="/info/company"><Link to="/info/company">Về chúng tôi</Link></Menu.Item>
               <Menu.Item key="/info/contact"><Link to="/info/contact">Liên hệ</Link></Menu.Item>
             </Menu>
@@ -263,7 +255,7 @@ const HeaderHome: React.FC = () => {
             </Menu.Item>
           </Menu.ItemGroup>
 
-          <Menu.Item key="/promotions"><Link to="/promotions">Khuyến mãi</Link></Menu.Item>
+          <Menu.Item key="/info/promotions"><Link to="/info/promotions">Khuyến mãi</Link></Menu.Item>
           <Menu.Item key="/info/company"><Link to="/info/company">Về chúng tôi</Link></Menu.Item>
           <Menu.Item key="/info/contact"><Link to="/info/contact">Liên hệ</Link></Menu.Item>
         </Menu>

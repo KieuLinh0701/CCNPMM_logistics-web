@@ -67,9 +67,12 @@ const Vehicles: React.FC = () => {
   const handleEditVehicle = async () => {
     await form.validateFields();
     try {
+      console.log("result", selectedVehicle);
       const result = await dispatch(updateVehicle({
         vehicle: selectedVehicle
       })).unwrap();
+
+      console.log("kq", result);
 
       message.success(result.message || 'Cập nhật phương tiện thành công!');
 

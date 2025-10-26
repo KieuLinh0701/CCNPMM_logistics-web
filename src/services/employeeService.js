@@ -599,6 +599,59 @@ const employeeService = {
     }
   },
 
+  // Import Add Employees
+  async importEmployees(userId, employees) {
+    const importedResults = [];
+    try {
+      if (!Array.isArray(employees) || employees.length === 0) {
+        return { success: false, message: "Không có dữ liệu nhân viên để import" };
+      }
+
+      for (const emp of employees) {
+        const { user, hireDate, shift, status, office } = emp;
+
+        // 1. Check trước khi thêm
+        const checkResult = await this.checkBeforeAddEmployee(userId, user.email, user.phoneNumber, office?.id);
+
+        if (!checkResult.success) {
+          importedResults.push({
+            email: user.email,
+            success: false,
+            message: checkResult.message,
+          });
+          continue;
+        }
+
+        // 2. Thêm nhân viên
+        const addResult = await this.addEmployee(userId, hireDate, shift, status, user, office);
+
+        importedResults.push({
+          email: user.email,
+          success: addResult.success,
+          message: addResult.message,
+          employee: addResult.employee || null,
+        });
+      }
+
+      // Phân loại kết quả
+      const createdEmployees = importedResults.filter(r => r.success).map(r => r.email);
+      const failedEmployees = importedResults.filter(r => !r.success).map(r => ({ email: r.email, message: r.message }));
+
+      return {
+        success: true,
+        message: `Import hoàn tất: ${createdEmployees.length} nhân viên mới, ${failedEmployees.length} lỗi`,
+        totalImported: createdEmployees.length,
+        totalFailed: failedEmployees.length,
+        createdEmployees,
+        failedEmployees,
+        results: importedResults,
+      };
+    } catch (error) {
+      console.error("Import Employees error:", error);
+      return { success: false, message: "Lỗi server khi import nhân viên" };
+    }
+  },
+
   async getEmployeePerformance(managerId, page = 1, limit = 10, filters = {}) {
     try {
       const { searchText, startDate, endDate, sort, role } = filters;

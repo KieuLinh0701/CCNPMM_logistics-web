@@ -72,7 +72,7 @@ export default (sequelize) => {
     },
     method: {
       type: DataTypes.ENUM('Cash', 'VNPay'),
-      allowNull: false,
+      allowNull: true,
       comment: 'phân loại nguồn tiền',
     },
     purpose: {

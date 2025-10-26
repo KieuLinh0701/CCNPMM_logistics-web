@@ -134,11 +134,6 @@ const Sidenav: React.FC<Props> = ({ color }) => {
             label: "Báo cáo sự cố",
             path: "/manager/orders/incidents",
           },
-          {
-            key: "/manager/orders/assign",
-            label: "Theo dõi nhận đơn",
-            path: "/manager/orders/assign",
-          },
         ],
       },
       {

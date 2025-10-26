@@ -453,7 +453,6 @@ const transactionService = {
                 amount,
                 type,
                 notes,
-                method,
                 purpose,
                 title: finalTitle,
                 status,

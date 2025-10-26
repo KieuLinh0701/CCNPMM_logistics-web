@@ -245,7 +245,8 @@ const vehicleService = {
   },
 
   // Update Vehicle
-  async updateVehicle(userId, vehicleId, licensePlate, type, capacity, status, description) {
+  async updateUserVehicle(userId, vehicleId, licensePlate, type, capacity, status, description) {
+    console.log("hi")
     const t = await db.sequelize.transaction();
     try {
       // Kiểm tra vehicle có tồn tại không
@@ -315,6 +316,7 @@ const vehicleService = {
       }
 
       const capacityNum = parseFloat(capacity);
+      console.log("capacityNum", capacityNum);
       if (!capacity || isNaN(capacityNum) || capacityNum <= 0) {
         return { success: false, message: "Tải trọng phải là số lớn hơn 0" };
       }

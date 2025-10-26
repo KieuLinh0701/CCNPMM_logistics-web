@@ -89,7 +89,9 @@ const vehicleController = {
       const id = parseInt(req.params.id);
       const { licensePlate, type, capacity, status, description } = req.body;
 
-      const result = await vehicleService.updateVehicle(
+      console.log("capacity", capacity);
+
+      const result = await vehicleService.updateUserVehicle(
         userId,
         id,
         licensePlate,

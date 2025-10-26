@@ -127,6 +127,7 @@ const OfficeSettlementList = () => {
       if (payload.success) {
         message.success(payload.message || "Cập nhật trạng thái thành công");
         fetchSettlements();
+        dispatch(getPaymentSubmissionCountByStatus());
         setSelectedSubmission(null);
       } else {
         message.error(payload.message || "Cập nhật trạng thái thất bại");

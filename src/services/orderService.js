@@ -1002,7 +1002,7 @@ const orderService = {
           title: `Thanh toán cho đơn hàng`,
           message: `Thanh toán thành công cho đơn hàng #${order.trackingNumber}`,
           type: 'order',
-          userId: user.id,
+          userId: order.userId,
           targetRole: 'user',
           relatedId: order.id,
           relatedType: 'order',
@@ -1035,262 +1035,156 @@ const orderService = {
   },
 
   // Update Order
-  async updateUserOrder(userId, orderData) {
-    const t = await db.sequelize.transaction();
+async updateUserOrder(userId, orderData) {
+  const t = await db.sequelize.transaction();
 
-    try {
-      // 1️⃣ Lấy order hiện tại
-      const existingOrder = await db.Order.findOne({
-        where: { id: orderData.id },
-        include: [
-          {
-            model: db.OrderProduct,
-            as: "orderProducts",
-            include: [{ model: db.Product, as: "product" }],
-          },
-          { model: db.Promotion, as: "promotion" },
-          { model: db.ServiceType, as: "serviceType" },
-        ],
-        transaction: t,
-      });
+  try {
+    // 1️⃣ Lấy order hiện tại
+    const existingOrder = await db.Order.findOne({
+      where: { id: orderData.id },
+      include: [
+        { model: db.OrderProduct, as: "orderProducts", include: [{ model: db.Product, as: "product" }] },
+        { model: db.Promotion, as: "promotion" },
+        { model: db.ServiceType, as: "serviceType" },
+      ],
+      transaction: t,
+    });
 
-      if (!existingOrder) {
-        return { success: false, message: "Đơn hàng không tồn tại" };
+    if (!existingOrder) return { success: false, message: "Đơn hàng không tồn tại" };
+
+    // 2️⃣ Kiểm tra quyền người dùng
+    if (existingOrder.userId !== null && existingOrder.userId !== userId)
+      return { success: false, message: "Bạn không có quyền sửa đơn hàng này" };
+
+    const { status } = existingOrder;
+    const normalize = (val) => val == null ? null : (typeof val === "string" ? val.trim() : val);
+
+    // 3️⃣ Validate theo trạng thái
+    const validation = (() => {
+      if (status === "draft") return { success: true };
+
+      if (status === "pending") {
+        if (orderData.senderCityCode && normalize(orderData.senderCityCode) !== normalize(existingOrder.senderCityCode))
+          return { success: false, message: "Không thể thay đổi tỉnh thành người gửi" };
+        if (orderData.recipientCityCode && normalize(orderData.recipientCityCode) !== normalize(existingOrder.recipientCityCode))
+          return { success: false, message: "Không thể thay đổi tỉnh thành người nhận" };
+        if (orderData.orderValue && normalize(orderData.orderValue) !== normalize(existingOrder.orderValue))
+          return { success: false, message: "Không thể thay đổi giá trị đơn hàng" };
+        if (orderData.codAmount && normalize(orderData.codAmount) !== normalize(existingOrder.codAmount))
+          return { success: false, message: "Không thể thay đổi COD đơn hàng" };
+        if (orderData.paymentMethod && normalize(orderData.paymentMethod) !== normalize(existingOrder.paymentMethod)) {
+          if (existingOrder.paymentStatus !== "Unpaid")
+            return { success: false, message: "Chỉ có thể thay đổi phương thức thanh toán khi chưa thanh toán" };
+          if (orderData.payer === "Customer" && orderData.paymentMethod !== "Cash")
+            return { success: false, message: "Người nhận chỉ được thanh toán bằng tiền mặt" };
+        }
+        return { success: true };
       }
 
-      // 2️⃣ Kiểm tra quyền người dùng
-      if (existingOrder.userId !== null && existingOrder.userId !== userId) {
-        return { success: false, message: "Bạn không có quyền sửa đơn hàng này" };
+      if (status === "confirmed") {
+        // Chỉ check recipientCityCode
+        if (orderData.recipientCityCode && normalize(orderData.recipientCityCode) !== normalize(existingOrder.recipientCityCode))
+          return { success: false, message: "Không thể thay đổi tỉnh thành người nhận" };
+        return { success: true };
       }
 
-      const { status } = existingOrder;
+      return { success: false, message: `Không thể cập nhật đơn hàng ở trạng thái: ${status}` };
+    })();
 
-      // 3️⃣ Validate logic thay đổi theo trạng thái
-      const validation = (() => {
-        if (status === "draft") return { success: true };
+    if (!validation.success) return validation;
 
-        if (status === "pending") {
-          if (orderData.senderCityCode && orderData.senderCityCode !== existingOrder.senderCityCode)
-            return { success: false, message: "Không thể thay đổi tỉnh thành người gửi" };
-          if (orderData.recipientCityCode && orderData.recipientCityCode !== existingOrder.recipientCityCode)
-            return { success: false, message: "Không thể thay đổi tỉnh thành người nhận" };
-          if (orderData.orderValue && orderData.orderValue !== existingOrder.orderValue)
-            return { success: false, message: "Không thể thay đổi giá trị đơn hàng" };
-          if (orderData.codAmount && orderData.codAmount !== existingOrder.codAmount)
-            return { success: false, message: "Không thể thay đổi COD đơn hàng" };
-          if (orderData.paymentMethod && orderData.paymentMethod !== existingOrder.paymentMethod) {
-            if (existingOrder.paymentStatus !== "Unpaid")
-              return { success: false, message: "Chỉ có thể thay đổi phương thức thanh toán khi chưa thanh toán" };
-            if (orderData.payer === "Customer" && orderData.paymentMethod !== "Cash")
-              return { success: false, message: "Người nhận chỉ được thanh toán bằng tiền mặt" };
-          }
-          return { success: true };
-        }
+    // 4️⃣ Kiểm tra vùng phục vụ nếu draft và đổi thành phố
+    if (status === "draft") {
+      const senderChanged = normalize(orderData.senderCityCode) !== normalize(existingOrder.senderCityCode);
+      const recipientChanged = normalize(orderData.recipientCityCode) !== normalize(existingOrder.recipientCityCode);
+      if (senderChanged || recipientChanged) {
+        const senderOffice = await db.Office.findOne({ where: { codeCity: orderData.senderCityCode }, transaction: t });
+        const recipientOffice = await db.Office.findOne({ where: { codeCity: orderData.recipientCityCode }, transaction: t });
+        if (!senderOffice && !recipientOffice)
+          return { success: false, message: "Cả người gửi và người nhận đều nằm ngoài khu vực phục vụ" };
+        if (!senderOffice) return { success: false, message: "Địa chỉ người gửi nằm ngoài khu vực phục vụ" };
+        if (!recipientOffice) return { success: false, message: "Địa chỉ người nhận nằm ngoài khu vực phục vụ" };
+      }
+    }
 
-        if (status === "confirmed") {
-          const allowedFields = [
-            "recipientName",
-            "recipientPhone",
-            "recipientWardCode",
-            "recipientDetailAddress",
-            "notes",
-          ];
+    // 5️⃣ Chuẩn bị dữ liệu update chỉ những field khác
+    const updateData = {};
+    Object.keys(orderData).forEach(key => {
+      if (!["id", "trackingNumber", "userId"].includes(key) &&
+          normalize(orderData[key]) !== normalize(existingOrder[key])) {
+        updateData[key] = orderData[key];
+      }
+    });
 
-          if (orderData.recipientCityCode && orderData.recipientCityCode !== existingOrder.recipientCityCode)
-            return { success: false, message: "Không thể thay đổi tỉnh thành người nhận" };
-
-          const disallowed = Object.keys(orderData).filter(
-            (key) => orderData[key] !== existingOrder[key] && !allowedFields.includes(key)
-          );
-
-          if (disallowed.length > 0)
-            return {
-              success: false,
-              message: `Không thể thay đổi các trường: ${disallowed.join(", ")} khi đơn ở trạng thái confirmed`,
-            };
-
-          return { success: true };
-        }
-
-        return { success: false, message: `Không thể cập nhật đơn hàng ở trạng thái: ${status}` };
-      })();
-
-      if (!validation.success) return validation;
-
-      // 4️⃣ Kiểm tra vùng hoạt động nếu đổi thành phố (draft)
-      if (status === "draft") {
-        const senderCityChanged = orderData.senderCityCode !== existingOrder.senderCityCode;
-        const recipientCityChanged = orderData.recipientCityCode !== existingOrder.recipientCityCode;
-
-        if (senderCityChanged || recipientCityChanged) {
-          const senderOffice = await db.Office.findOne({
-            where: { codeCity: orderData.senderCityCode },
-            transaction: t,
-          });
-          const recipientOffice = await db.Office.findOne({
-            where: { codeCity: orderData.recipientCityCode },
-            transaction: t,
-          });
-
-          if (!senderOffice && !recipientOffice)
-            return { success: false, message: "Cả người gửi và người nhận đều nằm ngoài khu vực phục vụ" };
-          if (!senderOffice)
-            return { success: false, message: "Địa chỉ người gửi nằm ngoài khu vực phục vụ" };
-          if (!recipientOffice)
-            return { success: false, message: "Địa chỉ người nhận nằm ngoài khu vực phục vụ" };
+    // 6️⃣ Xử lý orderProducts nếu draft
+    if (status === "draft" && orderData.orderProducts) {
+      for (const old of existingOrder.orderProducts || []) {
+        const product = await db.Product.findByPk(old.productId, { transaction: t });
+        if (product) {
+          await product.increment("stock", { by: old.quantity, transaction: t });
+          await product.decrement("soldQuantity", { by: old.quantity, transaction: t });
         }
       }
+      await db.OrderProduct.destroy({ where: { orderId: orderData.id }, transaction: t });
 
-      // 5️⃣ Chuẩn bị dữ liệu update theo trạng thái
-      const updateData = (() => {
-        const u = {};
-        if (status === "draft") {
-          for (const key in orderData) {
-            if (!["id", "trackingNumber", "userId"].includes(key)) u[key] = orderData[key];
-          }
-
-          let totalOrderValue = 0;
-          if (orderData.orderProducts?.length > 0) {
-            for (const p of orderData.orderProducts) totalOrderValue += p.price * p.quantity;
-            if (u.orderValue !== totalOrderValue)
-              throw new Error("Tổng giá trị đơn hàng không khớp với sản phẩm");
-          } else if (!u.orderValue || u.orderValue <= 0) {
-            throw new Error("Giá trị đơn hàng phải lớn hơn 0");
-          }
-
-          const shippingFee = u.shippingFee ?? existingOrder.shippingFee ?? 0;
-          const discount = u.discountAmount ?? existingOrder.discountAmount ?? 0;
-          const orderValue = u.orderValue ?? existingOrder.orderValue ?? 0;
-          const cod = u.cod ?? existingOrder.cod ?? 0;
-
-          u.totalFee = Math.ceil(
-            Math.max(shippingFee - discount, 0) * 1.1 +
-            (orderValue ? orderValue * 0.005 : 0) +
-            (cod ? cod * 0.02 : 0)
-          );
-          return u;
-        }
-
-        if (status === "pending") {
-          [
-            "senderName",
-            "senderPhone",
-            "senderWardCode",
-            "senderDetailAddress",
-            "recipientName",
-            "recipientPhone",
-            "recipientWardCode",
-            "recipientDetailAddress",
-            "notes",
-            "paymentMethod",
-            "payer",
-          ].forEach((f) => orderData[f] !== undefined && (u[f] = orderData[f]));
-          return u;
-        }
-
-        if (status === "confirmed") {
-          [
-            "recipientName",
-            "recipientPhone",
-            "recipientWardCode",
-            "recipientDetailAddress",
-            "notes",
-          ].forEach((f) => orderData[f] !== undefined && (u[f] = orderData[f]));
-          return u;
-        }
-
-        return {};
-      })();
-
-      // 6️⃣ Xử lý sản phẩm (chỉ draft)
-      if (status === "draft" && orderData.orderProducts) {
-        // Hoàn trả tồn kho cũ
-        if (existingOrder.orderProducts?.length > 0) {
-          for (const old of existingOrder.orderProducts) {
-            const product = await db.Product.findByPk(old.productId, { transaction: t });
-            if (product) {
-              await product.increment("stock", { by: old.quantity, transaction: t });
-              await product.decrement("soldQuantity", { by: old.quantity, transaction: t });
-            }
-          }
-        }
-
-        await db.OrderProduct.destroy({ where: { orderId: orderData.id }, transaction: t });
-
-        // Kiểm tra tồn kho cho sản phẩm mới
-        for (const p of orderData.orderProducts) {
-          if (!p.product?.id || p.quantity < 1 || p.price < 0)
-            throw new Error("Thông tin sản phẩm không hợp lệ");
-
-          const product = await db.Product.findByPk(p.product.id, { transaction: t });
-          if (!product)
-            throw new Error(`Sản phẩm ID ${p.product.id} không tồn tại`);
-          if (product.stock < p.quantity)
-            throw new Error(`Sản phẩm "${product.name}" chỉ còn ${product.stock} sản phẩm`);
-        }
-
-        // Thêm mới và cập nhật tồn kho
-        await db.OrderProduct.bulkCreate(
-          orderData.orderProducts.map((p) => ({
-            orderId: orderData.id,
-            productId: p.product.id,
-            quantity: p.quantity,
-            price: p.price,
-          })),
-          { transaction: t }
-        );
-
-        for (const p of orderData.orderProducts) {
-          const product = await db.Product.findByPk(p.product.id, { transaction: t });
-          if (product) {
-            await product.increment("soldQuantity", { by: p.quantity, transaction: t });
-            await product.decrement("stock", { by: p.quantity, transaction: t });
-          }
-        }
+      for (const p of orderData.orderProducts) {
+        const product = await db.Product.findByPk(p.product.id, { transaction: t });
+        if (!product) throw new Error(`Sản phẩm ID ${p.product.id} không tồn tại`);
+        if (product.stock < p.quantity) throw new Error(`Sản phẩm "${product.name}" chỉ còn ${product.stock} sản phẩm`);
       }
 
-      // 7️⃣ Cập nhật đơn hàng
+      await db.OrderProduct.bulkCreate(
+        orderData.orderProducts.map(p => ({ orderId: orderData.id, productId: p.product.id, quantity: p.quantity, price: p.price })),
+        { transaction: t }
+      );
+
+      for (const p of orderData.orderProducts) {
+        const product = await db.Product.findByPk(p.product.id, { transaction: t });
+        if (product) {
+          await product.increment("soldQuantity", { by: p.quantity, transaction: t });
+          await product.decrement("stock", { by: p.quantity, transaction: t });
+        }
+      }
+    }
+
+    // 7️⃣ Cập nhật đơn hàng
+    if (Object.keys(updateData).length > 0)
       await db.Order.update(updateData, { where: { id: orderData.id }, transaction: t });
 
-      // 8️⃣ Cập nhật promotion nếu có
-      if (orderData.promotion?.id && orderData.promotion.id !== existingOrder.promotion.id) {
-        const promotion = await db.Promotion.findByPk(orderData.promotion.id, { transaction: t });
-        if (promotion) {
-          const now = new Date();
-          if (
-            promotion.status === "active" &&
+    // 8️⃣ Cập nhật promotion nếu có
+    if (orderData.promotion?.id && orderData.promotion.id !== existingOrder.promotion?.id) {
+      const promotion = await db.Promotion.findByPk(orderData.promotion.id, { transaction: t });
+      if (promotion) {
+        const now = new Date();
+        if (promotion.status === "active" &&
             promotion.startDate <= now &&
             promotion.endDate >= now &&
             (!promotion.minOrderValue || orderData.orderValue >= promotion.minOrderValue) &&
-            (!promotion.usageLimit || promotion.usedCount < promotion.usageLimit)
-          ) {
-            await db.Order.update(
-              {
-                promotionId: promotion.id,
-                discountAmount: orderData.discountAmount || 0,
-              },
-              { where: { id: orderData.id }, transaction: t }
-            );
+            (!promotion.usageLimit || promotion.usedCount < promotion.usageLimit)) {
 
-            await promotion.increment("usedCount", { by: 1, transaction: t });
+          await db.Order.update(
+            { promotionId: promotion.id, discountAmount: orderData.discountAmount || 0 },
+            { where: { id: orderData.id }, transaction: t }
+          );
 
-            if (existingOrder.promotion?.id) {
-              const old = await db.Promotion.findByPk(existingOrder.promotion.id, { transaction: t });
-              if (old && old.usedCount > 0)
-                await old.decrement("usedCount", { by: 1, transaction: t });
-            }
+          await promotion.increment("usedCount", { by: 1, transaction: t });
+
+          if (existingOrder.promotion?.id) {
+            const old = await db.Promotion.findByPk(existingOrder.promotion.id, { transaction: t });
+            if (old && old.usedCount > 0) await old.decrement("usedCount", { by: 1, transaction: t });
           }
         }
       }
-
-      await t.commit();
-      return { success: true, message: "Cập nhật đơn hàng thành công" };
-    } catch (error) {
-      if (!t.finished) await t.rollback();
-      console.error("Update Order error:", error);
-      return { success: false, message: error.message || "Lỗi server khi cập nhật đơn hàng" };
     }
-  },
+
+    await t.commit();
+    return { success: true, message: "Cập nhật đơn hàng thành công" };
+  } catch (error) {
+    if (!t.finished) await t.rollback();
+    console.error("Update Order error:", error);
+    return { success: false, message: error.message || "Lỗi server khi cập nhật đơn hàng" };
+  }
+},
 
   // Update Order Status to Pending
   async setOrderToPending(userId, orderId) {
@@ -2948,12 +2842,12 @@ const orderService = {
       // Tính toán thông tin tuyến với khoảng cách thực tế
       let totalDistance = 0;
       let estimatedDuration = 0;
-      
+
       // Tạo danh sách các điểm giao hàng với tọa độ
       const deliveryPoints = orders.map((order, index) => {
         const recipientCoordinates = this.getCoordinatesFromCityCode(
-          order.recipientCityCode, 
-          index, 
+          order.recipientCityCode,
+          index,
           order.recipientDetailAddress || ''
         );
         return {
@@ -2984,7 +2878,7 @@ const orderService = {
       const deliveryStops = deliveryPoints.map((point, index) => {
         let distanceFromPrevious = 0;
         let travelTimeFromPrevious = 0;
-        
+
         if (index === 0) {
           // Điểm đầu tiên: tính từ bưu cục
           distanceFromPrevious = calculateDistance(
@@ -3003,13 +2897,13 @@ const orderService = {
             point.coordinates.longitude
           );
         }
-        
+
         // Tính thời gian di chuyển (sử dụng xe máy cho shipper trong thành phố)
         travelTimeFromPrevious = calculateTravelTime(distanceFromPrevious, 'Motorcycle'); // Sử dụng xe máy cho shipper
-        
+
         totalDistance += distanceFromPrevious;
         estimatedDuration += travelTimeFromPrevious;
-        
+
         return {
           id: point.order.id,
           trackingNumber: point.order.trackingNumber,
@@ -3121,14 +3015,14 @@ const orderService = {
 
       // Lấy thông tin PaymentSubmission riêng biệt
       const orderIds = rows.map(order => order.id);
-      
+
       // Query tất cả PaymentSubmission và filter trong JavaScript
       let paymentSubmissions = [];
       if (orderIds.length > 0) {
         paymentSubmissions = await db.PaymentSubmission.findAll({
           attributes: ['id', 'totalAmountSubmitted', 'status', 'createdAt', 'orderIds']
         });
-        
+
         // Filter chỉ những submission có chứa orderIds cần thiết
         paymentSubmissions = paymentSubmissions.filter(submission => {
           if (submission.orderIds && Array.isArray(submission.orderIds)) {
@@ -3624,7 +3518,7 @@ const orderService = {
       const addressHash = detailAddress.split('').reduce((hash, char) => {
         return hash + char.charCodeAt(0);
       }, 0);
-      
+
       // Generate offsets within city bounds (±0.05 degrees ≈ ±5.5km)
       latOffset = ((addressHash % 100) - 50) / 1000; // ±0.05
       lngOffset = (((addressHash >> 8) % 100) - 50) / 1000; // ±0.05

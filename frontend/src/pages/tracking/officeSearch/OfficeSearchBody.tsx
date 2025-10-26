@@ -17,7 +17,12 @@ interface Ward {
 }
 
 interface ProvinceDetailResponse {
-  districts?: Array<{ wards?: Ward[] }>;
+  code: number;
+  name: string;
+  division_type: string;
+  codename: string;
+  phone_code: number;
+  wards?: Ward[];
 }
 
 interface Office {
@@ -57,13 +62,12 @@ const OfficeSearchBody: React.FC<OfficeSearchBodyProps> = () => {
     setSelectedProvince(provinceCode);
     setWards([]);
     form.setFieldsValue({ ward: undefined });
-    
+
     // Load wards for selected province
     axios
       .get<ProvinceDetailResponse>(`https://provinces.open-api.vn/api/v2/p/${provinceCode}?depth=2`)
       .then((res) => {
-        const districts = (res.data?.districts) || [];
-        const allWards: Ward[] = districts.flatMap((d: any) => d.wards || []);
+        const allWards: Ward[] = res.data?.wards || [];
         setWards(allWards);
       })
       .catch((err) => console.error(err));
@@ -167,12 +171,12 @@ const OfficeSearchBody: React.FC<OfficeSearchBodyProps> = () => {
               type="primary"
               htmlType="submit"
               loading={loading}
-              style={{ 
-                background: "#1C3D90", 
-                color: "white", 
-                width: "100%", 
-                height: 50, 
-                fontSize: 16 
+              style={{
+                background: "#1C3D90",
+                color: "white",
+                width: "100%",
+                height: 50,
+                fontSize: 16
               }}
             >
               Tìm kiếm

@@ -83,6 +83,7 @@ import BankAccounts from './pages/user/bankAcount/BankAccounts';
 import ManagerOrderDetail from './pages/manager/order/detail/OrderDetail';
 import ManagerDashboard from './pages/manager/dashboard/Dashboard';
 import IncidentList from './pages/manager/order/incident/IncidentList';
+import PromotionsPage from './pages/PromotionsPage';
 
 const App: React.FC = () => {
   const user = JSON.parse(localStorage.getItem('user') || 'null');
@@ -108,6 +109,7 @@ const App: React.FC = () => {
             <Route path="/info/contact" element={<ContactForm />} />
             <Route path="/info/services" element={<ServiceDetails />} />
             <Route path="/info/shipping-rates" element={<ShippingRates />} />
+            <Route path="/info/promotions" element={<PromotionsPage />} />
 
             {/* Login/Register */}
             <Route path="/login" element={<AuthRoute type="public"><LoginForm /></AuthRoute>} />
