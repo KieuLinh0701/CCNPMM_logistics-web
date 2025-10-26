@@ -3,6 +3,7 @@ import db from '../models';
 import paymentService from './paymentService';
 import { createTransaction } from './transactionService';
 import notificationService from './notificationService';
+import { calculateDistance, calculateTravelTime, calculateRouteMetrics } from '../utils/routeUtils';
 import transaction from '../models/transaction';
 import shipment from '../models/shipment';
 
@@ -2805,40 +2806,117 @@ const orderService = {
 
       console.log('Route orders found:', orders.length);
 
-      // Tính toán thông tin tuyến
-      const totalDistance = orders.length * 5; // Mock: 5km per order
-      const estimatedDuration = orders.length * 30; // Mock: 30 minutes per order
+      // Lấy thông tin bưu cục để có tọa độ xuất phát
+      const office = await db.Office.findByPk(officeId);
+      const startCoordinates = {
+        latitude: parseFloat(office?.latitude) || 10.7769,
+        longitude: parseFloat(office?.longitude) || 106.7009
+      };
+
+      // Tính toán thông tin tuyến với khoảng cách thực tế
+      let totalDistance = 0;
+      let estimatedDuration = 0;
+      
+      // Tạo danh sách các điểm giao hàng với tọa độ
+      const deliveryPoints = orders.map((order, index) => {
+        const recipientCoordinates = this.getCoordinatesFromCityCode(
+          order.recipientCityCode, 
+          index, 
+          order.recipientDetailAddress || ''
+        );
+        return {
+          order,
+          coordinates: recipientCoordinates,
+          index
+        };
+      });
+
+      // Sắp xếp các điểm giao hàng theo khoảng cách từ bưu cục (gần nhất trước)
+      deliveryPoints.sort((a, b) => {
+        const distanceA = calculateDistance(
+          startCoordinates.latitude,
+          startCoordinates.longitude,
+          a.coordinates.latitude,
+          a.coordinates.longitude
+        );
+        const distanceB = calculateDistance(
+          startCoordinates.latitude,
+          startCoordinates.longitude,
+          b.coordinates.latitude,
+          b.coordinates.longitude
+        );
+        return distanceA - distanceB;
+      });
+
+      // Tính toán khoảng cách và thời gian cho từng điểm dừng
+      const deliveryStops = deliveryPoints.map((point, index) => {
+        let distanceFromPrevious = 0;
+        let travelTimeFromPrevious = 0;
+        
+        if (index === 0) {
+          // Điểm đầu tiên: tính từ bưu cục
+          distanceFromPrevious = calculateDistance(
+            startCoordinates.latitude,
+            startCoordinates.longitude,
+            point.coordinates.latitude,
+            point.coordinates.longitude
+          );
+        } else {
+          // Các điểm tiếp theo: tính từ điểm trước đó
+          const previousPoint = deliveryPoints[index - 1];
+          distanceFromPrevious = calculateDistance(
+            previousPoint.coordinates.latitude,
+            previousPoint.coordinates.longitude,
+            point.coordinates.latitude,
+            point.coordinates.longitude
+          );
+        }
+        
+        // Tính thời gian di chuyển (sử dụng xe máy cho shipper trong thành phố)
+        travelTimeFromPrevious = calculateTravelTime(distanceFromPrevious, 'Motorcycle'); // Sử dụng xe máy cho shipper
+        
+        totalDistance += distanceFromPrevious;
+        estimatedDuration += travelTimeFromPrevious;
+        
+        return {
+          id: point.order.id,
+          trackingNumber: point.order.trackingNumber,
+          recipientName: point.order.recipientName,
+          recipientPhone: point.order.recipientPhone,
+          recipientAddress: point.order.recipientDetailAddress ?
+            point.order.recipientDetailAddress.replace(/,\s*\d+,\s*\d+$/, '') : '',
+          codAmount: point.order.cod,
+          priority: point.order.cod > 1000000 ? 'urgent' : 'normal',
+          serviceType: point.order.serviceType?.name || 'Tiêu chuẩn',
+          estimatedTime: `${travelTimeFromPrevious} phút`,
+          status: point.order.status === 'delivered' ? 'completed' :
+            (point.order.status === 'delivering' || point.order.status === 'picked_up') ? 'in_progress' : 'pending',
+          coordinates: {
+            lat: point.coordinates.latitude,
+            lng: point.coordinates.longitude
+          },
+          distance: Math.round(distanceFromPrevious * 100) / 100,
+          travelTime: travelTimeFromPrevious,
+          distanceFromPrevious: Math.round(distanceFromPrevious * 100) / 100,
+          travelTimeFromPrevious: travelTimeFromPrevious
+        };
+      });
+
       const totalCOD = orders.reduce((sum, order) => sum + (order.cod || 0), 0);
 
       return {
         routeInfo: {
           id: 1,
           name: `Tuyến ${officeId}`,
-          startLocation: 'Bưu cục',
+          startLocation: office?.address || 'Bưu cục',
           totalStops: orders.length,
           completedStops: orders.filter(o => o.status === 'delivered').length,
-          totalDistance,
-          estimatedDuration,
+          totalDistance: Math.round(totalDistance * 100) / 100,
+          estimatedDuration: Math.round(estimatedDuration),
           totalCOD,
           status: 'not_started'
         },
-        deliveryStops: orders.map((order, index) => ({
-          id: order.id,
-          trackingNumber: order.trackingNumber,
-          recipientName: order.recipientName,
-          recipientPhone: order.recipientPhone,
-          recipientAddress: order.recipientDetailAddress ?
-            order.recipientDetailAddress.replace(/,\s*\d+,\s*\d+$/, '') : '',
-          codAmount: order.cod,
-          priority: order.cod > 1000000 ? 'urgent' : 'normal',
-          serviceType: order.serviceType?.name || 'Tiêu chuẩn',
-          estimatedTime: this.calculateEstimatedTime(index),
-          status: order.status === 'delivered' ? 'completed' :
-            (order.status === 'delivering' || order.status === 'picked_up') ? 'in_progress' : 'pending',
-          coordinates: this.generateRealCoordinates(order.recipientWardCode, order.recipientCityCode, index),
-          distance: 2.5 + (index * 0.5),
-          travelTime: 15 + (index * 5)
-        }))
+        deliveryStops
       };
     } catch (error) {
       console.error('❌ Get shipper route error:', error);
@@ -2891,14 +2969,45 @@ const orderService = {
             as: 'shippingCollections',
             required: false, // LEFT JOIN để lấy cả đơn chưa thu tiền
             attributes: ['id', 'amountCollected', 'discrepancy', 'notes', 'createdAt']
-          },
-          {
-            model: db.PaymentSubmission,
-            as: 'paymentSubmissions',
-            required: false, // LEFT JOIN để lấy cả đơn chưa nộp tiền
-            attributes: ['id', 'amountSubmitted', 'status', 'createdAt']
           }
         ]
+      });
+
+      // Lấy thông tin PaymentSubmission riêng biệt
+      const orderIds = rows.map(order => order.id);
+      
+      // Query tất cả PaymentSubmission và filter trong JavaScript
+      let paymentSubmissions = [];
+      if (orderIds.length > 0) {
+        paymentSubmissions = await db.PaymentSubmission.findAll({
+          attributes: ['id', 'totalAmountSubmitted', 'status', 'createdAt', 'orderIds']
+        });
+        
+        // Filter chỉ những submission có chứa orderIds cần thiết
+        paymentSubmissions = paymentSubmissions.filter(submission => {
+          if (submission.orderIds && Array.isArray(submission.orderIds)) {
+            return submission.orderIds.some(orderId => orderIds.includes(orderId));
+          }
+          return false;
+        });
+      }
+
+      // Map payment submissions to orders
+      const orderPaymentMap = {};
+      paymentSubmissions.forEach(submission => {
+        if (submission.orderIds && Array.isArray(submission.orderIds)) {
+          submission.orderIds.forEach(orderId => {
+            if (!orderPaymentMap[orderId]) {
+              orderPaymentMap[orderId] = [];
+            }
+            orderPaymentMap[orderId].push(submission);
+          });
+        }
+      });
+
+      // Add payment submissions to orders
+      rows.forEach(order => {
+        order.paymentSubmissions = orderPaymentMap[order.id] || [];
       });
 
       // Debug: Log all orders to see what we're getting
@@ -3211,6 +3320,173 @@ const orderService = {
       console.error('Error details:', error);
       return { success: false, message: 'Lỗi khi lấy dữ liệu đối soát COD' };
     }
+  },
+
+  // Helper function to get coordinates from city code and address
+  getCoordinatesFromCityCode(cityCode, index = 0, detailAddress = '') {
+    // Mapping of major city codes to their approximate coordinates
+    const cityCoordinates = {
+      // Hồ Chí Minh
+      79: { latitude: 10.7769, longitude: 106.7009 },
+      // Hà Nội
+      1: { latitude: 21.0285, longitude: 105.8542 },
+      // Đà Nẵng
+      48: { latitude: 16.0544, longitude: 108.2022 },
+      // Cần Thơ
+      92: { latitude: 10.0452, longitude: 105.7469 },
+      // Hải Phòng
+      31: { latitude: 20.8449, longitude: 106.6881 },
+      // An Giang
+      89: { latitude: 10.5216, longitude: 105.1259 },
+      // Bà Rịa - Vũng Tàu
+      77: { latitude: 10.3464, longitude: 107.0843 },
+      // Bắc Giang
+      24: { latitude: 21.2739, longitude: 106.1946 },
+      // Bắc Kạn
+      6: { latitude: 22.1470, longitude: 105.8348 },
+      // Bạc Liêu
+      95: { latitude: 9.2945, longitude: 105.7272 },
+      // Bắc Ninh
+      27: { latitude: 21.1862, longitude: 106.0763 },
+      // Bến Tre
+      83: { latitude: 10.2434, longitude: 106.3758 },
+      // Bình Định
+      52: { latitude: 13.7750, longitude: 109.2233 },
+      // Bình Dương
+      74: { latitude: 11.3254, longitude: 106.4774 },
+      // Bình Phước
+      70: { latitude: 11.6471, longitude: 106.6056 },
+      // Bình Thuận
+      60: { latitude: 10.9289, longitude: 108.1021 },
+      // Cà Mau
+      96: { latitude: 9.1768, longitude: 105.1520 },
+      // Cao Bằng
+      4: { latitude: 22.6657, longitude: 106.2570 },
+      // Đắk Lắk
+      66: { latitude: 12.6667, longitude: 108.0500 },
+      // Đắk Nông
+      67: { latitude: 12.0047, longitude: 107.6877 },
+      // Điện Biên
+      11: { latitude: 21.4064, longitude: 103.0078 },
+      // Đồng Nai
+      75: { latitude: 11.0686, longitude: 106.6536 },
+      // Đồng Tháp
+      87: { latitude: 10.5604, longitude: 105.6320 },
+      // Gia Lai
+      64: { latitude: 13.8079, longitude: 108.2204 },
+      // Hà Giang
+      3: { latitude: 22.7662, longitude: 104.9833 },
+      // Hà Nam
+      35: { latitude: 20.5431, longitude: 105.9229 },
+      // Hà Tĩnh
+      42: { latitude: 18.3370, longitude: 105.9055 },
+      // Hải Dương
+      30: { latitude: 20.9371, longitude: 106.3207 },
+      // Hậu Giang
+      93: { latitude: 9.7842, longitude: 105.4701 },
+      // Hòa Bình
+      17: { latitude: 20.6861, longitude: 105.3136 },
+      // Hưng Yên
+      33: { latitude: 20.6563, longitude: 106.0513 },
+      // Khánh Hòa
+      56: { latitude: 12.2388, longitude: 109.1967 },
+      // Kiên Giang
+      91: { latitude: 9.8240, longitude: 105.1259 },
+      // Kon Tum
+      62: { latitude: 14.3547, longitude: 108.0075 },
+      // Lai Châu
+      12: { latitude: 22.3867, longitude: 103.4543 },
+      // Lâm Đồng
+      68: { latitude: 11.9404, longitude: 108.4583 },
+      // Lạng Sơn
+      20: { latitude: 21.8537, longitude: 106.7613 },
+      // Lào Cai
+      10: { latitude: 22.3406, longitude: 103.9000 },
+      // Long An
+      80: { latitude: 10.6086, longitude: 106.6714 },
+      // Nam Định
+      36: { latitude: 20.4388, longitude: 106.1621 },
+      // Nghệ An
+      40: { latitude: 18.6792, longitude: 105.6882 },
+      // Ninh Bình
+      37: { latitude: 20.2506, longitude: 105.9744 },
+      // Ninh Thuận
+      58: { latitude: 11.5648, longitude: 108.9881 },
+      // Phú Thọ
+      25: { latitude: 21.3087, longitude: 105.2046 },
+      // Phú Yên
+      54: { latitude: 13.0883, longitude: 109.0929 },
+      // Quảng Bình
+      44: { latitude: 17.4683, longitude: 106.6227 },
+      // Quảng Nam
+      49: { latitude: 15.8801, longitude: 108.3380 },
+      // Quảng Ngãi
+      51: { latitude: 15.1214, longitude: 108.8044 },
+      // Quảng Ninh
+      22: { latitude: 21.0064, longitude: 107.2925 },
+      // Quảng Trị
+      45: { latitude: 16.7500, longitude: 107.2000 },
+      // Sóc Trăng
+      94: { latitude: 9.6002, longitude: 105.9804 },
+      // Sơn La
+      14: { latitude: 21.3257, longitude: 103.9180 },
+      // Tây Ninh
+      72: { latitude: 11.3131, longitude: 106.0963 },
+      // Thái Bình
+      34: { latitude: 20.4465, longitude: 106.3421 },
+      // Thái Nguyên
+      19: { latitude: 21.5944, longitude: 105.8481 },
+      // Thanh Hóa
+      38: { latitude: 19.8067, longitude: 105.7844 },
+      // Thừa Thiên Huế
+      46: { latitude: 16.4637, longitude: 107.5909 },
+      // Tiền Giang
+      82: { latitude: 10.3600, longitude: 106.3600 },
+      // Trà Vinh
+      84: { latitude: 9.9347, longitude: 106.3431 },
+      // Tuyên Quang
+      8: { latitude: 21.8189, longitude: 105.2116 },
+      // Vĩnh Long
+      86: { latitude: 10.2400, longitude: 105.9600 },
+      // Vĩnh Phúc
+      26: { latitude: 21.3089, longitude: 105.6049 },
+      // Yên Bái
+      15: { latitude: 21.7167, longitude: 104.9000 }
+    };
+
+    // Get base coordinates for the city
+    const baseCoords = cityCoordinates[cityCode];
+    if (!baseCoords) {
+      // Default coordinates (Hồ Chí Minh) with offset
+      return {
+        latitude: 10.7769 + (index * 0.01),
+        longitude: 106.7009 + (index * 0.01)
+      };
+    }
+
+    // Generate variation based on address details and index
+    let latOffset = 0;
+    let lngOffset = 0;
+
+    if (detailAddress) {
+      // Create deterministic offset based on address string
+      const addressHash = detailAddress.split('').reduce((hash, char) => {
+        return hash + char.charCodeAt(0);
+      }, 0);
+      
+      // Generate offsets within city bounds (±0.05 degrees ≈ ±5.5km)
+      latOffset = ((addressHash % 100) - 50) / 1000; // ±0.05
+      lngOffset = (((addressHash >> 8) % 100) - 50) / 1000; // ±0.05
+    }
+
+    // Add index-based offset for multiple orders
+    latOffset += (index * 0.001);
+    lngOffset += (index * 0.001);
+
+    return {
+      latitude: baseCoords.latitude + latOffset,
+      longitude: baseCoords.longitude + lngOffset
+    };
   }
 };
 

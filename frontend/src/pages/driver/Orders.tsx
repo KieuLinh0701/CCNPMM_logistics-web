@@ -71,7 +71,7 @@ const DriverOrders: React.FC = () => {
           });
           
           if ((res.data as any)?.success) {
-            message.success('Đã nhận hàng thành công, tạo chuyến vận chuyển Pending');
+            message.success('Đã nhận hàng thành công');
             setSelectedOrders([]);
             setSelectedVehicle(undefined);
             loadData();

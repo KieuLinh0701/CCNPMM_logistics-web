@@ -66,6 +66,12 @@ interface CODSubmission {
     recipientName: string;
     cod: number;
   };
+  orders?: {
+    id: number;
+    trackingNumber: string;
+    recipientName: string;
+    cod: number;
+  }[];
   office?: {
     id: number;
     name: string;
@@ -300,18 +306,45 @@ const ShipperCODManagement: React.FC = () => {
   const submissionColumns = [
     {
       title: 'Mã đơn hàng',
-      dataIndex: ['order', 'trackingNumber'],
-      key: 'trackingNumber',
+      dataIndex: 'orders',
+      key: 'trackingNumbers',
       width: 140,
-      render: (text: string) => (
-        <Text strong style={{ fontSize: '13px' }}>{text}</Text>
+      render: (orders: any[]) => (
+        <div>
+          {orders && orders.length > 0 ? (
+            orders.map((order, index) => (
+              <div key={order.id}>
+                <Text strong style={{ fontSize: '13px' }}>
+                  {order.trackingNumber}
+                </Text>
+                {index < orders.length - 1 && <br />}
+              </div>
+            ))
+          ) : (
+            <Text style={{ color: '#999' }}>N/A</Text>
+          )}
+        </div>
       ),
     },
     {
       title: 'Người nhận',
-      dataIndex: ['order', 'recipientName'],
-      key: 'recipientName',
+      dataIndex: 'orders',
+      key: 'recipientNames',
       width: 150,
+      render: (orders: any[]) => (
+        <div>
+          {orders && orders.length > 0 ? (
+            orders.map((order, index) => (
+              <div key={order.id}>
+                <Text>{order.recipientName}</Text>
+                {index < orders.length - 1 && <br />}
+              </div>
+            ))
+          ) : (
+            <Text style={{ color: '#999' }}>N/A</Text>
+          )}
+        </div>
+      ),
     },
     {
       title: 'Số tiền nộp',
@@ -786,13 +819,46 @@ const ShipperCODManagement: React.FC = () => {
         {selectedSubmission && (
           <Descriptions column={1} bordered>
             <Descriptions.Item label="Mã đơn hàng">
-              {selectedSubmission.order?.trackingNumber}
+              {selectedSubmission.orders && selectedSubmission.orders.length > 0 ? (
+                <div>
+                  {selectedSubmission.orders.map((order: any, index: number) => (
+                    <div key={order.id}>
+                      <Text strong>{order.trackingNumber}</Text>
+                      {index < (selectedSubmission.orders?.length || 0) - 1 && <br />}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <Text style={{ color: '#999' }}>N/A</Text>
+              )}
             </Descriptions.Item>
             <Descriptions.Item label="Người nhận">
-              {selectedSubmission.order?.recipientName}
+              {selectedSubmission.orders && selectedSubmission.orders.length > 0 ? (
+                <div>
+                  {selectedSubmission.orders.map((order: any, index: number) => (
+                    <div key={order.id}>
+                      <Text>{order.recipientName}</Text>
+                      {index < (selectedSubmission.orders?.length || 0) - 1 && <br />}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <Text style={{ color: '#999' }}>N/A</Text>
+              )}
             </Descriptions.Item>
             <Descriptions.Item label="Số tiền COD">
-              {selectedSubmission.order?.cod?.toLocaleString()}đ
+              {selectedSubmission.orders && selectedSubmission.orders.length > 0 ? (
+                <div>
+                  {selectedSubmission.orders.map((order: any, index: number) => (
+                    <div key={order.id}>
+                      <Text strong>{order.cod?.toLocaleString()}đ</Text>
+                      {index < (selectedSubmission.orders?.length || 0) - 1 && <br />}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <Text style={{ color: '#999' }}>N/A</Text>
+              )}
             </Descriptions.Item>
             <Descriptions.Item label="Số tiền nộp">
               <Text strong style={{ color: '#52c41a' }}>

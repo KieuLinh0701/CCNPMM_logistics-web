@@ -1,5 +1,6 @@
 import db from "../models";
 import vehicleService from "../services/vehicleService";
+import { calculateDistance, calculateTravelTime, calculateRouteMetrics } from "../utils/routeUtils";
 
 const driverController = {
   async getContext(req, res) {
@@ -76,6 +77,22 @@ const driverController = {
       if (!user || !user.employee) {
         await t.rollback();
         return res.status(404).json({ success: false, message: "Không tìm thấy thông tin nhân viên" });
+      }
+
+      // Kiểm tra và cập nhật trạng thái xe nếu có chọn xe
+      if (vehicleId) {
+        const vehicle = await db.Vehicle.findByPk(vehicleId, { transaction: t });
+        if (!vehicle) {
+          await t.rollback();
+          return res.status(404).json({ success: false, message: "Không tìm thấy phương tiện" });
+        }
+        if (vehicle.status !== 'Available') {
+          await t.rollback();
+          return res.status(400).json({ success: false, message: "Phương tiện không khả dụng" });
+        }
+        // Cập nhật trạng thái xe thành InUse
+        await vehicle.update({ status: 'InUse' }, { transaction: t });
+        console.log('[driver.pickUp] updated vehicle status to InUse:', vehicleId);
       }
 
       // Tạo shipment pending
@@ -190,6 +207,15 @@ const driverController = {
 
       await shipment.update({ status, endTime: new Date() }, { transaction: t });
 
+      // Cập nhật trạng thái xe về Available khi kết thúc shipment
+      if (shipment.vehicleId) {
+        const vehicle = await db.Vehicle.findByPk(shipment.vehicleId, { transaction: t });
+        if (vehicle && vehicle.status === 'InUse') {
+          await vehicle.update({ status: 'Available' }, { transaction: t });
+          console.log('[driver.finishShipment] updated vehicle status to Available:', shipment.vehicleId);
+        }
+      }
+
       const links = await db.ShipmentOrder.findAll({ where: { shipmentId: shipment.id }, include: [{ model: db.Order, as: 'order' }], transaction: t });
       console.log('[driver.finishShipment] linked orders count=', links.length);
       for (const link of links) {
@@ -297,8 +323,8 @@ const driverController = {
                 model: db.Order, 
                 as: 'order',
                 include: [
-                  { model: db.Office, as: 'fromOffice', attributes: ['id', 'name', 'address'] },
-                  { model: db.Office, as: 'toOffice', attributes: ['id', 'name', 'address'] }
+                  { model: db.Office, as: 'fromOffice', attributes: ['id', 'name', 'address', 'latitude', 'longitude'] },
+                  { model: db.Office, as: 'toOffice', attributes: ['id', 'name', 'address', 'latitude', 'longitude', 'phoneNumber'] }
                 ]
               }
             ]
@@ -330,28 +356,56 @@ const driverController = {
         }
       });
 
-      // Tạo delivery stops từ các bưu cục
-      const deliveryStops = Object.values(officeGroups).map((group, index) => ({
-        id: group.office.id,
-        trackingNumber: `OFFICE-${group.office.id}`,
-        officeName: group.office.name,
-        officePhone: group.office.phone || 'N/A',
-        officeAddress: group.office.address,
-        orderCount: group.orders.length,
-        priority: group.orders.some(order => order.priority === 'urgent') ? 'urgent' : 'normal',
-        serviceType: 'Vận chuyển bưu cục',
-        estimatedTime: '30 phút', // Mock data
-        status: 'pending',
-        coordinates: {
-          lat: 10.7769 + (index * 0.01), // Mock coordinates
-          lng: 106.7009 + (index * 0.01)
-        },
-        distance: 5 + (index * 2), // Mock distance
-        travelTime: 15 + (index * 5), // Mock travel time
-        toOffice: group.office
-      }));
+      // Lấy thông tin xe để xác định loại xe
+      const vehicle = activeShipment.vehicleId ? 
+        await db.Vehicle.findByPk(activeShipment.vehicleId) : null;
+      const vehicleType = vehicle?.type || 'Truck';
 
-      // Tính toán thông tin tuyến
+      // Lấy tọa độ bưu cục xuất phát
+      const fromOffice = await db.Office.findByPk(user.employee.officeId);
+      const startCoordinates = {
+        latitude: parseFloat(fromOffice?.latitude) || 10.7769,
+        longitude: parseFloat(fromOffice?.longitude) || 106.7009
+      };
+
+      // Tạo delivery stops từ các bưu cục với tọa độ thực tế
+      const deliveryStops = Object.values(officeGroups).map((group, index) => {
+        const officeLat = parseFloat(group.office.latitude) || (10.7769 + index * 0.01);
+        const officeLng = parseFloat(group.office.longitude) || (106.7009 + index * 0.01);
+        
+        // Tính khoảng cách từ bưu cục xuất phát đến bưu cục đích
+        const distance = calculateDistance(
+          startCoordinates.latitude,
+          startCoordinates.longitude,
+          officeLat,
+          officeLng
+        );
+        
+        // Tính thời gian di chuyển
+        const travelTime = calculateTravelTime(distance, vehicleType);
+        
+        return {
+          id: group.office.id,
+          trackingNumber: `OFFICE-${group.office.id}`,
+          officeName: group.office.name,
+          officePhone: group.office.phoneNumber || 'N/A',
+          officeAddress: group.office.address,
+          orderCount: group.orders.length,
+          priority: group.orders.some(order => order.priority === 'urgent') ? 'urgent' : 'normal',
+          serviceType: 'Vận chuyển bưu cục',
+          estimatedTime: `${travelTime} phút`,
+          status: 'pending',
+          coordinates: {
+            lat: officeLat,
+            lng: officeLng
+          },
+          distance: distance,
+          travelTime: travelTime,
+          toOffice: group.office
+        };
+      });
+
+      // Tính toán thông tin tuyến với khoảng cách thực tế
       const totalDistance = deliveryStops.reduce((sum, stop) => sum + stop.distance, 0);
       const totalDuration = deliveryStops.reduce((sum, stop) => sum + stop.travelTime, 0);
       const totalOrders = deliveryStops.reduce((sum, stop) => sum + stop.orderCount, 0);

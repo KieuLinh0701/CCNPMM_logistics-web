@@ -819,25 +819,15 @@ const shipperController = {
       // Tính chênh lệch
       const discrepancy = totalAmount - expectedAmount;
 
-      // Tạo bản ghi PaymentSubmission cho mỗi đơn hàng
-      const paymentSubmissions = [];
-      for (const order of orders) {
-        const collection = order.shippingCollections[0];
-        const orderAmount = collection ? collection.amountCollected : 0;
-        const orderDiscrepancy = (orderAmount / expectedAmount) * discrepancy;
-
-        const submission = await db.PaymentSubmission.create({
-          orderId: order.id,
-          officeId: shipperEmployee.officeId,
-          shipperId: userId,
-          amountSubmitted: (orderAmount / expectedAmount) * totalAmount,
-          discrepancy: Math.round(orderDiscrepancy),
-          status: 'Pending',
-          notes: notes || `Shipper nộp tiền COD cho đơn hàng ${order.trackingNumber}`
-        });
-
-        paymentSubmissions.push(submission);
-      }
+      // Tạo bản ghi PaymentSubmission cho tất cả đơn hàng cùng lúc
+      const submission = await db.PaymentSubmission.create({
+        orderIds: transactionIds, // Array of order IDs
+        officeId: shipperEmployee.officeId,
+        submittedById: userId,
+        totalAmountSubmitted: totalAmount,
+        status: 'Pending',
+        notes: notes || `Shipper nộp tiền COD cho ${orders.length} đơn hàng`
+      });
 
       // Gửi thông báo cho admin/manager
       await db.Notification.create({
@@ -846,10 +836,11 @@ const shipperController = {
         title: 'Nộp tiền COD',
         message: `Shipper đã nộp ${totalAmount.toLocaleString()}đ COD cho ${orders.length} đơn hàng`,
         data: {
-          submissionIds: paymentSubmissions.map(s => s.id),
+          submissionId: submission.id,
           totalAmount,
           discrepancy,
-          orderCount: orders.length
+          orderCount: orders.length,
+          orderIds: transactionIds
         }
       });
 
@@ -857,7 +848,7 @@ const shipperController = {
         success: true,
         message: 'Đã nộp tiền COD thành công',
         data: {
-          submissions: paymentSubmissions,
+          submission: submission,
           summary: {
             totalAmount,
             expectedAmount,
@@ -883,7 +874,7 @@ const shipperController = {
       console.log('User ID:', userId);
       const { page = 1, limit = 10, status, dateFrom, dateTo } = req.query;
 
-      const whereClause = { shipperId: userId };
+      const whereClause = { submittedById: userId };
       if (status) whereClause.status = status;
       
       if (dateFrom || dateTo) {
@@ -898,14 +889,14 @@ const shipperController = {
         where: whereClause,
         include: [
           {
-            model: db.Order,
-            as: 'order',
-            attributes: ['id', 'trackingNumber', 'recipientName', 'cod']
-          },
-          {
             model: db.Office,
             as: 'office',
             attributes: ['id', 'name', 'address']
+          },
+          {
+            model: db.User,
+            as: 'submittedBy',
+            attributes: ['id', 'firstName', 'lastName']
           }
         ],
         order: [['createdAt', 'DESC']],
@@ -913,15 +904,60 @@ const shipperController = {
         offset: (parseInt(page) - 1) * parseInt(limit)
       });
 
+      // Lấy thông tin orders riêng biệt
+      const allOrderIds = [];
+      submissions.forEach(submission => {
+        if (submission.orderIds && Array.isArray(submission.orderIds)) {
+          allOrderIds.push(...submission.orderIds);
+        }
+      });
+
+      let orders = [];
+      if (allOrderIds.length > 0) {
+        orders = await db.Order.findAll({
+          where: { id: allOrderIds },
+          attributes: ['id', 'trackingNumber', 'recipientName', 'cod']
+        });
+      }
+
+      // Map orders to submissions
+      const orderMap = {};
+      orders.forEach(order => {
+        orderMap[order.id] = order;
+      });
+
+      // Add orders to each submission và format lại dữ liệu
+      const formattedSubmissions = submissions.map(submission => {
+        // Convert Sequelize instance to plain object
+        const plainSubmission = submission.toJSON ? submission.toJSON() : submission;
+        
+        // Add orders
+        const submissionOrders = [];
+        if (plainSubmission.orderIds && Array.isArray(plainSubmission.orderIds)) {
+          plainSubmission.orderIds.forEach(orderId => {
+            if (orderMap[orderId]) {
+              submissionOrders.push(orderMap[orderId]);
+            }
+          });
+        }
+        
+        // Return formatted object với các trường cần thiết cho frontend
+        return {
+          ...plainSubmission,
+          orders: submissionOrders,
+          amount: plainSubmission.totalAmountSubmitted || 0,
+          amountSubmitted: plainSubmission.totalAmountSubmitted || 0,
+          discrepancy: 0
+        };
+      });
+
       console.log('Found submissions:', count);
-      console.log('Submissions data:', submissions);
 
       // Tính tổng kết
       const summary = await db.PaymentSubmission.findAll({
-        where: { shipperId: userId },
+        where: { submittedById: userId },
         attributes: [
-          [db.Sequelize.fn('SUM', db.Sequelize.col('amountSubmitted')), 'totalSubmitted'],
-          [db.Sequelize.fn('SUM', db.Sequelize.col('discrepancy')), 'totalDiscrepancy'],
+          [db.Sequelize.fn('SUM', db.Sequelize.col('totalAmountSubmitted')), 'totalSubmitted'],
           [db.Sequelize.fn('COUNT', db.Sequelize.col('id')), 'totalSubmissions']
         ],
         raw: true
@@ -929,9 +965,32 @@ const shipperController = {
 
       console.log('Summary:', summary);
 
+      // Final debug: Log the response structure
+      console.log('=== FINAL RESPONSE DEBUG ===');
+      console.log('Response structure:');
+      console.log('- success: true');
+      console.log('- data length:', formattedSubmissions.length);
+      console.log('- pagination:', {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: count,
+        pages: Math.ceil(count / parseInt(limit))
+      });
+      console.log('- summary:', {
+        totalSubmitted: summary[0]?.totalSubmitted || 0,
+        totalSubmissions: summary[0]?.totalSubmissions || 0
+      });
+      
+      if (formattedSubmissions.length > 0) {
+        console.log('First submission in response:');
+        console.log('- amountSubmitted:', formattedSubmissions[0].amountSubmitted);
+        console.log('- discrepancy:', formattedSubmissions[0].discrepancy);
+        console.log('- amount:', formattedSubmissions[0].amount);
+      }
+
       return res.json({
         success: true,
-        data: submissions,
+        data: formattedSubmissions,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -940,7 +999,6 @@ const shipperController = {
         },
         summary: {
           totalSubmitted: summary[0]?.totalSubmitted || 0,
-          totalDiscrepancy: summary[0]?.totalDiscrepancy || 0,
           totalSubmissions: summary[0]?.totalSubmissions || 0
         }
       });
