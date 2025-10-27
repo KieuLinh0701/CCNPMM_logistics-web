@@ -48,8 +48,9 @@ const ShipperDeliveryUpdate: React.FC = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [order, setOrder] = useState<OrderInfo | null>(null);
-  const [currentStep] = useState(0);
+  const [currentStep] = useState(1);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [selectedStatus, setSelectedStatus] = useState<string>('');
 
 useEffect(() => {
   if (id) {
@@ -78,8 +79,8 @@ useEffect(() => {
         status: values.status,
         notes: values.notes,
         proofImages: selectedImages,
-        actualRecipient: values.actualRecipient,
-        actualRecipientPhone: values.actualRecipientPhone,
+        actualRecipient: order?.recipientName,
+        actualRecipientPhone: order?.recipientPhone,
         codCollected: values.codCollected ? Number(values.codCollected) : undefined,
         totalAmountCollected: values.totalAmountCollected ? Number(values.totalAmountCollected) : undefined,
         shipperId: JSON.parse(localStorage.getItem('user') || '{}').id
@@ -234,7 +235,10 @@ useEffect(() => {
             label="Trạng thái giao hàng"
             rules={[{ required: true, message: 'Vui lòng chọn trạng thái' }]}
           >
-            <Select placeholder="Chọn trạng thái giao hàng">
+            <Select 
+              placeholder="Chọn trạng thái giao hàng"
+              onChange={(value) => setSelectedStatus(value)}
+            >
               <Option value="delivered">
                 <Space>
                   <CheckCircleOutlined style={{ color: '#52c41a' }} />
@@ -256,26 +260,7 @@ useEffect(() => {
             </Select>
           </Form.Item>
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="actualRecipient"
-                label="Người nhận thực tế"
-              >
-                <Input placeholder="Nhập tên người nhận thực tế" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="actualRecipientPhone"
-                label="Số điện thoại người nhận thực tế"
-              >
-                <Input placeholder="Nhập số điện thoại" />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          {order.codAmount > 0 && (
+          {order.codAmount > 0 && selectedStatus === 'delivered' && (
             <Form.Item
               name="codCollected"
               label="Số tiền COD đã thu"
@@ -299,31 +284,30 @@ useEffect(() => {
             </Form.Item>
           )}
           
-          <Form.Item
-            name="totalAmountCollected"
-            label="Tổng số tiền đã thu từ khách"
-            rules={[
-              { 
-                required: (order.codAmount + order.shippingFee - order.discountAmount) > 0, 
-                message: 'Vui lòng nhập tổng số tiền đã thu' 
-              },
-              {
-                validator: (_, value) => {
-                  const expectedAmount = order.codAmount + order.shippingFee - order.discountAmount;
-                  if (value && Number(value) !== expectedAmount) {
-                    return Promise.reject(new Error(`Tổng số tiền phải bằng ${expectedAmount.toLocaleString()}đ (COD + Phí vận chuyển - Giảm giá)`));
+          {selectedStatus === 'delivered' && (
+            <Form.Item
+              name="totalAmountCollected"
+              label="Tổng số tiền đã thu từ khách"
+              rules={[
+                { required: true, message: 'Vui lòng nhập tổng số tiền đã thu' },
+                {
+                  validator: (_, value) => {
+                    const expectedAmount = order.codAmount + order.shippingFee - order.discountAmount;
+                    if (value && Number(value) !== expectedAmount) {
+                      return Promise.reject(new Error(`Tổng số tiền phải bằng ${expectedAmount.toLocaleString()}đ (COD + Phí vận chuyển - Giảm giá)`));
+                    }
+                    return Promise.resolve();
                   }
-                  return Promise.resolve();
                 }
-              }
-            ]}
-          >
-            <Input
-              type="number"
-              placeholder={`Nhập tổng số tiền đã thu (${(order.codAmount + order.shippingFee - order.discountAmount).toLocaleString()}đ)`}
-              suffix="đ"
-            />
-          </Form.Item>
+              ]}
+            >
+              <Input
+                type="number"
+                placeholder={`Nhập tổng số tiền đã thu (${(order.codAmount + order.shippingFee - order.discountAmount).toLocaleString()}đ)`}
+                suffix="đ"
+              />
+            </Form.Item>
+          )}
 
           <Form.Item
             name="notes"
