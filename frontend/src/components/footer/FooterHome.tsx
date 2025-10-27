@@ -62,13 +62,13 @@ const FooterHome: React.FC = () => {
         <Col xs={24} sm={24} md={6}>
           <Title level={5} style={{ color: '#000', margin: 0, marginBottom: '12px', fontSize: '28px' }}>Contact</Title>
           <Text style={{ color: '#7A7A7A', fontSize: '15px'}}>
-            <EnvironmentOutlined style={{ marginRight: 8 }}/> 123 Street, New York
+            <EnvironmentOutlined style={{ marginRight: 8 }}/> 01 Đ. Võ Văn Ngân, Linh Chiểu, Thủ Đức, Thành phố Hồ Chí Minh, Việt Nam
           </Text><br />
           <Text style={{ color: '#7A7A7A', fontSize: '15px' }}>
-            <MailOutlined style={{ marginRight: 8 }}/> Email@Example.com
+            <MailOutlined style={{ marginRight: 8 }}/> kieulinh@gmail.com
           </Text><br />
           <Text style={{ color: '#7A7A7A', fontSize: '15px' }}>
-            <PhoneOutlined style={{ marginRight: 8 }}/> +1 234 567 890
+            <PhoneOutlined style={{ marginRight: 8 }}/> +84 123 4556 789
           </Text>
         </Col>
 
