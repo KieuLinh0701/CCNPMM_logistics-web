@@ -21,33 +21,19 @@ import {
   CameraOutlined
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
-import shipperService from '../../services/shipperService';
+import shipperService, { ShipperOrder } from '../../services/shipperService';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
 
-interface OrderInfo {
-  id: number;
-  trackingNumber: string;
-  recipientName: string;
-  recipientPhone: string;
-  recipientAddress: string;
-  codAmount: number;
-  shippingFee: number;
-  discountAmount: number;
-  status: string;
-  serviceType: string;
-  paymentMethod: string;
-}
-
 const ShipperDeliveryUpdate: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [order, setOrder] = useState<OrderInfo | null>(null);
+  const [order, setOrder] = useState<ShipperOrder | null>(null);
   const [currentStep] = useState(1);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<string>('');
@@ -190,7 +176,7 @@ useEffect(() => {
         
         <div style={{ marginTop: '16px' }}>
           <Text strong>Phí vận chuyển: </Text>
-          <Text>{order.shippingFee.toLocaleString()}đ</Text>
+          <Text>{order.totalFee.toLocaleString()}đ</Text>
         </div>
         
         {order.discountAmount > 0 && (
@@ -205,10 +191,21 @@ useEffect(() => {
         <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#f0f2f5', borderRadius: '6px' }}>
           <Text strong>Tổng số tiền khách cần trả: </Text>
           <Text style={{ color: '#f50', fontSize: '16px', fontWeight: 'bold' }}>
-            {(order.codAmount + order.shippingFee - order.discountAmount).toLocaleString()}đ
+            {order.payer === 'Customer' 
+              ? (order.codAmount + order.totalFee - order.discountAmount).toLocaleString()
+              : (order.totalFee - order.discountAmount).toLocaleString()
+            }đ
           </Text>
           <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-            (COD: {order.codAmount.toLocaleString()}đ + Phí vận chuyển: {order.shippingFee.toLocaleString()}đ - Giảm giá: {order.discountAmount.toLocaleString()}đ)
+            {order.payer === 'Customer' ? (
+              <>
+                (COD: {order.codAmount.toLocaleString()}đ + Phí vận chuyển: {order.totalFee.toLocaleString()}đ - Giảm giá: {order.discountAmount.toLocaleString()}đ)
+              </>
+            ) : (
+              <>
+                (Phí vận chuyển: {order.totalFee.toLocaleString()}đ - Giảm giá: {order.discountAmount.toLocaleString()}đ)
+              </>
+            )}
           </div>
         </div>
         
@@ -292,9 +289,14 @@ useEffect(() => {
                 { required: true, message: 'Vui lòng nhập tổng số tiền đã thu' },
                 {
                   validator: (_, value) => {
-                    const expectedAmount = order.codAmount + order.shippingFee - order.discountAmount;
+                    const expectedAmount = order.payer === 'Customer' 
+                      ? order.codAmount + order.totalFee - order.discountAmount
+                      : order.totalFee - order.discountAmount;
+                    
                     if (value && Number(value) !== expectedAmount) {
-                      return Promise.reject(new Error(`Tổng số tiền phải bằng ${expectedAmount.toLocaleString()}đ (COD + Phí vận chuyển - Giảm giá)`));
+                      return Promise.reject(new Error(
+                        `Tổng số tiền phải bằng ${expectedAmount.toLocaleString()}đ (${order.payer === 'Customer' ? 'COD + Phí vận chuyển - Giảm giá' : 'Phí vận chuyển - Giảm giá'})`
+                      ));
                     }
                     return Promise.resolve();
                   }
@@ -303,7 +305,11 @@ useEffect(() => {
             >
               <Input
                 type="number"
-                placeholder={`Nhập tổng số tiền đã thu (${(order.codAmount + order.shippingFee - order.discountAmount).toLocaleString()}đ)`}
+                placeholder={`Nhập tổng số tiền đã thu (${
+                  order.payer === 'Customer' 
+                    ? (order.codAmount + order.totalFee - order.discountAmount).toLocaleString()
+                    : (order.totalFee - order.discountAmount).toLocaleString()
+                }đ)`}
                 suffix="đ"
               />
             </Form.Item>

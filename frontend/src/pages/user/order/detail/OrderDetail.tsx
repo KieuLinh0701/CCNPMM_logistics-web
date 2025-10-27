@@ -166,7 +166,7 @@ const OrderDetail: React.FC = () => {
     const senderWard = wards.find((w) => w.code === Number(order.senderWardCode));
     const recipientWard = wards.find((w) => w.code === Number(order.recipientWardCode));
 
-    const totalServiceFee = (order.shippingFee || 0) - (order.discountAmount || 0);
+    const totalServiceFee = (order.totalFee || 0) - (order.discountAmount || 0);
     const canEdit = ["draft", "pending", "confirmed"].includes(order.status);
     const canPublic = ["draft"].includes(order.status);
     const canPayStatus = ["pending"].includes(order.status);

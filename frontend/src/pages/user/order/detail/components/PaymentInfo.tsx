@@ -45,7 +45,7 @@ const PaymentInfo: React.FC<Props> = ({ order, totalServiceFee }) => (
       <Title level={5} style={{ color: "#1C3D90" }}>Phí dịch vụ</Title>
       <div style={{ marginBottom: 12, display: "flex", justifyContent: "space-between" }}>
         <span>Phí vận chuyển:</span>
-        <span>{order.shippingFee.toLocaleString()} VNĐ</span>
+        <span>{order.totalFee.toLocaleString()} VNĐ</span>
       </div>
       <div style={{ marginBottom: 12, display: "flex", justifyContent: "space-between" }}>
         <span>Giảm giá:</span>
@@ -53,7 +53,7 @@ const PaymentInfo: React.FC<Props> = ({ order, totalServiceFee }) => (
       </div>
       <div style={{ marginBottom: 12, display: "flex", justifyContent: "space-between" }}>
         <span>Tổng phí dịch vụ:</span>
-        <span style={{ color: "#28a745", fontWeight: "bold" }}>{totalServiceFee.toLocaleString()} VNĐ</span>
+        <span style={{ color: "#28a745", fontWeight: "bold" }}>{(order.totalFee - order.discountAmount).toLocaleString()} VNĐ</span>
       </div>
     </div>
   </div>

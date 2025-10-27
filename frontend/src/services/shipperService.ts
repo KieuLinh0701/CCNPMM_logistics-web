@@ -16,8 +16,10 @@ export interface ShipperOrder {
   recipientAddress: string;
   codAmount: number;
   shippingFee: number;
+  totalFee: number;
   discountAmount: number;
   paymentMethod: string;
+  payer: 'Customer' | 'Shop';
   status: 'pending' | 'confirmed' | 'picked_up' | 'delivering' | 'delivered' | 'cancelled';
   priority: 'normal' | 'urgent';
   serviceType: string;

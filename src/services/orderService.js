@@ -116,7 +116,7 @@ const orderService = {
         order.deliveredAt = new Date();
 
         // Validate COD amount if provided
-        if (updateData.codCollected !== undefined) {
+        if (updateData.codCollected !== undefined && order.cod > 0) {
           if (updateData.codCollected !== order.cod) {
             await t.rollback();
             return {
@@ -126,26 +126,36 @@ const orderService = {
           }
         }
 
+        // Calculate amount collected based on payer
+        let amountCollected = 0;
+        if (order.payer === 'Customer') {
+          // Người nhận trả tiền: thu COD + totalFee - discountAmount
+          amountCollected = (order.cod || 0) + order.totalFee - (order.discountAmount || 0);
+        } else if (order.payer === 'Shop') {
+          // Người gửi trả tiền: chỉ thu totalFee (phí vận chuyển)
+          amountCollected = order.totalFee;
+        }
+
         // Validate total amount collected
         if (updateData.totalAmountCollected !== undefined) {
-          const expectedAmount = order.cod + order.shippingFee - order.discountAmount;
-          if (updateData.totalAmountCollected !== expectedAmount) {
+          if (updateData.totalAmountCollected !== amountCollected) {
             await t.rollback();
             return {
               success: false,
-              message: `Tổng số tiền phải bằng ${expectedAmount.toLocaleString()}đ (COD + Phí vận chuyển - Giảm giá)`
+              message: `Tổng số tiền phải bằng ${amountCollected.toLocaleString()}đ (${order.payer === 'Customer' ? 'COD + Phí vận chuyển - Giảm giá' : 'Phí vận chuyển'})`
             };
           }
         }
 
         // Create ShippingCollection record for COD tracking
-        if (order.cod > 0 && updateData.codCollected) {
+        // Chỉ tạo khi có COD hoặc khi người gửi trả phí
+        if (amountCollected > 0) {
           await db.ShippingCollection.create({
             orderId: order.id,
             shipperId: updateData.shipperId,
-            amountCollected: updateData.codCollected,
-            discrepancy: 0, // No discrepancy if amounts match
-            notes: updateData.notes || 'Shipper thu tiền COD khi giao hàng'
+            amountCollected: amountCollected,
+            discrepancy: 0,
+            notes: updateData.notes || (order.payer === 'Customer' ? 'Shipper thu tiền COD khi giao hàng' : 'Shipper thu phí vận chuyển')
           }, { transaction: t });
         }
       }
@@ -2804,7 +2814,13 @@ async updateUserOrder(userId, orderData) {
           { model: db.User, as: 'user', attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber'] },
           { model: db.Office, as: 'fromOffice', attributes: ['id', 'name', 'address'] },
           { model: db.Office, as: 'toOffice', attributes: ['id', 'name', 'address'] },
-          { model: db.ServiceType, as: 'serviceType', attributes: ['id', 'name', 'deliveryTime'] }
+          { model: db.ServiceType, as: 'serviceType', attributes: ['id', 'name', 'deliveryTime'] },
+          {
+            model: db.ShippingCollection,
+            as: 'shippingCollections',
+            attributes: ['id', 'amountCollected', 'createdAt'],
+            required: false
+          }
         ]
       };
 
@@ -2817,11 +2833,25 @@ async updateUserOrder(userId, orderData) {
         console.log(`Order: ${order.trackingNumber} | Status: ${order.status} | DeliveredAt: ${order.deliveredAt}`);
       });
 
+      // Format lại dữ liệu để dùng amountCollected từ shippingCollections nếu có
+      const formattedOrders = rows.map(order => {
+        const hasCollection = order.shippingCollections && order.shippingCollections.length > 0;
+        const amountCollected = hasCollection ? order.shippingCollections[0].amountCollected : order.cod;
+        
+        // Tạo object mới với amountCollected nếu có, nếu không thì dùng cod
+        const formattedOrder = order.toJSON ? order.toJSON() : order;
+        if (hasCollection) {
+          formattedOrder.cod = amountCollected;
+        }
+        
+        return formattedOrder;
+      });
+
       // Tính thống kê
       const stats = await this.getShipperStats(officeId, dateFrom, dateTo);
       console.log('Stats:', stats);
 
-      const result = { orders: rows, pagination: { page: parseInt(page), limit: parseInt(limit), total: count }, stats };
+      const result = { orders: formattedOrders, pagination: { page: parseInt(page), limit: parseInt(limit), total: count }, stats };
       console.log('History result:', result);
 
       return result;
@@ -3164,12 +3194,15 @@ async updateUserOrder(userId, orderData) {
           }
         }
 
+        // Lấy amountCollected từ shippingCollections nếu đã thu, nếu chưa thì dùng codAmount
+        const amountCollected = hasCollection ? order.shippingCollections[0].amountCollected : codAmount;
+
         return {
           id: order.id,
           trackingNumber: order.trackingNumber,
           recipientName: order.recipientName,
           recipientPhone: order.recipientPhone,
-          codAmount: codAmount,
+          codAmount: amountCollected,
           status: status,
           collectedAt: hasCollection ? order.shippingCollections[0].createdAt : null,
           submittedAt: hasSubmission ? order.paymentSubmissions[0].createdAt : null,

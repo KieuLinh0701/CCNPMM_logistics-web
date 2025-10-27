@@ -84,3 +84,4 @@ export default (sequelize) => {
   return Feedback;
 };
 
+
