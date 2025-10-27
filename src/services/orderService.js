@@ -576,51 +576,61 @@ const orderService = {
         endDate,
       } = filters || {};
 
-      const whereCondition = { userId };
+      const whereCondition = {
+        [Op.and]: [
+          { userId }
+        ]
+      };
 
       if (searchText) {
         // tìm theo mã đơn hàng, tên người nhận, số điện thoại người nhận
-        whereCondition[Op.or] = [
-          { trackingNumber: { [Op.like]: `%${searchText}%` } },
-          { recipientName: { [Op.like]: `%${searchText}%` } },
-          { recipientPhone: { [Op.like]: `%${searchText}%` } },
-          { notes: { [Op.like]: `%${searchText}%` } },
-        ];
+        whereCondition[Op.and].push({
+          [Op.or]: [
+            { trackingNumber: { [Op.like]: `%${searchText}%` } },
+            { recipientName: { [Op.like]: `%${searchText}%` } },
+            { recipientPhone: { [Op.like]: `%${searchText}%` } },
+            { notes: { [Op.like]: `%${searchText}%` } },
+          ]
+        });
       }
 
       if (payer && payer !== "All") {
-        whereCondition.payer = payer;
+        whereCondition[Op.and].push({ payer: payer });
       }
 
       if (status && status !== "All") {
-        whereCondition.status = status;
+        whereCondition[Op.and].push({ status: status });
       }
 
       if (paymentStatus && paymentStatus !== "All") {
-        whereCondition.paymentStatus = paymentStatus;
+        whereCondition[Op.and].push({ paymentStatus: paymentStatus });
       }
 
       if (paymentMethod && paymentMethod !== "All") {
-        whereCondition.paymentMethod = paymentMethod;
+        whereCondition[Op.and].push({ paymentMethod: paymentMethod });
       }
 
       if (cod && cod !== "All") {
-        whereCondition.cod = cod === "Yes" ? { [Op.gt]: 0 } : 0;
+        whereCondition[Op.and].push(
+          cod === "Yes" ? { cod: { [Op.gt]: 0 } } : { cod: 0 }
+        );
       }
 
       if (startDate && endDate) {
-        whereCondition[Op.or] = [
-          {
-            createdAt: {
-              [Op.between]: [new Date(startDate), new Date(endDate)],
+        whereCondition[Op.and].push({
+          [Op.or]: [
+            {
+              createdAt: {
+                [Op.between]: [new Date(startDate), new Date(endDate)],
+              },
             },
-          },
-          {
-            deliveredAt: {
-              [Op.between]: [new Date(startDate), new Date(endDate)],
+            {
+              deliveredAt: {
+                [Op.between]: [new Date(startDate), new Date(endDate)],
+              },
             },
-          },
-        ];
+          ],
+        });
       }
 
       let orderCondition = [["createdAt", "DESC"]];
@@ -897,18 +907,22 @@ const orderService = {
 
       // 3. Xác định điều kiện tìm kiếm dựa trên role
       const whereCondition = {
-        trackingNumber: { [Op.like]: `%${cleanTrackingNumber}%` }
+        [Op.and]: [
+          { trackingNumber: { [Op.like]: `%${cleanTrackingNumber}%` } }
+        ]
       };
 
       if (user.role === "user") {
         // Customer chỉ xem đơn của mình
-        whereCondition.userId = userId;
+        whereCondition[Op.and].push({ userId: userId });
       } else if (user.role === "manager") {
         // Manager chỉ xem đơn có liên quan đến bưu cục của họ (gửi đi hoặc nhận về)
-        whereCondition[Op.or] = [
-          { fromOfficeId: user.employee.office.id },
-          { toOfficeId: user.employee.office.id },
-        ];
+        whereCondition[Op.and].push({
+          [Op.or]: [
+            { fromOfficeId: user.employee.office.id },
+            { toOfficeId: user.employee.office.id },
+          ]
+        });
       }
       // Admin không cần thêm điều kiện, xem tất cả
 
@@ -1413,18 +1427,20 @@ async updateUserOrder(userId, orderData) {
       }
 
       if (startDate && endDate) {
-        whereCondition[Op.or] = [
-          {
-            createdAt: {
-              [Op.between]: [new Date(startDate), new Date(endDate)],
+        whereCondition[Op.and].push({
+          [Op.or]: [
+            {
+              createdAt: {
+                [Op.between]: [new Date(startDate), new Date(endDate)],
+              },
             },
-          },
-          {
-            deliveredAt: {
-              [Op.between]: [new Date(startDate), new Date(endDate)],
+            {
+              deliveredAt: {
+                [Op.between]: [new Date(startDate), new Date(endDate)],
+              },
             },
-          },
-        ];
+          ],
+        });
       }
 
       let orderCondition = [["createdAt", "DESC"]];
@@ -2602,44 +2618,58 @@ async updateUserOrder(userId, orderData) {
       } = filters;
 
       const offset = (page - 1) * limit;
-      const where = {
-        toOfficeId: officeId,
-        status: 'arrived_at_office', // Chỉ lấy đơn hàng đã đến bưu cục đích
-        createdByType: 'user' // Chỉ lấy đơn hàng do user tạo, không lấy đơn manager tạo tại bưu cục
-      };
-
-      if (status) where.status = status;
-      if (search) {
-        where[db.Sequelize.Op.or] = [
-          { trackingNumber: { [db.Sequelize.Op.like]: `%${search}%` } },
-          { recipientName: { [db.Sequelize.Op.like]: `%${search}%` } },
-          { recipientPhone: { [db.Sequelize.Op.like]: `%${search}%` } }
-        ];
-      }
-      if (dateFrom && dateTo) {
-        where.createdAt = { [db.Sequelize.Op.between]: [dateFrom, dateTo] };
-      }
-
-      // Chỉ loại trừ những đơn đã được shipper nhận (picked_up, delivering)
-      // Không loại trừ đơn chỉ được driver vận chuyển (arrived_at_office)
-      const unassignedWhere = {
-        ...where,
-        status: 'arrived_at_office' // Chỉ lấy đơn đã đến bưu cục và chưa được shipper nhận
-      };
-
-      console.log('Unassigned where clause:', unassignedWhere);
-
-      // Debug: Kiểm tra query đơn giản trước
-      const simpleQuery = await db.Order.findAll({
-        where: {
-          toOfficeId: officeId,
-          status: 'arrived_at_office',
-          createdByType: 'user'
+      
+      // Logic: 
+      // - Nếu fromOfficeId = toOfficeId: Hiện đơn ở trạng thái "confirmed" (đơn nội bưu cục)
+      // - Nếu fromOfficeId != toOfficeId: Hiện đơn ở trạng thái "arrived_at_office" (đơn đã đến bưu cục đích)
+      const baseConditions = [
+        { toOfficeId: officeId },
+        { createdByType: 'user' }, // Chỉ lấy đơn hàng do user tạo, không lấy đơn manager tạo tại bưu cục
+        {
+          [db.Sequelize.Op.or]: [
+            // Đơn nội bưu cục (fromOfficeId = toOfficeId) - trạng thái confirmed
+            {
+              fromOfficeId: officeId,
+              status: 'confirmed'
+            },
+            // Đơn đã đến bưu cục đích (fromOfficeId != toOfficeId) - trạng thái arrived_at_office
+            {
+              fromOfficeId: { [db.Sequelize.Op.ne]: officeId },
+              status: 'arrived_at_office'
+            }
+          ]
         }
-      });
-      console.log('Simple query (before NOT filter) found:', simpleQuery.length);
+      ];
 
-      console.log('Final unassigned query - no ShipmentOrder filtering needed');
+      if (status) {
+        // Nếu có filter status, override logic trên
+        baseConditions[2] = {
+          [db.Sequelize.Op.or]: [
+            { fromOfficeId: officeId, status: status },
+            { fromOfficeId: { [db.Sequelize.Op.ne]: officeId }, status: status }
+          ]
+        };
+      }
+
+      if (search) {
+        baseConditions.push({
+          [db.Sequelize.Op.or]: [
+            { trackingNumber: { [db.Sequelize.Op.like]: `%${search}%` } },
+            { recipientName: { [db.Sequelize.Op.like]: `%${search}%` } },
+            { recipientPhone: { [db.Sequelize.Op.like]: `%${search}%` } }
+          ]
+        });
+      }
+
+      if (dateFrom && dateTo) {
+        baseConditions.push({
+          createdAt: { [db.Sequelize.Op.between]: [dateFrom, dateTo] }
+        });
+      }
+
+      const unassignedWhere = { [db.Sequelize.Op.and]: baseConditions };
+
+      console.log('Unassigned where clause:', JSON.stringify(unassignedWhere, null, 2));
 
       const { rows, count } = await db.Order.findAndCountAll({
         where: unassignedWhere,
@@ -2681,8 +2711,8 @@ async updateUserOrder(userId, orderData) {
         return { success: false, message: 'Đơn hàng không tồn tại' };
       }
 
-      // Kiểm tra đơn phải ở trạng thái arrived_at_office
-      if (order.status !== 'arrived_at_office') {
+      // Kiểm tra đơn phải ở trạng thái arrived_at_office hoặc confirmed
+      if (order.status !== 'arrived_at_office' && order.status !== 'confirmed') {
         await t.rollback();
         return { success: false, message: 'Đơn hàng không ở trạng thái có thể nhận' };
       }
