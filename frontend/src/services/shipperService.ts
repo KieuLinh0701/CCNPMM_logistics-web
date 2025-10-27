@@ -219,7 +219,6 @@ const shipperService = {
     proofImages?: string[];
     actualRecipient?: string;
     actualRecipientPhone?: string;
-    codCollected?: number;
     totalAmountCollected?: number;
     shipperId?: number;
   }): Promise<void> {

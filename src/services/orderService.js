@@ -115,25 +115,14 @@ const orderService = {
       if (nextStatus === 'delivered') {
         order.deliveredAt = new Date();
 
-        // Validate COD amount if provided
-        if (updateData.codCollected !== undefined && order.cod > 0) {
-          if (updateData.codCollected !== order.cod) {
-            await t.rollback();
-            return {
-              success: false,
-              message: `Số tiền COD phải bằng ${order.cod.toLocaleString()}đ`
-            };
-          }
-        }
-
         // Calculate amount collected based on payer
         let amountCollected = 0;
         if (order.payer === 'Customer') {
           // Người nhận trả tiền: thu COD + totalFee - discountAmount
           amountCollected = (order.cod || 0) + order.totalFee - (order.discountAmount || 0);
         } else if (order.payer === 'Shop') {
-          // Người gửi trả tiền: chỉ thu totalFee (phí vận chuyển)
-          amountCollected = order.totalFee;
+          // Người gửi trả tiền: chỉ thu totalFee (phí vận chuyển) - discountAmount
+          amountCollected = order.totalFee - (order.discountAmount || 0);
         }
 
         // Validate total amount collected
@@ -142,7 +131,7 @@ const orderService = {
             await t.rollback();
             return {
               success: false,
-              message: `Tổng số tiền phải bằng ${amountCollected.toLocaleString()}đ (${order.payer === 'Customer' ? 'COD + Phí vận chuyển - Giảm giá' : 'Phí vận chuyển'})`
+              message: `Tổng số tiền phải bằng ${amountCollected.toLocaleString()}đ (${order.payer === 'Customer' ? 'COD + Phí vận chuyển - Giảm giá' : 'Phí vận chuyển - Giảm giá'})`
             };
           }
         }
@@ -2470,7 +2459,7 @@ async updateUserOrder(userId, orderData) {
 
       console.log('Where clause:', where);
 
-      const [totalAssigned, inProgress, delivered, failed, codCollected] = await Promise.all([
+      const [totalAssigned, inProgress, delivered, failed] = await Promise.all([
         // Tổng đơn hàng đã hoàn thành (delivered, cancelled, returned)
         db.Order.count({
           where: {
@@ -2498,23 +2487,32 @@ async updateUserOrder(userId, orderData) {
             ...where,
             status: { [db.Sequelize.Op.in]: ['cancelled', 'returned'] }
           }
-        }),
-        // Tổng COD đã thu từ đơn hàng đã giao
-        db.Order.sum('cod', {
-          where: {
-            ...where,
-            status: 'delivered',
-            cod: { [db.Sequelize.Op.gt]: 0 }
-          }
         })
       ]);
+
+      // Tính tổng COD đã thu từ ShippingCollection thay vì từ order.cod
+      const shippingCollections = await db.ShippingCollection.findAll({
+        include: [{
+          model: db.Order,
+          as: 'order',
+          where: {
+            ...where,
+            status: 'delivered'
+          },
+          attributes: []
+        }],
+        attributes: [[db.Sequelize.fn('SUM', db.Sequelize.col('amountCollected')), 'totalAmount']],
+        raw: true
+      });
+
+      const codCollected = shippingCollections[0]?.totalAmount || 0;
 
       const result = {
         totalAssigned,
         inProgress,
         delivered,
         failed,
-        codCollected: codCollected || 0
+        codCollected
       };
 
       console.log('Stats result:', result);
@@ -3145,24 +3143,29 @@ async updateUserOrder(userId, orderData) {
       let totalPending = 0;
 
       rows.forEach((order, index) => {
-        const codAmount = order.cod || 0;
         const hasCollection = order.shippingCollections && order.shippingCollections.length > 0;
         const hasSubmission = order.paymentSubmissions && order.paymentSubmissions.length > 0;
+        
+        // Lấy số tiền thực tế đã thu từ ShippingCollection
+        let amountCollected = 0;
+        if (hasCollection && order.shippingCollections[0]) {
+          amountCollected = order.shippingCollections[0].amountCollected || 0;
+        }
 
-        // Chỉ tính các đơn hàng có COD > 0
-        if (codAmount > 0) {
+        // Chỉ tính các đơn hàng có thu tiền
+        if (amountCollected > 0) {
           if (hasCollection) {
-            totalCollected += codAmount;
+            totalCollected += amountCollected;
           }
 
           if (hasSubmission) {
-            totalSubmitted += codAmount;
+            totalSubmitted += amountCollected;
           } else if (hasCollection) {
-            totalPending += codAmount;
+            totalPending += amountCollected;
           }
         }
 
-        console.log(`Order ${index + 1}: ID=${order.id}, COD=${codAmount}, Collected=${hasCollection}, Submitted=${hasSubmission}`);
+        console.log(`Order ${index + 1}: ID=${order.id}, AmountCollected=${amountCollected}, HasCollection=${hasCollection}, HasSubmission=${hasSubmission}`);
       });
 
       const summary = {

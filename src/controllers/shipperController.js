@@ -272,7 +272,7 @@ const shipperController = {
   async updateDeliveryStatus(req, res) {
     try {
       const { id } = req.params;
-      const { status, notes, proofImages, actualRecipient, actualRecipientPhone, codCollected, totalAmountCollected, shipperId } = req.body;
+      const { status, notes, proofImages, actualRecipient, actualRecipientPhone, totalAmountCollected, shipperId } = req.body;
       const userId = req.user.id;
 
       // Lấy thông tin employee
@@ -290,7 +290,6 @@ const shipperController = {
         proofImages,
         actualRecipient,
         actualRecipientPhone,
-        codCollected,
         totalAmountCollected,
         shipperId,
         deliveredAt: status === 'delivered' ? new Date() : null

@@ -67,7 +67,6 @@ useEffect(() => {
         proofImages: selectedImages,
         actualRecipient: order?.recipientName,
         actualRecipientPhone: order?.recipientPhone,
-        codCollected: values.codCollected ? Number(values.codCollected) : undefined,
         totalAmountCollected: values.totalAmountCollected ? Number(values.totalAmountCollected) : undefined,
         shipperId: JSON.parse(localStorage.getItem('user') || '{}').id
       });
@@ -256,30 +255,6 @@ useEffect(() => {
               </Option>
             </Select>
           </Form.Item>
-
-          {order.codAmount > 0 && selectedStatus === 'delivered' && (
-            <Form.Item
-              name="codCollected"
-              label="Số tiền COD đã thu"
-              rules={[
-                { required: true, message: 'Vui lòng nhập số tiền COD đã thu' },
-                {
-                  validator: (_, value) => {
-                    if (value && Number(value) !== order.codAmount) {
-                      return Promise.reject(new Error(`Số tiền COD phải bằng ${order.codAmount.toLocaleString()}đ`));
-                    }
-                    return Promise.resolve();
-                  }
-                }
-              ]}
-            >
-              <Input
-                type="number"
-                placeholder={`Nhập số tiền COD đã thu (${order.codAmount.toLocaleString()}đ)`}
-                suffix="đ"
-              />
-            </Form.Item>
-          )}
           
           {selectedStatus === 'delivered' && (
             <Form.Item
