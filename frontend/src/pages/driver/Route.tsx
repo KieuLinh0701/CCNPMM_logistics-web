@@ -379,8 +379,7 @@ const DriverRoute: React.FC = () => {
                       width: '30px', 
                       height: '30px', 
                       borderRadius: '50%', 
-                      backgroundColor: stop.status === 'completed' ? '#52c41a' : 
-                                     stop.status === 'in_progress' ? '#1890ff' : '#d9d9d9',
+                      backgroundColor: '#1890ff',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',

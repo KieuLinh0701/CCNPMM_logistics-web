@@ -14,6 +14,7 @@ import OrderInfo from "./components/OrderInfo";
 import OrderProducts from "./components/ProductsInfo";
 import OrderPayment from "./components/PaymentInfo";
 import OrderActions from "./components/Actions";
+import FeedbackCard from "./components/FeedbackCard";
 import { styles } from "../style/Order.styles";
 import { userInfo } from "os";
 import { useAppSelector } from "../../../../hooks/redux";
@@ -201,7 +202,10 @@ const OrderDetail: React.FC = () => {
             />
             <OrderInfo order={order} />
             <OrderProducts products={order.orderProducts || []} />
-            <OrderHistoryCard histories={order.histories} />
+            <div style={{ marginBottom: 30 }}>
+              <OrderHistoryCard histories={order.histories} />
+            </div>
+            <FeedbackCard orderId={order.id} orderStatus={order.status} />
             <OrderPayment order={order} totalServiceFee={totalServiceFee} />
             <OrderActions
                 canPublic={canPublic}

@@ -86,6 +86,14 @@ export default (sequelize) => {
         onUpdate: 'CASCADE',
       });
 
+      // Feedback relationship
+      Order.hasOne(models.Feedback, {
+        foreignKey: 'orderId',
+        as: 'feedback',
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+      });
+
       // PaymentSubmission relationship removed due to orderIds JSON field structure
       // Order.hasMany(models.PaymentSubmission, {
       //   foreignKey: 'orderId',

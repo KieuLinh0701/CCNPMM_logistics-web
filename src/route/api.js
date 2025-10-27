@@ -26,6 +26,7 @@ import financialController from "../controllers/financialController.js";
 import exportController from "../controllers/exportController.js";
 import bankAccountController from "../controllers/bankAccountController.js";
 import incidentReportController from "../controllers/incidentReportController.js";
+import feedbackController from "../controllers/feedbackController.js";
 
 let router = express.Router();
 
@@ -370,6 +371,16 @@ let initApiRoutes = (app) => {
     router.delete('/user/accounts/:id', verifyToken, bankAccountController.remove);
     // Đặt mặc định
     router.patch('/user/accounts/:id/default', verifyToken, bankAccountController.setDefault);
+
+    // Feedback Routes
+    router.post('/user/orders/:orderId/feedback', verifyToken, feedbackController.createFeedback);
+    router.put('/user/feedbacks/:feedbackId', verifyToken, feedbackController.updateFeedback);
+    router.get('/user/orders/:orderId/feedback', verifyToken, feedbackController.getFeedbackByOrder);
+    router.get('/user/feedbacks', verifyToken, feedbackController.getUserFeedbacks);
+    router.delete('/user/feedbacks/:feedbackId', verifyToken, feedbackController.deleteFeedback);
+    
+    // Admin Feedback Stats
+    router.get('/admin/feedbacks/stats', verifyToken, requireRole(['admin']), feedbackController.getFeedbackStats);
 
     // Test routes
     router.get('/test', (req, res) => {
